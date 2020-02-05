@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 1.7.  The good-enough? test used in computing square roots will not be very effective for finding the square roots of very small numbers. Also, in real computers, arithmetic operations are almost always performed with limited precision. This makes our test inadequate for very large numbers. Explain these statements, with examples showing how the test fails for small and large numbers. An alternative strategy for implementing good-enough? is to watch how guess changes from one iteration to the next and to stop when the change is a very small fraction of the guess. Design a square-root procedure that uses this kind of end test. Does this work better for small and large numbers?</div><p>  之前给出的 <span class="vsymbol v">good-enough?</span> 过程是去判断现在得到的 <mathjax class="$">$guess^2$</mathjax> 与 <span class="vsymbol v">x</span> 的差值是否小于某个数（示例中这个数为 0.001），如果小于的话现在的 <span class="vsymbol v">guess</span> 就是最终结果。</p><pre class="gist sicp-code"><code>(define (ineffective-sqrt x)
+  (define (sqrt-iter guess x)
+    (if (good-enough? guess x)
+        guess
+        (sqrt-iter (improve guess x)
+                   x)))
+
+  (define (improve guess x)
+    (average guess (/ x guess)))
+
+  (define (average x y)
+    (/ (+ x y) 2))
+
+  (define (good-enough? guess x)
+    (&lt; (abs (- (square guess) x)) 0.001))
+
+  (sqrt-iter 1.0 x))
+</code></pre><p>这个方法的问题在于</p><ul><li><p>对于非常小的数字，比如 <span class="vnumber v">0.000000001</span>，我们可能第一次的 <span class="vsymbol v">guess</span> 就已经符合我们的 <span class="vnumber v">0.001</span> 的差值了，所以没有办法得到精确的值，比如：</p><pre class="gist"><code>1 ]=&gt; (ineffective-sqrt 0.000000000001)
+
+;Value: 3.1250000010656254e-2
+
+1 ]=&gt; (sqrt 0.000000000001)
+
+;Value: .000001
+</code></pre><p> 最后的结果是完全不准确的（<span class="vnumber v">0.003</span> 与 <span class="vnumber v">0.000001</span> 的比较）。</p></li><li>对于非常大的数字，因为计算机的计算本身就是有误差的，导致了计算机本身的误差可能与我们之前设置的 <span class="vnumber v">0.001</span> 的误差没有办法分辩。</li></ul><p>于是我们的新办法是，两次 guess 之间如果“差值的比率”小到一定程度，或者说，两次 guess 差别不大的话，我们就把最后的 guess 作为结果。</p><pre class="gist sicp-code"><code>(define (new-sqrt x)
+  (define (sqrt-iter last-guess guess x)
+    (if (good-enough? last-guess guess)
+        guess
+        (sqrt-iter guess (improve guess x)
+                   x)))
+
+  (define (improve guess x)
+    (average guess (/ x guess)))
+
+  (define (average x y)
+    (/ (+ x y) 2))
+
+  (define (good-enough? last-guess guess)
+    (&lt; (/ (abs (- last-guess guess)) guess) 0.001))
+
+  (sqrt-iter 0 1.0 x))</code></pre><p>再去计算非常小的数字时就不会出现这个问题了：</p><pre class="gist"><code>1 ]=&gt; (new-sqrt 0.000000000001)
+
+;Value: 1.0000001034612418e-6
+
+1 ]=&gt; (sqrt 0.000000000001)
+
+;Value: .000001
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

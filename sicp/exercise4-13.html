@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.13.  Scheme allows us to create new bindings for variables by means of define, but provides no way to get rid of bindings. Implement for the evaluator a special form make-unbound! that removes the binding of a given symbol from the environment in which the make-unbound! expression is evaluated. This problem is not completely specified. For example, should we remove only the binding in the first frame of the environment? Complete the specification and justify any choices you make.</div><p> 在使用 <span class="vsymbol v">make-unbound!</span> 的时候，我们并不只是去第一个 <span class="vsymbol v">frame</span> 中找相关的变量。而应该是“在 env 中，查找最近的一个变量，然后移除这一个变量信息。”</p><p>这意味着，如果第一个 <span class="vsymbol v">frame</span> 找不到的话，到第二个 <span class="vsymbol v">frame</span> 中找，以此类推。</p><pre class="gist sicp-code"><code>(load "6-let.scm")
+(load "11-new-frame.scm") 
+
+(define (install-eval-unbound)
+  (define (remove-var var env)
+    (define (lookup-frame frame prevous-pointer)
+      (cond ((null? frame)
+             (remove-var var (enclosing-environment env)))
+            ((and (eq? var (car (car frame)))
+                  (eq? frame (first-frame env))) ;; the head pointer
+             (set-car! env (cdr frame)))
+            ((eq? var (car (car frame)))
+             (set-cdr! prevous-pointer (cdr frame)))
+            (else
+             (lookup-frame (cdr frame) frame))))
+    (if (eq? env the-empty-environment)
+        (error 'remove-var "MAKE-UNBOUND ERROR--NOT FOUND " var)
+        (lookup-frame (first-frame env) (first-frame env))))
+  (define (eval-unbound exp env)
+    (remove-var (car exp) env))
+
+  (put 'eval 'make-unbound! eval-unbound))
+
+</code></pre><p>最终，使用我们的测试来测试上面的实现是否正确。</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(let ((test-env (setup-environment)))
+  (install-eval-unbound)
+  (install-eval-let)
+  (assert= (eval '(let ((x 1))
+                    (let ((x 2))
+                      (let ((x 3))
+                        (begin
+                          (make-unbound! x)
+                          (+ x 2))))) test-env)
+           4)
+  (assert= (eval '(let ((x 1))
+                    (let ((x 2))
+                      (let ((y x))
+                        (make-unbound! x)
+                        y))) test-env)
+           2)
+  (assert/exn (eval '(let ((x 1))
+                       (make-unbound! x)
+                       (+ x 1)) test-env)
+              "Unbound")
+  ;; TODO: test on define.
+  )</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

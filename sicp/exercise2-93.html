@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.93.  Modify the rational-arithmetic package to use generic operations, but change make-rat so that it does not attempt to reduce fractions to lowest terms. Test your system by calling make-rational on two polynomials to produce a rational function</p><pre class="gist"><code>(define p1 (make-polynomial 'x '((2 1)(0 1))))
+(define p2 (make-polynomial 'x '((3 1)(0 1))))
+(define rf (make-rational p2 p1))
+</code></pre><p> Now add rf to itself, using add. You will observe that this addition procedure does not reduce fractions to lowest terms.</p></div><p> 实现多项式分数，我们只需要把 <span class="vsymbol v">rational-package</span> 修改了即可。</p><pre class="gist sicp-code"><code>(load "91-div-poly.scm")
+
+(define (install-rational-package)
+  ;; internal procedures
+  (define (numer x) (car x))
+  (define (denom x) (cadr x))
+  (define (make-rat n d)
+    (list n d))
+
+  (define (add-rat x y)
+    (make-rat (add (mul (numer x) (denom y))
+                   (mul (numer y) (denom x)))
+              (mul (denom x) (denom y))))
+  (define (sub-rat x y)
+    (make-rat (sub (mul (numer x) (denom y))
+                   (mul (numer y) (denom x)))
+              (mul (denom x) (denom y))))
+  (define (mul-rat x y)
+    (make-rat (mul (numer x) (numer y))
+              (mul (denom x) (denom y))))
+  (define (div-rat x y)
+    (make-rat (mul (numer x) (denom y))
+              (mul (denom x) (numer y))))
+  ; 2. raise rational to complex
+  (define (raise x)
+    (make-complex-from-real-imag (div (numer x)
+                                      (denom x))
+                                 0))
+  (put 'raise 'rational raise)
+  ; end 2.
+  (put '=zero? '(rational)
+       (lambda (x) (equ? (numer x) 0)))  
+
+  ;; interface to rest of the system
+  (define (tag x) (attach-tag 'rational x))
+  (put 'add '(rational rational)
+       (lambda (x y) (tag (add-rat x y))))
+  (put 'sub '(rational rational)
+       (lambda (x y) (tag (sub-rat x y))))
+  (put 'mul '(rational rational)
+       (lambda (x y) (tag (mul-rat x y))))
+  (put 'div '(rational rational)
+       (lambda (x y) (tag (div-rat x y))))
+
+  (put 'make 'rational
+       (lambda (n d) (tag (make-rat n d))))
+  'done)
+
+
+(install-rational-package)
+
+;;; tests begin
+
+(define p1 (make-polynomial 'x '((2 1)(0 1))))
+(define p2 (make-polynomial 'x '((3 1)(0 1))))
+(define rf (make-rational p2 p1))
+
+;(add rf rf)
+;Value 28: (rational (polynomial x (5 2) (3 2) (2 2) (0 2)) (polynomial x (4 1) (2 2) (0 1)))</code></pre><p>使用 <span class="vlong v">add rf rf)</span> 得到如下结果</p><pre class="gist"><code>1 ]=&gt; (add rf rf)
+
+;Value 28: (rational (polynomial x (5 2) (3 2) (2 2) (0 2)) (polynomial x (4 1) (2 2) (0 1)))
+</code></pre><p> 这个结果的来源是使用了分数加法的一般方法而没有进行约分导致的。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.54.  Define a procedure mul-streams, analogous to add-streams, that produces the elementwise product of its two input streams. Use this together with the stream of integers to complete the following definition of the stream whose nth element (counting from 0) is n + 1 factorial:</p><pre class="gist"><code>(define factorials (cons-stream 1 (mul-streams &lt;??&gt; &lt;??&gt;)))
+</code></pre></div><p> 首先我们需要定义 <span class="vsymbol v">mul-streams</span>，其定义与 <span class="vsymbol v">add-stream</span> 一样。具体 <span class="vsymbol v">add-stream</span> 与 <span class="vsymbol v">map-stream</span> 的工作原理分析见 <a href="/sicp/chapter3-5-2.html">3.5.2 无限流</a> 。</p><pre class="gist sicp-code"><code>
+(define (mul-streams s1 s2)
+  (stream-map * s1 s2))
+</code></pre><p>在补全 factorials 的时候，我们只要注意到，第 n 个位置的 <span class="vsymbol v">factorials</span> 值只需要乘以第 <span class="vsymbol v">n+1</span> 个位置的 integers 就可以得到 <span class="vsymbol v">(n+1)!</span> 的结果，就可以写出 factorials 的流的形式。</p><pre class="gist sicp-code"><code>(define factorials
+  (cons-stream 1 (mul-streams (stream-cdr integers) factorials)))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assert= (stream-ref factorials 0) 1) ;1!
+(assert= (stream-ref factorials 1) 2) ;2!
+(assert= (stream-ref factorials 2) 6) ;3!
+(assert= (stream-ref factorials 3) 24) ;4!
+(assert= (stream-ref factorials 4) 120) ;5!
+
+
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

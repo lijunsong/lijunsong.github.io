@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>在进入下一章之前，需要稍微整理一下思路。</p><p>我们的复数系统要提供给用户下面几个操作：</p><p>1. 取出复数的某部分：<span class="vsymbol v">real-part</span>, <span class="vsymbol v">imag-part</span>, <span class="vsymbol v">magnitude</span>, <span class="vsymbol v">angle</span> 2. 对复数的操作：<span class="vsymbol v">add-complex</span>, <span class="vsymbol v">sub-complex</span>, <span class="vsymbol v">mul-complex</span>, <span class="vsymbol v">div-complex</span></p><p>这个复数系统中允许用户用两种表示方法来定义一个复数，一种是极坐标，另一种是直角坐标。在这一节中，我们将两种表示复数的数据都打上标签–极坐标使用 polar 符号，直角坐标的使用 <span class="vsymbol v">retangular</span>。</p><p>打上了标签之后，但凡需要取出某个复数的某一部分，比如 <span class="vsymbol v">real-part</span>，我们就去查看这个复数的类型，然后在 <span class="vsymbol v">real-part</span> 过程中，通过判断类型去调用相应类型的对应的过程。比如这个复数在构造的时候是使用极坐标表示，那么我们的 <span class="vsymbol v">real-part</span> 过程去调用 <span class="vsymbol v">real-part-polar</span> 过程，最后返回这个过程计算之后的结果。</p><p>其他过程如 <span class="vsymbol v">imag-part</span> 等也类似。</p><p>这样设计系统的缺点在于，在 <span class="vsymbol v">real-part</span>，<span class="vsymbol v">imag-part</span>，<span class="vsymbol v">magnitude</span>，<span class="vsymbol v">angle</span> 几个过程中，每一个过程都必须对复数的类型进行判断，进而去调用相应类型的处理过程。如果我们添加了另外 N 种表示方法，那么：</p><ol><li>可能过程名字之间会重复。</li><li>上面的四个过程中的 if 都必须添加相应的类型判断。</li></ol>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

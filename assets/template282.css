@@ -1,0 +1,162 @@
+body {
+   margin-bottom: 8rem;
+}
+
+.figcaption {
+   font-size: 1.2rem;
+}
+
+.left-margin, .right-margin {
+   font-size: 1.2rem;
+   margin: 0.5rem 4rem 0.5rem 4rem;
+   color: #999999;
+}
+
+.right-margin-inline {
+   font-size: 1.2rem;
+   margin: 0.5rem 4rem 0.5rem 4rem;
+   display: block;
+}
+
+.nice-separator {
+    background-image: url("/assets/separator.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 22px;
+    background-size: 130px auto;
+    margin: 5rem 0 5rem 0;
+}
+
+.excerpt-separator {
+    /*background-image: url("/assets/separator.png");*/
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 15px;
+    background-size: 130px auto;
+    margin: 2rem 0 2rem 0;
+}
+
+.heading {
+    margin-bottom: 3rem;
+}
+.heading .date, .heading .tags {
+    color: #AAA;
+}
+.excerpt {font-size: 1.7rem;
+    color: #555;
+}
+.excerpt * {
+    margin-bottom: 0.1rem;
+    margin-top: 0.1rem;
+}
+
+.excerpt-item {
+    margin-bottom: 4rem;
+    color: #AAA;
+    position: relative;
+}
+
+.excerpt-title, .excerpt-title a{
+    font-size: 2rem;
+    text-decoration: none;
+    color: #444;
+}
+
+.excerpt-content {
+    margin-top: 0.5rem;
+    color: #666;
+}
+.excerpt-content * {margin-bottom: 0.1rem;
+    margin-top: 0.1rem;
+}
+
+.excerpt-draft-marker {
+        position: absolute;
+        left: -4rem;
+        top: 3px;
+        border-radius: 5px 5px;
+        padding: 0 0.2rem;
+        background-color: #DDD;
+        color: black;
+}
+
+.quick-notes-banner {
+    margin-bottom: 1rem;
+    font-size: 2rem;
+    color: #444;
+}
+.quick-notes-content, .quick-notes-content a {
+    text-decoration: none;
+    color: #444;
+}
+.quick-notes-list li {
+    list-style: none;
+}
+.quick-notes-date {
+    color: #AAA;
+    margin-right: 1rem;
+}
+
+.cite-article {
+    font-style: italic;
+}
+
+.cite-book {
+    font-style: italic;
+}
+
+.full-width-image {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (min-width: 550px) {
+
+.left-margin {
+    position: absolute;
+    left: 5px;
+    top: auto;
+    width: 13.3333333%; /* two columns */
+    margin: 0px;
+}
+
+.right-margin {
+    position: absolute;
+    right: 5px;
+    top: auto;
+    width: 13.3333333%; /* two columns */
+    margin: 0px;
+}
+
+/* here is another way do it
+.left-margin {
+    float: left;
+    width: 33.3333333%;
+    margin-left: -33.3333%;
+}
+.left-margin figure {
+    margin: 0px;
+}
+*/
+
+.left-margin figure {
+    margin: 0px;
+    margin-left: -50%;
+    width: 150%;
+}
+
+.right-margin-inline {
+    position: absolute;
+    top: auto;
+    right: 0;
+    width: 13.3333333%;
+    display: inline;
+    margin: 0px;
+}
+
+.large-figure {
+    margin-left: -25%;
+    width: 150%;
+}
+
+}

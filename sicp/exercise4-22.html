@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.22.  Extend the evaluator in this section to support the special form let. (See exercise 4.6.)</div><p> 为 analyze 添加 let? 语句：</p><pre class="gist sicp-code"><code>(define (analyze exp)
+  (cond ((self-evaluating? exp) 
+         (analyze-self-evaluating exp))
+        ((quoted? exp) (analyze-quoted exp))
+        ((variable? exp) (analyze-variable exp))
+        ((assignment? exp) (analyze-assignment exp))
+        ((definition? exp) (analyze-definition exp))
+        ((if? exp) (analyze-if exp))
+        ((lambda? exp) (analyze-lambda exp))
+        ((begin? exp) (analyze-sequence (begin-actions exp)))
+        ((cond? exp) (analyze (cond-&gt;if exp)))
+
+        ((let? exp) (analyze-let exp))
+
+        ((application? exp) (analyze-application exp))
+        (else
+         (error "Unknown expression type -- ANALYZE" exp))))</code></pre><p>在具体分析的时候，我们基本可以完全照搬 <a href="/sicp/exercise4-6.html">练习 4.6</a> 的 let 的转换语句把 let 转化为 lambda 的表达式。我们在这里，最终也只是要调用 analyze 去分析这个 lambda 的表达式而已。</p><pre class="gist sicp-code"><code>(define (let? exp)
+  (tagged-list? exp 'let))
+
+(define (let-bindings exp)
+  (cadr exp))
+
+(define (let-body exp)
+  (cddr exp))
+
+(define (let-vars bindings)
+  (map (lambda (x) (car x)) bindings))
+
+(define (let-vals bindings)
+  (map (lambda (x) (cadr x)) bindings))
+
+(define (let-&gt;combination exp)
+  (cons (make-lambda (let-vars (let-bindings exp))
+                     (let-body exp))
+        (let-vals (let-bindings exp))))
+
+(define (analyze-let exp)
+  (dp "analyze-let: " exp)
+  (analyze (let-&gt;combination exp)))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

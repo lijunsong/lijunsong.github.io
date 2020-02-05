@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.69.  The following procedure takes as its argument a list of symbol-frequency pairs (where no symbol appears in more than one pair) and generates a Huffman encoding tree according to the Huffman algorithm.</p><pre class="gist"><code>(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+</code></pre><p> Make-leaf-set is the procedure given above that transforms the list of pairs into an ordered set of leaves. Successive-merge is the procedure you must write, using make-code-tree to successively merge the smallest-weight elements of the set until there is only one element left, which is the desired Huffman tree. (This procedure is slightly tricky, but not really complicated. If you find yourself designing a complex procedure, then you are almost certainly doing something wrong. You can take significant advantage of the fact that we are using an ordered set representation.)</p></div><p> 创造 huffman 树的确是个复杂的过程，因为这个过程需要不断地涉及到排序–需要不断地去判断最小 weight 的两个点，然后归并两个点。</p><p>但我们这里的过程因为一个东西得到了简化，那就是可以处理不同类型的 <span class="vsymbol v">adjoin-set</span>。因为 <span class="vsymbol v">adjoin-set</span> 使用的 weight 是可以计算叶子节点或者是树节点的权重的，所以对叶子节点与合并之后的树节点，adjoin-set 都可以进行插入排序。</p><p>所以，我们的 <span class="vsymbol v">successive-merge</span> 的参数只是一堆有序的 pair 而已，至于其中的某个元素 pair 是不是 leaf 我们就不用担心了，无论是不是 leaf，我们只取出 <span class="vsymbol v">pairs</span> 中的第一个，和第二个，用 <span class="vsymbol v">make-code-tree</span> 进行合并，合并之后的点使用 adjoin-set 放入到 pairs 第二个元素之后的一堆 <span class="vsymbol v">pairs</span> 中（这时候依然是有序的），然后对这个 <span class="vsymbol v">pairs</span> 进行下一次 <span class="vsymbol v">successive-merge</span>，最终当 <span class="vsymbol v">pairs</span> 只有一个元素的时候，这个元素就是最终的 huffman 树。</p><pre class="gist sicp-code"><code>(load "huffman-tree.scm")
+
+(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+
+(define (successive-merge pairs)
+  (if (null? (cdr pairs))
+      (car pairs)
+      (successive-merge
+       (adjoin-set (make-code-tree (car pairs)
+                                   (cadr pairs))
+                   (cddr pairs)))))
+
+
+;; (generate-huffman-tree '((A 8) (B 3) (C 1) (D 1) (E 1) (F 1) (G 1) (H 1)))
+;; =&gt;
+;; ((leaf a 8)
+;;  ((((leaf h 1)
+;;     (leaf g 1) (h g) 2)
+;;    ((leaf f 1)
+;;     (leaf e 1) (f e) 2) (h g f e) 4)
+;;   (((leaf d 1) (leaf c 1) (d c) 2)
+;;    (leaf b 3) (d c b) 5) (h g f e d c b) 9)
+;;  (a h g f e d c b) 17)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

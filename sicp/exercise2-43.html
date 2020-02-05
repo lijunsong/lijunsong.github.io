@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.43.  Louis Reasoner is having a terrible time doing exercise 2.42. His queens procedure seems to work, but it runs extremely slowly. (Louis never does manage to wait long enough for it to solve even the 6× 6 case.) When Louis asks Eva Lu Ator for help, she points out that he has interchanged the order of the nested mappings in the flatmap, writing it as</p><pre class="gist"><code>(flatmap
+ (lambda (new-row)
+   (map (lambda (rest-of-queens)
+          (adjoin-position new-row k rest-of-queens))
+        (queen-cols (- k 1))))
+ (enumerate-interval 1 board-size))
+</code></pre><p> Explain why this interchange makes the program run slowly. Estimate how long it will take Louis’s program to solve the eight-queens puzzle, assuming that the program in exercise 2.42 solves the puzzle in time T.</p></div><p> 这个效率低下的整个过程如下：</p><pre class="gist"><code>(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) (safe? k positions))
+         (flatmap
+          (lambda (new-row)
+            (map (lambda (rest-of-queens)
+                   (adjoin-position new-row k rest-of-queens))
+                 (queen-cols (- k 1))))
+          (enumerate-interval 1 board-size)))))
+  (queen-cols board-size))
+</code></pre><p> 我们可以倒着，从 <span class="vlong v">k = 1</span> 的时候开始分析。</p><p>当 <span class="vlong v">k = 1</span> 的时候，<span class="vsymbol v">flatmap</span> 去执行的过程 <span class="vlong v">(lambda (new-row)..)</span> 会被调用 <span class="vsymbol v">board-size</span> 次。 其中的每一次将会去调用 <span class="vlong v">(lambda (rest-of-queens)..)</span> 这个过程 <span class="vlong v">(queen-cols (- k 1))</span> 次。</p><p>正确的调用过程，<span class="vsymbol v">queen-cols</span> 总共仅被调用 8 次而已。但在这个效率不高的过程里，当 <span class="vsymbol v">board-size</span> 为 8 ， <span class="vlong v">k = 1</span> 的时候，<span class="vlong v">(queen-cols 0)</span> 被调用了 8 次。<span class="vlong v">k = 2</span> 的时候，<span class="vlong v">(queen-cols 1)</span> 被调用了 8 次，<span class="vlong v">(queens-cols 0)</span> 被调用了 64 次。以此类推，<span class="vlong v">k = 8</span> 的时候，</p><ul><li><span class="vlong v">(queen-cols 7)</span> 被调用了 8 次</li><li><span class="vlong v">(queen-cols 6)</span> 被调用了 64 次</li><li><span class="vlong v">(queen-cols 5)</span> 被调用 <mathjax class="$">$8^3$</mathjax> 次</li><li>可以知道，<span class="vlong v">(queen-cols n)</span> 会被调用 <mathjax class="$">$8^{8-n}$</mathjax> 次</li></ul><p>如果以前正确的过程需要时间 T，那么现在的过程则需要时间：</p><p><mathjax class="$$">$$\frac{8^1+8^2+8^3+8^4+8^5+8^6+8^7+8^8}{8} \times T = 2396741 \times T$$</mathjax></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

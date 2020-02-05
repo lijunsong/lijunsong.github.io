@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.87.  Install =zero? for polynomials in the generic arithmetic package. This will allow adjoin-term to work for polynomials with coefficients that are themselves polynomials.</div><p> 实现了 =zero? 之后，我们就能对系数也是多项式的多项式进行加减了。</p><p>建立在 <a href="/sicp/exercise2-84.html">练习 2.84</a> 上，我们实现一个判断一个多项式是否为 0 的过程：</p><pre class="gist sicp-code"><code>  (define (zero-polynomial? p)
+    (define (zero-terms? ts)
+      (cond ((empty-termlist? ts) true)
+            ((=zero? (coeff (first-term ts)))
+             (zero-terms? (rest-terms ts)))
+            (else false)))
+    (zero-terms? (term-list p)))</code></pre><p>然后使用 put 把写好的 <span class="vsymbol v">zero-polynomial?</span> 过程加到 <span class="vsymbol v">=zero?</span> 里面。</p><p>下面是测试：</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(asserttrue (=zero? (make-polynomial 'x '((100 0) (2 0) (0 0)))))
+
+(asserteq? false (=zero? (make-polynomial 'x '((100 0) (2 0) (0 1)))))
+
+(assertequal? (add (make-polynomial 'x '((100 1) (2 2) (0 1)))
+                   (make-polynomial 'x '((100 1) (2 2) (0 1))))
+              (make-polynomial 'x '((100 2) (2 4) (0 2))))
+
+; mul requires the raise (or drop) implemented in 2.84 or 2.85.
+
+;; (mul (make-polynomial 'x
+;;                       (list (list 2 3)
+;;                             (list 1 (make-complex-from-real-imag 2 3))
+;;                             (list 0 7)))
+;;      (make-polynomial 'x
+;;                       (list (list 4 1)
+;;                             (list 2 (make-rational 2 3))
+;;                             (list 0 (make-complex-from-real-imag 5 3)))))
+
+; [(y^3+4)x^2 + (y+3)x] + [(2y^3 + 5)x^2]
+; = [(3y^3+9)x^2 + (y+3)x + 1
+(assertequal? (add (make-polynomial
+                    'x
+                    (list (list 2 (make-polynomial 'y '((3 1) (0 4))))
+                          (list 1 (make-polynomial 'y '((1 1) (0 3))))))
+                   (make-polynomial
+                    'x
+                    (list (list 2 (make-polynomial 'y '((3 2) (0 5)))))))
+              (make-polynomial
+               'x
+               (list (list 2 (make-polynomial 'y '((3 3) (0 9))))
+                     (list 1 (make-polynomial 'y '((1 1) (0 3)))))))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

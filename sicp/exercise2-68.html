@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.68.  The encode procedure takes as arguments a message and a tree and produces the list of bits that gives the encoded message.</p><pre class="gist"><code>(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+</code></pre><p> Encode-symbol is a procedure, which you must write, that returns the list of bits that encodes a given symbol according to a given tree. You should design encode-symbol so that it signals an error if the symbol is not in the tree at all. Test your procedure by encoding the result you obtained in exercise 2.67 with the sample tree and seeing whether it is the same as the original sample message.</p></div><p> <span class="vsymbol v">encode-symbol</span> 将会去对一个字符进行编码。按照一棵树，路径往左则编码前缀 0，往右则是 1。</p><p>因为我们的选择函数 symbols 能够分辨出这棵树到底是 leaf 还是不是，所以我们可以统一地使用 symbols 来求一个节点往下的所有节点的字符集合。借用这个集合，我们可以知道当前节点处应该使用 0 还 1（往左还是往右）。</p><pre class="gist sicp-code"><code>;;; decide the branch
+(define (encoding sym tree)
+  (if (not (element-of-set? sym (symbols tree)))
+      (error 'encode-symbol "symbol NOT FOUND" sym " in " tree)
+      (let ((left (left-branch tree))
+            (right (right-branch tree)))
+        (if (element-of-set? sym (symbols left))
+            0
+            1))))
+</code></pre><p>有了这个过程，我们就可以在 <span class="vsymbol v">encode-symbol</span> 中判断路径了。</p><pre class="gist sicp-code"><code>;;; recursively encode the symbol
+(define (encode-symbol sym tree)
+  (if (leaf? tree)
+      '()
+      (let ((code (encoding sym tree)))
+        (if (= code 1)
+            (cons code
+                  (encode-symbol sym
+                                 (right-branch tree)))
+            (cons code
+                  (encode-symbol sym
+                                 (left-branch tree)))))))
+;;; 2. 
+;;; decide the branch
+(define (encoding sym tree)
+  (if (not (element-of-set? sym (symbols tree)))
+      (error 'encode-symbol "symbol NOT FOUND" sym " in " tree)
+      (let ((left (left-branch tree))
+            (right (right-branch tree)))
+        (if (element-of-set? sym (symbols left))
+            0
+            1))))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assertequal? (encode '(a d a b b c a) sample-tree)
+              sample-message)
+
+(assert/exn (encode '(a e a) sample-tree) "NOT FOUND")</code></pre><p>最后是测试：</p><pre class="gist sicp-code"><code>(load "huffman-tree.scm")
+
+(load "67-decode-sample.scm")
+
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((eq? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+;;; 1.
+;;; recursively encode the symbol
+(define (encode-symbol sym tree)
+  (if (leaf? tree)
+      '()
+      (let ((code (encoding sym tree)))
+        (if (= code 1)
+            (cons code
+                  (encode-symbol sym
+                                 (right-branch tree)))
+            (cons code
+                  (encode-symbol sym
+                                 (left-branch tree)))))))
+;;; 2. 
+;;; decide the branch
+(define (encoding sym tree)
+  (if (not (element-of-set? sym (symbols tree)))
+      (error 'encode-symbol "symbol NOT FOUND" sym " in " tree)
+      (let ((left (left-branch tree))
+            (right (right-branch tree)))
+        (if (element-of-set? sym (symbols left))
+            0
+            1))))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>a.  The sum procedure is only the simplest of a vast number of similar abstractions that can be captured as higher-order procedures.51 Write an analogous procedure called product that returns the product of the values of a function at points over a given range. Show how to define factorial in terms of product. Also use product to compute approximations to  using the formula52</p><p><mathjax class="$$">$$\frac{\pi}{4}=\frac{2 \cdot 4 \cdot 4 \cdot 6 \cdot 6 \cdot 8 \dots}{ 3 \cdot 3 \cdot 5 \cdot 5 \cdot 7 \cdot 7 \dots}
+$$</mathjax> b.  If your product procedure generates a recursive process, write one that generates an iterative process. If it generates an iterative process, write one that generates a recursive process.</p></div><p> </p><h3 class="section" id="secsecff9cf9059893c00a2521ab6b294a40a7">product 过程</h3><p>product 过程与 sum 过程是非常类似的。</p><pre class="gist sicp-code"><code>(define (product term a next b)
+  (if (&gt; a b)
+      1
+      (* (term a)
+         (product term (next a) next b))))
+
+;; product tests begin
+(load "../testframe.scm")
+(assert= (product (lambda (x) x)
+                  1
+                  (lambda (x) (+ 1 x))
+                  10)
+         (* 2 3 4 5 6 7 8 9 10))
+</code></pre><p>并且可以猜想这样的类似过程应该再抽象一次，于是有了 <a href="/sicp/exercise1-32.html">练习 1.32</a>.</p><h3 class="section" id="secsec632538c079e3d55f3d8cd8a283dd8287">Wallis Product</h3><p>题目中的</p><p><mathjax class="$$">$$\frac{\pi}{4}=\frac{2 \cdot 4 \cdot 4 \cdot 6 \cdot 6 \cdot 8 \dots}{ 3 \cdot 3 \cdot 5 \cdot 5 \cdot 7 \cdot 7 \dots}
+$$</mathjax> 写为</p><p><mathjax class="$$">$$\frac{\pi}{2}=\frac{2}{1} \cdot \frac{2}{3} \cdot \frac{4}{3} \cdot \frac{4}{5} \cdot \frac{6}{5} \dots
+$$</mathjax> 于是，我们定义一个过程 f，它以代表第 n 项的 n 为参数，并返回第 n 项的数值。在 product 中的 next 过程即对当前处理的项目 k 不断加 1。</p><pre class="gist sicp-code"><code>(define (factorial n)
+  (define (identity x) x)
+  (define (inc x) (+ 1 x))
+  (product identity 1 inc n))
+
+;; 1. tests begin
+
+(assert= (factorial 1) 1)
+(assert= (factorial 4) 24)
+
+;;; 2. get pi from the wallis-product
+(define (wallis-product n)
+  (define (f item)
+    (cond ((even? item) (/ item (+ item 1)))
+          (else (/ (+ item 1) item))))
+  (define (inc x)
+    (+ x 1))
+  (* 2.0 (product f 1 inc n)))
+
+;;; spot the result
+(wallis-product 10) ;Value: 3.002175954556907
+(wallis-product 100) ;Value: 3.1260789002154112
+(wallis-product 1000) ;Value: 3.1400238186005973
+(wallis-product 10000) ;Value: 3.1414355935899083
+</code></pre><h3 class="section" id="secsec526298b316fc4599a77a919fd1c02971">迭代式的 product</h3><p>依然可以参照 sum 的迭代式写出 product 的迭代过程：</p><pre class="gist sicp-code"><code>(define (product/iter item a next b)
+  (define (iter c result)
+    (if (&gt; c b)
+        result
+        (iter (next c)
+              (* result (item c)))))
+  (iter a 1))
+
+
+(assert= (factorial/testing 4) 24)
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

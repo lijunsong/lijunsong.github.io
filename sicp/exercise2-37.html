@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.37.  Suppose we represent vectors v = (vi) as sequences of numbers, and matrices m = (mij) as sequences of vectors (the rows of the matrix). For example, the matrix</p><p>   is represented as the sequence ((1 2 3 4) (4 5 6 6) (6 7 8 9)). With this representation, we can use sequence operations to concisely express the basic matrix and vector operations. These operations (which are described in any book on matrix algebra) are the following:</p><p>   We can define the dot product as17</p><pre class="gist"><code>(define (dot-product v w)
+  (accumulate + 0 (map * v w)))
+</code></pre><p> Fill in the missing expressions in the following procedures for computing the other matrix operations. (The procedure accumulate-n is defined in exercise 2.36.)</p><pre class="gist"><code>(define (matrix-*-vector m v)
+  (map &lt;??&gt; m))
+(define (transpose mat)
+  (accumulate-n &lt;??&gt; &lt;??&gt; mat))
+(define (matrix-*-matrix m n)
+  (let ((cols (transpose n)))
+    (map &lt;??&gt; m)))
+
+</code></pre></div><p> </p><h3 class="section" id="secsec6568ef82109465247a66ff65e1cf40e0">矩阵操作回顾</h3><p>这里可以回顾一下矩阵的几个操作。</p><h4 class="subsection" id="subsecsubsec8680f18af921cc5978714eda0a514b9c">dot product</h4><p>dot product 只作用在两个向量之间</p><p><mathjax class="$$">$$\left(a_1, a_2, \dots, a_n\right) \cdot \left(b_1, b_2, \dots, b_n\right) = a_1b_1 + a_2b_2 + \dots + a_nb_n
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec35f3a1e172d0293ff0e1ed6b8bd2ce65">矩阵*向量</h4><p>矩阵是 N 行 M 列矩阵，则该向量必须是一个 M 维的向量（M 列向量）。</p><p><mathjax class="$$">$$\left[\begin{matrix} a &amp; b \\ c &amp; d \end{matrix} \right] \left(x, y\right) \mbox{=} \left(ax+by, cx+dy \right)
+$$</mathjax> 注意，向量 * 矩阵（向量左乘矩阵），我们应当使用矩阵 * 矩阵来操作。</p><p><mathjax class="$$">$$\left(x, y\right) \left[\begin{matrix} a &amp; b \\ c &amp; d \end{matrix} \right] \mbox{=} \left(ax+cy, bx+dy \right)
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec96fea491b3148a20f393bc6bd25a86ae">矩阵*矩阵</h4><p>矩阵 A 是 N 行 M 列，矩阵 B 必须是 M 行，列数任意。</p><p><mathjax class="$$">$$\left[\begin{matrix} a &amp; b \\ c &amp; d \end{matrix} \right] \left[\begin{matrix} 1 &amp; 2 \\ 3 &amp; 4 \end{matrix} \right] \mbox{=} \left[\begin{matrix}a+3b &amp; 2a+4b \\ c+3d &amp; 2c+4d \end{matrix} \right]
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec1d0a9bc590b2ab4439e50c511c4c92a0">矩阵转置</h4><p>只需要 (i, j) 位置的变为 (j, i) 位置就可以。</p><p><mathjax class="$$">$$\left[\begin{matrix} 1 &amp; 2 &amp; 3 \\ 4 &amp; 5 &amp; 6 \\ 7 &amp; 8 &amp; 9 \end{matrix}\right] \rightarrow \left[\begin{matrix} 1 &amp; 4 &amp; 7 \\ 2 &amp; 5 &amp; 8 \\ 3 &amp; 6 &amp; 9 \end{matrix}\right]
+$$</mathjax> </p><h3 class="section" id="secsec132579ef896abc71392e1533588ffc3a">程序</h3><h4 class="subsection" id="subsecsubsecddf4be8ec9ab9e1a8dda4f24f5586ae1"><span class="vsymbol v">matrix-*-vector</span></h4><p>这个过程即对 matrix 中的每一行和 vector 进行点乘</p><pre class="gist sicp-code"><code>(define (matrix-*-vector m v)
+  (map (lambda (row)
+         (dot-product row v))
+       m))
+</code></pre><h4 class="subsection" id="subsecsubsec554749a4b602c14a3331e901e919dd41">transpose</h4><p>使用 <span class="vsymbol v">accumulate-n</span> 即可以对每一行的第 n 个数进行一组操作，所以可以如下写：</p><pre class="gist sicp-code"><code>(load "36-accumulate-n.scm")
+(define (transpose mat)
+  (accumulate-n cons '() mat))
+</code></pre><h4 class="subsection" id="subsecsubsec1a2327598ef79836772047d1bec3fca0"><span class="vsymbol v">matrix-*-matrix</span></h4><p>我们可以对后面一个矩阵作一次转置，然后使用 map 对第一个矩阵与转置之后的第二个矩阵进行每一行点乘。</p><pre class="gist sicp-code"><code>(define (matrix-*-matrix m n)
+  (let ((cols (transpose n)))
+    (map (lambda (m-row)
+           (map (lambda (n-col)
+                  (dot-product m-row n-col))
+                cols))
+         m)))
+</code></pre><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><pre class="gist sicp-code"><code>(load "../testframe.scm")
+(assertequal? (dot-product '(1 2 3) '(4 5 6))
+              (+ 4 10 18))
+(assertequal? (transpose '((1 2 3) (4 5 6) (7 8 9)))
+              '((1 4 7) (2 5 8) (3 6 9)))
+(assertequal? (matrix-*-vector '((1 2 3)
+                                 (4 5 6))
+                               '(7 8 9))
+              '(50 122))
+(assertequal? (matrix-*-matrix '((1 2)
+                                 (3 4)
+                                 (5 6))
+                               '((7 9)
+                                 (8 10)))
+              '((23 29)
+                (53 67)
+                (83 105)))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

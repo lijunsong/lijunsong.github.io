@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.16.  Ben Bitdiddle decides to write a procedure to count the number of pairs in any list structure. ‘‘It’s easy,‘’ he reasons. ‘‘The number of pairs in any structure is the number in the car plus the number in the cdr plus one more to count the current pair.‘’ So Ben writes the following procedure:</p><pre class="gist"><code>(define (count-pairs x)
+  (if (not (pair? x))
+      0
+      (+ (count-pairs (car x))
+         (count-pairs (cdr x))
+         1)))
+</code></pre><p> Show that this procedure is not correct. In particular, draw box-and-pointer diagrams representing list structures made up of exactly three pairs for which Ben’s procedure would return 3; return 4; return 7; never return at all.</p></div><p> 下面的情况是能产生正确结果的：</p><pre class="gist"><code>x      +---+---+      +---+---+      +---+---+
+------&gt;|   |   +-----&gt;|   |   +-----&gt;|   | / |
+       +-+-+---+      +-+-+---+      +-+-+---+
+         |              |              |
+         |              |              |
+         v              v              v
+       +---+          +---+          +---+
+       | 1 |          | 2 |          | 3 |
+       +---+          +---+          +---+</code></pre><p>一旦更改过列表的前后指针之后，这个过程就产生错误的结果。</p><p>会错误计算为 4 的例子：</p><pre class="gist"><code>x        +---+---+        +---+---+
+--------&gt;|   |   +-------&gt;|   | / |
+         +-+-+---+        +-+-+---+
+           |                |
+           |                |
+           v                |
+         +---+---+          |
+         |   | / |&lt;---------+
+         +-+-+---+
+           |
+           |
+           v
+         +---+
+         | 1 |
+         +---+</code></pre><p>会计算成 5 的例子：</p><pre class="gist"><code>x        +---+---+        +---+---+
+--------&gt;|   |   +-------&gt;|   |   |
+         +-+-+---+        +-+-+-+-+
+           |                |   |
+           |                |   |
+           v                |   |
+         +---+---+          |   |
+         |   | / |&lt;---------+---+
+         +-+-+---+
+           |
+           |
+           v
+         +---+
+         | 1 |
+         +---+</code></pre><p>会计算成 7 的例子：</p><pre class="gist"><code>+---+---+
+|   |   |
++-+-+-+-+
+  |   |
+  v   v
++---+---+
+|   |   |
++-+-+-+-+
+  |   |
+  v   v
++---+---+
+|   |   |
++-+-+---+
+  |
+  |
+  v
++---+
+| 1 |
++---+
+</code></pre><p>下面是代码与测试用例</p><pre class="gist sicp-code"><code>(define (count-pairs x)
+  (if (not (pair? x))
+      0
+      (+ (count-pairs (car x))
+         (count-pairs (cdr x))
+         1)))
+
+(define count3 (list 1 2 3))
+
+(define count4
+  (let ((pairs (list 1 2 3)))
+    (begin
+      (set-car! pairs (cddr pairs))
+      pairs)))
+
+(define count5
+  (let ((pairs (list 1 2 3)))
+    (begin
+      (set-car! pairs (cddr pairs))
+      (set-car! (cdr pairs) (cddr pairs))
+      pairs)))
+
+(define count7
+  (let ((pairs (list 1 2 3)))
+    (begin
+      (set-car! pairs (cdr pairs))
+      (set-car! (cdr pairs) (cddr pairs))
+      pairs)))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assert= (count-pairs count3) 3)
+(assert= (count-pairs count4) 4)
+(assert= (count-pairs count5) 5)
+(assert= (count-pairs count7) 7)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

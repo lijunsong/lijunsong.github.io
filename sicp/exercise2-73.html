@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.73.  Section 2.3.2 described a program that performs symbolic differentiation:</p><pre class="gist"><code>(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+           (make-product (multiplier exp)
+                         (deriv (multiplicand exp) var))
+           (make-product (deriv (multiplier exp) var)
+                         (multiplicand exp))))
+        &lt;more rules can be added here&gt;
+        (else (error "unknown expression type -- DERIV" exp))))
+</code></pre><p> We can regard this program as performing a dispatch on the type of the expression to be differentiated. In this situation the ‘‘type tag’’ of the datum is the algebraic operator symbol (such as +) and the operation being performed is deriv. We can transform this program into data-directed style by rewriting the basic derivative procedure as</p><pre class="gist"><code>(define (deriv exp var)
+   (cond ((number? exp) 0)
+         ((variable? exp) (if (same-variable? exp var) 1 0))
+         (else ((get 'deriv (operator exp)) (operands exp)
+                                            var))))
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+</code></pre><p> a.  Explain what was done above. Why can’t we assimilate the predicates number? and same-variable? into the data-directed dispatch?</p><p>   b.  Write the procedures for derivatives of sums and products, and the auxiliary code required to install them in the table used by the program above.</p><p>   c.  Choose any additional differentiation rule that you like, such as the one for exponents (exercise 2.56), and install it in this data-directed system.</p><p>   d.  In this simple algebraic manipulator the type of an expression is the algebraic operator that binds it together. Suppose, however, we indexed the procedures in the opposite way, so that the dispatch line in deriv looked like</p><pre class="gist"><code>((get (operator exp) 'deriv) (operands exp) var)
+</code></pre><p> What corresponding changes to the derivative system are required?</p></div><p> </p><h3 class="section" id="secsec8d458d8650af3595146fadaf3d3ac31b">解释</h3><pre class="gist"><code>(define (deriv exp var)
+   (cond ((number? exp) 0)
+         ((variable? exp) (if (same-variable? exp var) 1 0))
+         (else ((get 'deriv (operator exp)) (operands exp)
+                                            var))))
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+</code></pre><p> 这一段代码已经完成了数据导向的设计的主要框架。举例来说，当我们调用 <code>(deriv '(+ x 3) 'x)</code> 的时候，现在的 direv 会：</p><p>1. 从 <code>'(+ x 3)</code> 的式子中取出 operator，即 <code>'+</code>。 2. 在二维表中查找以 derv 为横坐标，+ 为纵坐标位置的过程 3. 把 operands 和 var，即分别为 <span class="vlong v">(x 3)</span> 与 <span class="vsymbol v">x</span> ，传递到上面找到的过程中。</p><p>我们无法把 <span class="vsymbol v">number?</span> 与 <span class="vsymbol v">variable?</span> 这个东西放到表中。这是因为传递到表中的，是 <span class="vlong v">(operator exp)</span>，提取到的过程又将去处理 <span class="vlong v">(operands exp)</span>。传递的这些参数对 <span class="vsymbol v">number?</span> <span class="vsymbol v">variable?</span> <span class="vsymbol v">same-variable?</span> 都是无用的，所以不能放到表中。</p><h3 class="section" id="secsec7e231d1ebe8c2fcb056c21aac70a3827">sum 和 product 的求导过程</h3><p>我们将分别在过程 <span class="vsymbol v">install-sum-package</span> 与 <span class="vsymbol v">install-product-package</span> 两个过程里面写相应的过程并安装到表上。</p><p>在 <span class="vsymbol v">install-sum-package</span> 中，我们主要写对 sum 求导数的过程 <span class="vsymbol v">deriv-sum</span>，这里 <span class="vsymbol v">deriv-sum</span> 得到的参数将与之前系统的不一样–这里的参数已经是经过 deriv 过程剥离 operator 与 operands 后只传递进来的 operands。也就是说，在这个 package 里面，只需要对两个 operands 处理就可以。</p><p>另外一点需要注意的是内部的数据结构的表示。我们有多种选择，把 <span class="vlong v">(+ x 3)</span> 的两个参数 x 和 3 在 package 内部组织为 <span class="vlong v">(list x 3)</span> 或者 <span class="vlong v">(cons x 3)</span>。但当用户输入 <span class="vlong v">(+ x 3)</span> 时，deriv 会将 <code>(operands '(+ x 3))</code> ，即 <span class="vlong v">(list x 3)</span> 传递进来，所以我们就没有办法选用 <span class="vlong v">(cons x 3)</span> 这种的内部表示形式了。</p><p>最后一点要注意的，是将过程安装到表的相应位置。在下面的代码中，各个过程将被安装到以下位置</p><pre class="gist"><code>============ ===========  ===============
+table           '+           '*
+------------ -----------  ---------------
+'deriv         deriv-sum    deriv-product
+'constructor   make-sum     make-product
+============ ===========  ===============</code></pre><p>需要安装 <span class="vsymbol v">make-sum</span> 的原因是在 <span class="vsymbol v">deriv-product</span> 的时候需要用到 <span class="vsymbol v">make-sum</span> 这一过程。</p><pre class="gist sicp-code"><code>(define (install-sum-package)
+  (define (make-sum a1 a2)
+    (cond ((=number? a1 0) a2)
+          ((=number? a2 0) a1)
+          ((and (number? a1) (number? a2)) (+ a1 a2))
+          (else (tag a1 a2))))
+
+  (define (addend s) (car s))
+  (define (augend s) (cadr s))
+
+  (define (deriv-sum exp var)
+    (make-sum (deriv (addend exp) var)
+              (deriv (augend exp) var)))
+
+  ;;put into table
+  (define (tag s1 s2) (tag-operator sum-symbol s1 s2))
+  (put 'deriv sum-symbol deriv-sum)
+  (put 'constructor sum-symbol make-sum))
+
+;; product
+(define (install-product-package)
+  (define (make-product m1 m2)
+    (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+          ((=number? m1 1) m2)
+          ((=number? m2 1) m1)
+          ((and (number? m1) (number? m2)) (* m1 m2))
+          (else (tag m1 m2))))
+
+  (define (multiplier p) (car p))
+
+  (define (multiplicand p)
+    (cadr p))
+
+  (define (deriv-product exp var)
+    ((get 'constructor sum-symbol)
+     (make-product (multiplier exp)
+                   (deriv (multiplicand exp) var))
+     (make-product (deriv (multiplier exp) var)
+                   (multiplicand exp))))
+  ;; rest of the package
+
+  (define (tag m1 m2) (tag-operator product-symbol m1 m2))
+
+  (put 'deriv product-symbol deriv-product)
+  (put 'constructor product-symbol make-product))
+</code></pre><h3 class="section" id="secsecc4afae85b8015b954c6fbb91042ce38c">修改索引方式</h3><p>如果需要修改索引方式，那么所有的 install-package 中 put 的参数都需要进行变更。当然，我们也可以修改 put 过程。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

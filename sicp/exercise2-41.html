@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.41.  Write a procedure to find all ordered triples of distinct positive integers i, j, and k less than or equal to a given integer n that sum to a given integer s.</div><p> 可以分为两个步骤</p><ol><li>生成三元组序列</li><li>过滤这个三元组序列，得到加和的结果为指定 s 的三元组</li></ol><p>这个题的难点在于产生一个不重复的、有序的三元组。在上一题中，我们已经通过两个循环（map）产生出了所有不重复的、有序的二元组。</p><pre class="gist sicp-code" end-line="45" start-line="37"><code>(load "33-accumulate.scm")
+
+(define nil '())
+
+(define (enumerate-interval low high)
+  (if (&gt; low high)
+      nil
+      (cons low (enumerate-interval (+ low 1) high))))
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
+(define (prime? n)
+  (define (divide? a b)
+    (= (remainder a b) 0))
+  (define prime-rec?
+    (let ((maxone (sqrt n)))
+      (lambda (x)
+        (cond ((&gt; x maxone) #t)
+              ((divide? n x) #f)
+              (else (prime-rec? (+ 1 x)))))))
+  (prime-rec? 2))
+
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+
+(define (make-pair-sum pair)
+  (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
+
+(define (prime-sum-pairs n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (flatmap (lambda (i)
+                          (map (lambda (j) (list i j))
+                               (enumerate-interval 1 (- i 1))))
+                        (enumerate-interval 1 n)))))
+
+;;; unique-pairs
+(define (unique-pairs n)
+  (flatmap
+   (lambda (i)
+     (map (lambda (j) (list i j))
+          (enumerate-interval 1 (- i 1))))
+   (enumerate-interval 1 n)))
+
+(define (simplified-prime-sum-pairs n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (unique-pairs n))))</code></pre><p>我们利用三个循环（map）呢？我们有两种方法来产生不重复的且有序的三元组。</p><p>第一种，对 <span class="vlong v">(i, j, k)</span> 中的每一位进行 <span class="vsymbol v">1-n</span> 的遍历，然后去掉重复的元组。</p><pre class="gist sicp-code"><code>(define (unique-triples-1 n)
+  (define (unique-triple? triple)
+    (let ((a (car triple))
+          (b (cadr triple))
+          (c (caddr triple)))
+      (if (or (= a b) (= a c) (= b c))
+          #f
+          #t)))
+  (filter unique-triple?
+          (flatmap
+           (lambda (i)
+             (flatmap (lambda (j)
+                        (map (lambda (k)
+                               (list i j k))
+                             (enumerate-interval 1 n)))
+                      (enumerate-interval 1 n)))
+           (enumerate-interval 1 n))))</code></pre><p>结果为：</p><pre class="gist"><code>(unique-triples-1 4)
+
+;Value 10: ((1 2 3) (1 2 4) (1 3 2) (1 3 4) (1 4 2) (1 4 3) (2 1 3) (2 1 4) (2 3 1) (2 3 4) (2 4 1) (2 4 3) (3 1 2) (3 1 4) (3 2 1) (3 2 4) (3 4 1) (3 4 2) (4 1 2) (4 1 3) (4 2 1) (4 2 3) (4 3 1) (4 3 2))
+</code></pre><p> 第二种方法，规定 <span class="vlong v">(i, j, k)</span> 的大小为 <span class="vlong v">i &lt; j &lt; k</span> ，产生的三元组再通过置换来达到遍历的效果。</p><p>所以第一步中<em>生成三元组序列</em>，应该分为两部分：</p><ol><li>1.1 生成不重复的三元组表</li><li>1.2 对其中的每个三元组进行置换</li></ol><pre class="gist sicp-code"><code>(define (permutations s)
+  (if (null? s)                    ; empty set?
+      (list nil)                   ; sequence containing empty set
+      (flatmap (lambda (x)
+                 (map (lambda (p) (cons x p))
+                      (permutations (remove x s))))
+               s)))
+
+(define (remove item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))
+
+(define (unique-triples-2 n)
+  (flatmap permutations
+           (flatmap (lambda (i) ; generate (i, j, k) so that i &lt; j &lt; k
+                      (flatmap (lambda (k)
+                                 (map (lambda (j)
+                                        (list i j k))
+                                      (enumerate-interval (+ 1 i) (- k 1))))
+                               (enumerate-interval (+ 2 i) n)))
+                    (enumerate-interval 1 n))))</code></pre><p>最后，实现过程 <span class="vsymbol v">ordered-triples-sum</span> 。其中 <span class="vsymbol v">triple-sum</span> 将对一个三元组进行求和，将和放到 <span class="vsymbol v">car</span> 的位置。</p><pre class="gist sicp-code"><code>;;; find all ordered triples of distinct positive integers i, j, and k
+;;; less than or equal to a given integer n that sum to a given
+;;; integer s. 
+(define (ordered-triples-sum n s)
+  (define (triple-sum t)
+    (let ((a (car t))
+          (b (cadr t))
+          (c (caddr t)))
+      (cons (+ a b c) t)))
+  (map (lambda (t-sum) (cdr t-sum))
+       (filter (lambda (x) (= s (car x)))
+               (map triple-sum
+                    (unique-triples-1 n)))))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

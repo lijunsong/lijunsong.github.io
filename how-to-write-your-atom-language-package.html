@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>How to Write Your Atom Language Package</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">How to Write Your Atom Language Package</h1>
+          <div class="date">2018-04-17</div>
+          <div class="tags">atompollen</div>
+        </div>
+        <div class="excerpt"><p>It is easy to write language package in Atom. The lack of official document was the major blocker for me when I wrote the package for Pollen. In this post, I'll cover my process of creating the package for Pollen.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>This post is about <em>handcrafting</em> an atom package to highlight syntax of your language. We’ll walk through the whole process from scratch: creating package template, writing syntax rules, adding snippets for your language, and along the way, we discuss the workflow of developing Atom plugins and a mindset shift of the development in the web world.</p><p>Audience is whoever wants to write Atom packages. This post is mainly about writing syntax rules; It’s easy enough that it doesn’t require much knowledge about Atom.  If you have no idea about selector (jQuery selectors), you will have no difficulty understanding this post, but may struggle on coming posts about writing Atom packages that provide interactive features.</p><h3 class="section" id="secsecd3f2100f017c5b436e892779951ed0aa">A Brief Introduction to Pollen Grammar</h3><p>We’ll work on one simple language called <ref-link>https://docs.racket-lang.org/pollenPollen</ref-link>. Pollen is a DSL for document processing. The main elements of Pollen are</p><ul><li>Pollen files normally have <span class="vsymbol v">pm</span>, <span class="vsymbol v">pp</span>, <span class="vsymbol v">p</span> as extension</li><li>First line always starts with <span class="vlong v">#lang pollen</span>.</li><li>Pollen uses <em>tags</em> to annotate text. Tags all start with <em>command char</em> <span class="vsymbol v">◊</span>.</li><li>A tag may or may not enclose a piece of text. Tag uses braces to enclose text.</li></ul><p>Here is an example:</p><pre class="gist"><code>◊ul{
+  ◊li{First line always starts with ◊v{#lang pollen}.}
+  ◊li{Pollen uses ◊em{tags} to annotate text. Tags all start with ◊em{command char} ◊v|{◊}|.}
+  ◊li{A tag may or may not enclose a piece of text. Tag uses braces to enclose text.}
+}</code></pre><p>Note that</p><ul><li>Tags can be nested</li><li><span class="vsymbol v">{}</span> and <span class="vsymbol v">|{}|</span> and are both used to enclose text</li></ul><h3 class="section" id="secsec45aab0c1cabfede2d5a3f4891a76e37e">Tools and Workflow</h3><p>Atom provides command-line tool <span class="vsymbol v">apm</span> for developers. Before going into details, you should learn what <span class="vsymbol v">apm</span> can do by running</p><pre class="gist"><code>apm --help
+apm help &lt;command&gt;</code></pre><p>In this post, we’ll use <span class="vlong v">apm init</span> to generate a language package for <em>Pollen</em> and then install that package locally (for development).</p><pre class="gist"><code>apm init -l pollen
+cd language-pollen
+apm install --link</code></pre><p>Now everything is in place.</p><p>The workflow is to have two windows open: one for source code editing, the other for visual test on a Pollen file. You reload only the testing window  (Run <span class="vlong v">Window: Reload</span> in Command Palette) when you want the code to take effect. </p><div class="left-margin">Again, remember to <em>reload</em> your Atom.</div><div class="nice-separator"></div><h3 class="section" id="secsecb6d04a107ec701c8d20465534b7bd497">Identify Pollen Source Code</h3><p>Atom manual never mentions this, but Atom uses exacty what Textmates uses for defining language grammars. So the official reference for handcrafting a language package is <ref-link>http://manual.macromates.com/en/language_grammarsat macromates website</ref-link>.</p><p>There are two ways to help Atom identify a language for a newly opened file: file extension and first line patterns.</p><p>Let’s edit <span class="vsymbol v">language-pollen.cson</span> in the <span class="vsymbol v">grammars</span> folder.</p><pre class="gist"><code>name: "Pollen"
+scopeName: "source.pollen"
+fileTypes: [
+  "pm",
+  "pp",
+  "ptree",
+  "p"
+]</code></pre><div class="left-margin"><span class="vsymbol v">scopeName</span> is documented in Atom Flight Manual. All it does is to define css class names that sit at the top and guard all DOMs of the editor. Also see below how we use scopeName for mixing languages</div><p>This configure lets Atom identify Pollen source using file extensions (listed in <span class="vsymbol v">fileTypes</span>). <span class="vsymbol v">scopeName</span> specifies a naming scope to use later. If this is not concrete enough, think of it as C++ <span class="vsymbol v">namespace</span>, Java <span class="vsymbol v">Package</span>. <span class="vsymbol v">scopeName</span> will be useful when we want our other packages to run only under a certain language.</p><p>Now reload our pollen file and see if Atom can identify it as Pollen source (bottom right cornor now is supposed to show “Pollen”).</p><h3 class="section" id="secsecca25e0bf2520db65bf7a38f605033c05">Grammars</h3><p>Now it’s the time to skim the reference.</p><p>From a quick skim, we know there are two language rules (patterns to match language components), and naming conventions. Even though you’ve gotten the official reference, I’d like to show you a few examples in the following subsections to speed up the learning process.</p><h4 class="subsection" id="subsecsubseccee8fc33273924bb1eb8d87439a8a3ed">highlight invalid command char</h4><p>In a pollen program, it’s quite often to have a dangling command char. Which of the two rules is efficient to highlight such command chars? <span class="vsymbol v">match</span> rule! Which name should we give it? If you scroll down the reference, you’ll see that among the 11 names, <span class="vsymbol v">invalid.illegal</span> is what we want.</p><pre class="gist"><code>{
+  match: "◊\\s+"
+  name: "invalid.illegal"
+}</code></pre><h4 class="subsection" id="subsecsubsecd3e8a599b4d14829e60f960fa698a221">highlight command char</h4><pre class="gist"><code>{
+  match: "◊[^\\s\\{\\}\\(\\)\\[\\]#\\|,\"]+"
+  captures: {
+    0: { name: 'entity.name.function.pollen' }
+  }
+}</code></pre><p>Is this good enough? Yes, for now. When we come to writing autocomplete plugin, we’ll revisit the syntax theme again, specifically all the <span class="vsymbol v">name</span>. Names are not just for styling, in JavaScript world, name is also for identification.</p><h4 class="subsection" id="subsecsubsec14abf555b1897a64beea875f47564080">highlight multi-line comments</h4><p>Here are two kinds of multiline comments:</p><pre class="gist"><code>◊;{ multiline comment }
+◊;|{ multiline comment }|</code></pre><p>Which of the two rules are we supposed to use? <span class="vsymbol v">begin-end</span> rule! Because we want to give all lines between the braces the same name. And which name to use? <span class="vsymbol v">comment</span> of course! Here we are</p><pre class="gist"><code>{
+  begin: "◊;\\{"
+  end: "\\}"
+  name: "comment.multiline.pollen"
+}</code></pre><p>If you tested a bit, you will see unbalanced brace matching for the following cases.</p><pre class="gist"><code>◊;{How to highlight ◊em{this} one?}</code></pre><p>The first <span class="vsymbol v">}</span> would close the comment. Here comes to <em>patterns</em>.</p><h4 class="subsection" id="subsecsubsec97ad2e090a072f54b58d563bd2f02d7c">handle nested braces</h4><p>To handle nested braces, we can create a pattern and pointing to itself.</p><pre class="gist"><code>repository:
+  braces:
+    begin: "\\{"
+    end: "\\}"
+    patterns: [
+      { include: "#braces" }
+      { include: "$self" }
+    ]</code></pre><p>And then update the rule to</p><pre class="gist"><code>{
+  begin: "◊;"
+  end: "\\s"
+  patterns: [
+    { include: "#special_brace" }
+    { include: "#braces" }
+  ]
+  name: "comment.multiline.pollen"
+}</code></pre><h4 class="subsection" id="subsecsubseccf68b198d6df4825256ddc575e36004e">Final touch</h4><p>Your package is now fully working. There is some optional work to do if you want.</p><p>In <span class="vsymbol v">settings</span> directory, you can create <span class="vsymbol v">language-xxx.cson</span> file to initialize some options. Pollen is a language for writers, so <span class="vsymbol v">softWrap</span> makes sense</p><pre class="gist"><code>'.source.pollen':
+  'editor':
+    'softWrap': true</code></pre><p>In <span class="vsymbol v">snippets</span> folder, you can create <span class="vsymbol v">language-xxx.cson</span> to include code snippets specifically for your language. Pollen’s command char is not easy to type, so that goes into the following snippets</p><pre class="gist"><code>'.source.pollen':
+  'Command Char':
+    'prefix': '@'
+    'body': '◊$1{}'</code></pre><h3 class="section" id="secsecaf6ae886ee6e50086b6f28036cbc79ed">Discussion</h3><h4 class="subsection" id="subsecsubsec376569b026706a04c0dc3f46254a1ee8"><span class="vsymbol v">$self</span></h4><p>You need to include self here to support nested tags.</p><pre class="gist"><code>repository:
+  braces:
+    begin: "\\{"
+    end: "\\}"
+    patterns: [
+      { include: "#braces" }
+      { include: "$self" }
+    ]</code></pre><h4 class="subsection" id="subsecsubsecb9c25b2755dcee7f166f88321269c106">Mixing language highlights</h4><p>Pollen actually supports racket code if parens are used. For example</p><pre class="gist"><code>◊(require "config/ocaml-internals.rkt")</code></pre><p>Here is a way to highlight the tag and then let the racket package to highlight what’s inside the parens.</p><pre class="gist"><code>{
+  begin: "◊\\("
+  end: "\\)"
+  patterns: [
+    { include: "source.racket" }
+  ]
+}</code></pre><h4 class="subsection" id="subsecsubsecbaee4698618da7522c9ca1f8cc3b9d74">A mindset shift</h4><p>If you haven’t written editor plugins using the web tech, be advised to shift your mindset. Take this example,</p><p>To highlight syntax in <span class="vsymbol v">CodeMirror</span>, you write the tokenizer and parser. You manipulate the parsing state to implement new features like tracking braces, validating the correctness of syntax.</p><p>To highlight syntax in <span class="vsymbol v">Emacs</span>, you write a major mode in Emacs’s framework. You provide your features in the major mode.</p><p>Working with Atom is different. The package for highlighting syntax is different from packages for interactive interface. Therefore, you need at least two Atom packages for the language you care–one for grammar highlighting (also called <em>syntax theme</em>), the other for actual functions.</p><h4 class="subsection" id="subsecsubsecde6fc6d54fc5156e8ae87dd1c14c5308">Problems?</h4><p>This design of language syntax theme is good enough for most languages. However, the fixed parsing rule has problems for Pollen.</p><p>Pollen is a flexible DSL. The command char can be any characters. In this case, it doesn’t make sense to have fixed regexp rules specifying tokens, as tokens are supposed to be constructed dynamically.</p><h3 class="section" id="secsecdb09957ea640c6eefcdf5afcf85afe45">Where to go from here</h3><p>Writing syntax theme doesn’t require much knowledge about how things are working in atom. The language-pollen package is on <ref-link>https://github.com/lijunsong/language-pollengithub</ref-link>. It also handles the special brace case where <span class="vsymbol v">|{}|</span> is used. Go rolling your own language packages in Atom!</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

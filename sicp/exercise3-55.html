@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 3.55.  Define a procedure partial-sums that takes as argument a stream S and returns the stream whose elements are S0, S0 + S1, S0 + S1 + S2, .... For example, (partial-sums integers) should be the stream 1, 3, 6, 10, 15, ....</div><p> 这里的 <span class="vsymbol v">partial-sums</span> 即前 n 项和组成的列表。</p><p>如果我们求 <span class="vlong v">(partial-sums integers)</span> 那么我们得到的列表各项应该为</p><ol><li>integers 的第一项</li><li>partial-sums 的第一项 + integers 的第二项</li><li>partial-sums 的第二项 + integers 的第三项</li><li>以此类推</li></ol><p>所以我们需要把 <span class="vsymbol v">partial-sums</span> 保存下来，以便在求第 n 项的时候，我们可以使用 <span class="vsymbol v">partial-sums</span> 中的第 n - 1 项 + integers 的第 n 项。这与之前的 <span class="vsymbol v">factorials</span> <a href="/sicp/exercise3-54.html">练习 3.54</a> 是一样的。</p><pre class="gist sicp-code"><code>(load "stream.scm")
+(load "50-stream-map.scm")
+(load "integer-stream.scm")
+
+(define (partial-sums s)
+  (define partial (cons-stream (stream-car s)
+                               (add-streams partial (stream-cdr s))))
+  partial)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 3.4.  Modify the make-account procedure of exercise 3.3 by adding another local state variable so that, if an account is accessed more than seven consecutive times with an incorrect password, it invokes the procedure call-the-cops.</div><p> 添加通知警察的机制需要</p><ol><li>另外定义一个过程 <span class="vsymbol v">call-the-cops</span></li><li><span class="vsymbol v">dispatch</span> 需要一个内部变量来记录密码错误的次数</li></ol><pre class="gist sicp-code"><code>(define (make-account balance password)
+  (define (withdraw amount)
+    (if (&gt;= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (define (password-error dummy) "Incorrect password")
+  (define (call-the-cops dummy) "Call the Cops!")
+  (define dispatch
+    (let ((incorrect-pwd 1))
+      (lambda (pwd m)
+        (if (not (eq? pwd password))
+            (begin
+              (if (&gt;= incorrect-pwd 7)
+                  call-the-cops
+                  (begin (set! incorrect-pwd (+ 1 incorrect-pwd))
+                         password-error)))
+            (begin
+              (set! incorrect-pwd 1)
+              (cond ((eq? m 'withdraw) withdraw)
+                    ((eq? m 'deposit) deposit)
+                    (else (error "Unknown request -- MAKE-ACCOUNT"
+                                 m))))))))
+  dispatch)
+
+(define acc (make-account 100 'secret-password))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

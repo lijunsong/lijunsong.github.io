@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.59.  Implement the union-set operation for the unordered-list representation of sets.</div><p> </p><h3 class="section" id="secsec6616681d053ad00af088da473b2a742e">集合的 regression test</h3><p>因为之后需要使用不同的方法来实现集合，我们先写好 regression test 避免之后的错误。下面是我们的 regression test:</p><pre class="gist sicp-code"><code>;; regression test for Set, sicp 2.3.3
+
+(load "../testframe.scm")
+
+; element-of-set?
+(asserttrue (element-of-set? 1 '(1 2 3)))
+
+(asserttrue (element-of-set? 1 '(2 1 3)))
+
+(asserttrue (element-of-set? 1 '(2 3 1)))
+
+; adjoin-set
+(assertequal? (sort (adjoin-set 1 '(2 3 4)) &lt;)
+              '(1 2 3 4))
+
+(assertequal? (sort (adjoin-set 1 '(1 2 3)) &lt;)
+              '(1 2 3))
+
+; intersection-set
+(assertequal? (sort (intersection-set '(1 2 3) '(4 5 6)) &lt;)
+              '())
+
+(assertequal? (sort (intersection-set '(1 2 3) '(2 3 4)) &lt;)
+              '(2 3))
+
+(assertequal? (sort (intersection-set '(1 2 3) '(1 2 3 4)) &lt;)
+              '(1 2 3))
+
+(assertequal? (sort (intersection-set '(1 2 3 4) '(1 2)) &lt;)
+              '(1 2))
+
+; union-set
+(assertequal? (sort (union-set '(1 2 3) '(3 4 5)) &lt;)
+              '(1 2 3 4 5))
+
+(assertequal? (sort (union-set '(1 2 3) '(1 2 3 4)) &lt;)
+              '(1 2 3 4))
+
+(assertequal? (sort (union-set '(1 2 3 4) '(1 2 3)) &lt;)
+              '(1 2 3 4))
+
+(assertequal? (sort (union-set '(1 2 3) '(4 5 6)) &lt;)
+              '(1 2 3 4 5 6))</code></pre><h3 class="section" id="secsec8751ff79db0fb1e091e5a94f32cda66a">求集合的并集</h3><pre class="gist sicp-code"><code>(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+
+(define (adjoin-set x set)
+  (if (element-of-set? x set)
+      set
+      (cons x set)))
+
+(define (intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set? (car set1) set2)
+         (cons (car set1)
+               (intersection-set (cdr set1) set2)))
+        (else (intersection-set (cdr set1) set2))))
+
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((element-of-set? (car set1) set2)
+         (union-set (cdr set1) set2))
+        (else
+         (cons (car set1)
+               (union-set (cdr set1) set2)))))
+
+
+(load "set-regression-tests.scm")
+</code></pre><h3 class="section" id="secsec4df6efe5db4b48a9ffca965f6c6d1cca">high-order one</h3><p>求交集与求并集都只需要在递归时固定查看某一个集合的元素是否在另外一个集中，并做相应操作即可。</p><p>交集：当 <span class="vsymbol v">element-of-set?</span> 为真时，收集该类元素。</p><p>并集：当 <span class="vsymbol v">element-of-set?</span> 为假时，收集该类元素。</p><p>所以我们可以把这两个操作写为高阶函数：</p><pre class="gist sicp-code"><code>(define (intersection-set set1 set2)
+  (filter (lambda (x)
+            (element-of-set? x set2))
+          set1))
+
+(define (union-set set1 set2)
+  (append (filter (lambda (x)
+                    (not (element-of-set? x set2)))
+                  set1)
+          set2))
+
+(load "set-regression-tests.scm")</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

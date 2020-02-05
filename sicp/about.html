@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>本文档来源于我在做 SICP (《Structure and Interpretation of Computer Programs》) 时的各个练习题答案的整理。同时这个文档也提供了部分章节的知识的梳理。</p><p>本文档难免有不正之处，如果有任何意见与建议，欢迎给我邮件。</p><h3 class="section" id="secsec8410d40c4c236a680b975bdbafaf4806">编程语言与工具</h3><p>本文档使用的 Scheme 语言的解释器是 MIT-Scheme。使用 Emacs 来辅助代码的编写。你可以在这里找到一些使用 Emacs 来编写 Scheme 的技巧：</p><ul><li><a href="http://docs.racket-lang.org/guide/Emacs.html" class="link-url">Racket 的 Emacs Guide</a></li><li><a href="http://www.emacswiki.org/emacs/Scheme" class="link-url">EmacsWiki</a></li></ul><h3 class="section" id="secsecde6d5448135636f3684aa39382b2dd9b">测试工具</h3><h4 class="subsection" id="subsecsubsecfe0ea8bb3dc43d07cf6e1f8b3fe0b754">工具简介</h4><p>本文档使用的自己编写的简单的测试工具，在<a href="https://github.com/lijunsong/interpreter/tree/master/sicp" class="link-url">这里</a>可以找到。</p><p>这个测试工具针对 SICP 习题的特点提供了一些便利的功能。在 MIT-Scheme 中，使用者在代码中载入后即可使用以下 assertion：</p><ul><li>asserteq?</li><li>assertequal?</li><li>assert=</li><li>asserttrue</li><li>assertfalse</li><li>assert-output-equal</li><li>assert/exn</li></ul><h4 class="subsection" id="subsecsubsec49917e51a2469b38b6e8d7167159b8f8">使用举例</h4><p>asserteq?, assert=, assertequal? 分别使用 <span class="vsymbol v">eq?</span>, <span class="vsymbol v">=</span>, <span class="vsymbol v">equal?</span> 去断言参数的相等。</p><p>asserttrue，assertfalse 分别断言参数为 true 与断言 false。</p><p>assert-output-equal 可以断言两个参数语句的输出是相等的，例如:</p><pre class="gist"><code>(define (for-each proc lst)
+  (cond ((null? lst) true)
+        (else
+         (begin
+           (proc (car lst))
+           (for-each proc (cdr lst))))))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assert-output-equal
+ (for-each (lambda (x) (newline) (display x))
+           (list 57 321 88))
+ "
+57
+321
+88")</code></pre><p>assert/exn 可以断言参数抛出的异常中一定包含某个字符串，例如：</p><pre class="gist"><code>1 ]=&gt; (load "testframe.scm")
+
+;Loading "testframe.scm"... done
+;Value: testframe-loaded
+
+1 ]=&gt; (define (div a b) (if (= b 0) (error 'div "divided by zero") (/ a b)))
+
+;Value: div
+
+1 ]=&gt; (assert/exn (div 10 0) "divided")
+
+;Unspecified return value</code></pre><h3 class="section" id="secsecde780a78114bf458e803072dae4d4246">关于作者</h3><p>你可以在 https://ttyjournal.com 上看到作者的技术文章。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

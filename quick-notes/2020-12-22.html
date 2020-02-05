@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Haskell M-Word Provides Contexts for Different Recipe System</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Haskell M-Word Provides Contexts for Different Recipe System</h1>
+          <div class="date">2020-12-22</div>
+          <div class="tags">haskell</div>
+        </div>
+
+
+        <div class="content">
+          <div></div><p>The M-word thing clicks today.</p><p>I started to learn Haskell two days ago when I started to rewrite this blog’s publisher automation. I find handling failure cases in <span class="vsymbol v">IO</span> is often challenging. When facing <span class="vlong v">IO (Either a b)</span>, I often find myself don’t know how to do two things:</p><ol><li>Fetch the value wrapped by IO. For example, how to get the <span class="vsymbol v">String</span> from <span class="vlong v">IO (Either String a)</span>? The difficult part is that the inner value of IO is not accessible via pattern match.</li><li>Wrap a value back to IO. For example, I have a <span class="vlong v">Right “output”</span>, how to convert it back to <span class="vlong v">IO (Either a String)</span>?</li></ol><p>Then I come across <a href="https://dr-knz.net/haskell-for-ocaml-programmers.html" class="link-url">Haskell for OCaml Programmers</a>. The section <em>Rolling your own recipe system</em> is extremely useful. The "<em>recipe system</em>" mentioned in the article is extremely similar to Racket macro. The difference is that Haskell can find a “recipe” according to identifiers and context (i.e. types), whereas Racket can find a “recipe” according to identifiers and syntax patterns.</p><p>Take this example: <span class="vsymbol v">IO</span> and <span class="vsymbol v">Either</span> are just <span class="bold">context</span>s, so they both know the recipe "<span class="vsymbol v">&gt;&gt;=</span>" because they implement the same type class. When <span class="vsymbol v">&gt;&gt;=</span> applies to variable <span class="vsymbol v">a</span>, Haskell decides which <span class="vsymbol v">&gt;&gt;=</span> to use (or which “recipe” to use) according to <span class="vsymbol v">a</span>‘s type.</p><p>All of a sudden, the M-word clicks. M-word provides context for computation, so don’t try to unwrap <span class="vsymbol v">IO</span>, just carry it on:</p><ol><li>It depends on two things to fetch the inner value wrapped by a context: if the constructor is accessible (e.g. Either, Maybe), pattern match can get the inner value. If the constructor is not accessible (e.g. IO), you have to carry the context along with the computation.</li><li>To wrap some value into context (or lift the value), we can use <span class="vsymbol v">pure</span>. Every M-word instance defines <span class="vsymbol v">pure</span>.</li></ol>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

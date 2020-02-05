@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>My First Impression of Elixir</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">My First Impression of Elixir</h1>
+          <div class="date">2020-10-12</div>
+          <div class="tags">elixir</div>
+        </div>
+        <div class="excerpt"><p>ErlangVM supports an incredible ecosystem. Here is my first
+        impression of it: dead simple semantics, one of the best modern
+        toolings, the best model for concurrent programming.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>Today is the two week mark since I started to rewrite my home services in Elixir.</p><p>Currently ad-hoc bash scripts run my home services:</p><ul><li>Continuously build pollen documentation with bash scripts and cron in containers.</li><li>Fetch scanned pdfs from a ftp server and upload to iCloud with a bash script.</li><li>Continuously build my mono-repo with bash scripts in containers.</li><li>Slackbot posts to my slack channel about build status, home status, etc.</li></ul><p>I have always wanted something unified, like what Jane Street does to their tech stack with OCaml. I have been searching a language that has excellent tooling, composable local libraries, and self-contained releasing process. The tooling should include at least the following supports:</p><ul><li>Official code formatter: I am my own code reviewer, so I don’t want to see unnecessary changes.</li><li>Awareness of project structures: no hand-made build manifest such as Makefiles.</li><li>Testing being the first citizen: no manual testing from command line; all testing configuration and environment should be self-contained into the project. The cost of running testing is extremely low so that I would run testing as often as possible during development, which saves time for maintaining services at home.</li><li>A unified package manager for share third-party libraries: if HTTP client is not built-in, I should be able to fetch a HTTP library in one command.</li><li>building local libraries: local libraries should be easy to build and reuse.</li></ul><p>A few more things are also on the list, but they’re not hard requirement:</p><ul><li>Supports building docs from the source: library docs should be at hand when I want it, even for my own local library.</li><li><p>Excellent supports on cross machine communication. For most language, this just means   </p><ul><li>To have third party libraries for networking (such as zeroMQ).</li><li>To have libraries for (de-)serialization.</li></ul></li><li>ML-style strong, static type system: this is just a wish though, not a show stopper.</li></ul><div class="right-margin">To Joe: thank you.</div><p>Erlang came to my attention last year because of <a href="https://erlang.org/download/armstrong_thesis_2003.pdf" class="link-url">Joe’s thesis</a>. The baked-in cross machine communication grabbed my attention immediately. After reading posts and watching talks about Erlang, Elixir showed up. A few months back in May, in the middle of the pandemic I started to experiment with Elixir.</p><p>Finally, two weeks ago I decided to give it a try to convert all my home services to Elixir.</p><div class="nice-separator"></div><p>So far, it meets almost all the requirements. The whole journey is quite pleasant. I like many tiny things in the language and in the tooling:</p><p><em>The language is dead simple.</em> Just like scheme, elixir’s semantics are simple. What you get is <em>a module</em> for namespaces, <em>pure functions and behaviors</em> for abstraction (similar to abstract class for C++ without the inheritance shit), <span class="vsymbol v">process</span> for sending and receiving events, and that’s it. The rest of the castle is built on those simple concepts; there are not many surprises when you use the language.</p><p><em>Pattern matching in function parameters produces simpler logic in function body.</em>  My function <span class="vsymbol v">Git.last_hash</span> should only operates on a cloned git directory. So the function prototype is <span class="vlong v">last_hash(%Git{cloned: true}=git)</span>, and I don’t need to care about the false case because at run time that will be an unrecoverable logic error (such as my code forget to call <span class="vsymbol v">clone</span>). In C++ we usually do DCHECK, in Python we assert, and in Elixir we just need to pattern match in the parameter and let the runtime fail the unmatched cases.</p><p><em>No early `return`, which encourages small functions.</em> There is no <span class="vsymbol v">return</span> keywords in Elixir. So functions are usually small, composable.</p><p><em>Modern toolings support high productivity.</em>  I often need to clone and push git repo in many scripts. Wrapping common git command into a reusable library is simply <span class="vlong v">mix new git</span> in my <span class="vsymbol v">workspace/common</span> directory. Using the library is straightforward.  It takes me only <em>a few seconds</em> to refactor a common library such as <span class="vsymbol v">shell</span> for running shell command and include the library into the application.</p><p><em>Hot reload during development makes productivity high.</em> Erlang-vm supports two versions of compiled code. In the REPL, I can type <span class="vsymbol v">recompile</span> to recompile everything including changes in dependencies. Majority of silly typing errors get a quick fix. When working on the function <span class="vsymbol v">Git.last_hash</span>, I decided to truncate the hash string to only 8 chars. Change the source, type <span class="vsymbol v">recompile</span> in REPL, and run my previous expression again prints 8 chars. This hot loading magic excites me even more when I have one process running GenServer periodic job, and after typing recompile, the periodic job picks up the new code and start to print out new logs.</p><p><em><span class="vlong v">{:ok, result}</span> and <span class="vlong v">{:error, reason}</span> convention helps reduce type mismatch and helps error propagation.</em> I have always wondered why in production our code in golang generally handles errors better compared to Python. Because the idiomatic way of handling errors in golang is to return <span class="vlong v">(value, error)</span>. <em>Returning error</em> instead of <em>throwing errors</em> forces callers to handle errors, which helps building good quality programs. Similar to golang, in Elixir I feel the same thing.  Always returning <code>{:ok, data}</code> or <code>{:error,
+reason}</code> has helped proper error propagation.</p><p>Not to mention the actor programming model. That’s the simplest model to handle concurrent programming.</p><div class="nice-separator"></div><p>I know you want to ask: do you feel anything unpleasant? Not really so far.</p><div class="right-margin">I can still feel my excitement I had a few years back when I wrote my compilers in OCaml. A refactoring of a critical structure was just a matter of passing compiler errors. The sense of confidence brought by static, strong type system is hard to imagine for people who have only worked with languages that have “bolted-on” type systems or linters.</div><p>A notable one for me is the dynamic typing. I feel uneasy when working with a language that’s not statically and strongly typed or a language that allows random <span class="vsymbol v">null</span> pointers. C, C++, Python, Golang, untyped Racket, you name it. I liked OCaml, not because the safety that type system brought to me, but strong type system with type inference helps me get away with silly errors during refactoring: it’s too easy for me to get frustrated by those errors; I just want to focus on logic errors, not typos, mismatched return values, undefined names, fall through enumerations, etc., even if those are relatively easy to fix during development.</p><p>But I do want to give Elixir a try. One reason is because of <a href="https://erlang.org/download/armstrong_thesis_2003.pdf" class="link-url">Joe’s thesis</a>. After years of working on large-scaled, and distributed, systems, I believe the idea behind the paper is more and more relevant. The second reason is the difference of the community. If you go to OCaml’s community you’ll see people talking mostly about languages, type system, concurrency (and how hard it is to bring gRPC into OCaml). whereas to Elixir community, people talk about how to handle reconnection after networking failures, how to build a cluster. I do want to get closer to the infrastructure side.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

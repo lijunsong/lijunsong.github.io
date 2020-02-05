@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.88.  Extend the polynomial system to include subtraction of polynomials. (Hint: You may find it helpful to define a generic negation operation.)</div><p> 要定义一个减法，那么我们需要对系数进行求负的运算。而这里的系数可能是我们之前的任意一种类型，所以单独写一个泛型的 neg 来对数进行求负是比较好的选择。</p><p>为什么我们不直接写为</p><pre class="gist"><code>(define (neg x)
+  (sub 0 x))
+</code></pre><p> 这样写可以处理我们之前已经实现的基本类型，但是对于以多项式为系数的多项式而言，使用 (sub 0 x) 就不那么容易了，这还涉及到了前面的类型转换，反而把问题变复杂。所以我们宁愿在每一种类型中加入 neg 过程，最后使用一个泛型的 neg 来统一处理。这使得问题简单很多。</p><p>首先我们需要一个泛型的 neg：</p><pre class="gist"><code>(define (neg x) (apply-generic 'neg x))
+</code></pre><p> 我们需要在每一种类型中加入 neg 过程。</p><pre class="gist"><code>(put 'neg '(scheme-number)
+     (lambda (x) (- 0 x)))
+
+(put 'neg '(rational)
+     (lambda (x) (tag (make-rat (neg (numer x))
+                                (denom x)))))
+
+(put 'neg '(rectangular)
+     (lambda (x) (tag (make-from-real-imag
+                       (neg (real-part x))
+                       (neg (imag-part x))))))
+
+(put 'neg '(polar)
+     (lambda (x) (tag (make-from-mag-ang
+                       (neg (magnitude x))
+                       (angle x)))))
+
+(put 'neg '(complex)
+     (lambda (x) (tag (neg x))))
+</code></pre><p> 有了这些 neg 过程之后，我们就可以在 polynomials 包中加入 <span class="vsymbol v">sub-poly</span> 了。</p><pre class="gist sicp-code"><code>  (define (sub-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (sub-terms (term-list p1)
+                              (term-list p2)))
+        (error "Polys not in same var -- ADD-POLY"
+               (list p1 p2))))</code></pre><p>然后是 sub-terms</p><pre class="gist sicp-code"><code>  (define (sub-terms L1 L2)
+    (cond ((empty-termlist? L1) (neg-terms L2))
+          ((empty-termlist? L2) L1)
+          (else
+           (let ((t1 (first-term L1)) (t2 (first-term L2)))
+             (cond ((&gt; (order t1) (order t2))
+                    (adjoin-term
+                     t1 (sub-terms (rest-terms L1) L2)))
+                   ((&lt; (order t1) (order t2))
+                    (adjoin-term
+                     (neg-term t2) (sub-terms L1 (rest-terms L2))))
+                   (else
+                    (adjoin-term
+                     (make-term (order t1)
+                                (sub (coeff t1) (coeff t2)))
+                     (sub-terms (rest-terms L1)
+                                (rest-terms L2)))))))))</code></pre><p>在 sub-terms 中我们使用到了 neg-terms 与 neg-term。我们需要一个 neg-terms 来对每一项系数求反，用 neg-term 对某一个系数求反：</p><pre class="gist sicp-code"><code>  (define (neg-term L)
+    (make-term (order L) (neg (coeff L))))
+  (define (neg-terms L)
+    (if (null? L)
+        '()
+        (cons (neg-term (first-term L))
+              (neg-terms (rest-terms L)))))</code></pre><p>有了这些之后，我们的多项式包就能处理减法了。下面是测试</p><pre class="gist sicp-code"><code>
+(assertequal? (sub (make-polynomial 'x '())
+                   (make-polynomial 'x '((2 1) (1 10) (0 12))))
+              (make-polynomial 'x '((2 -1) (1 -10) (0 -12))))
+
+(assertequal? (sub (make-polynomial 'x '((2 2)))
+                   (make-polynomial 'x '((2 1) (1 10) (0 12))))
+              (make-polynomial 'x '((2 1) (1 -10) (0 -12))))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

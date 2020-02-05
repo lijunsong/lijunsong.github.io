@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.12.  Define a constructor make-center-percent that takes a center and a percentage tolerance and produces the desired interval. You must also define a selector percent that produces the percentage tolerance for a given interval. The center selector is the same as the one shown above.</div><p> </p><pre class="gist sicp-code"><code>(load "7-interval-selector.scm")
+(load "10-interval-spans-zero.scm")
+
+(define (make-center-percent c p)
+  (make-interval (- c (* c p))
+                 (+ c (* c p))))
+
+(define (percent i)
+  (let ((c (center i)))
+    (/ (- (upper-bound i) c)
+       c)))
+
+(define (make-center-width c w)
+  (make-interval (- c w) (+ c w)))
+
+(define (center i)
+  (/ (+ (lower-bound i) (upper-bound i)) 2))
+
+(define (width i)
+  (/ (- (upper-bound i) (lower-bound i)) 2))
+
+;;; tests begin
+(load "../testframe.scm")
+
+;; make sure percent procedure produces the right tolerance
+(assert= (percent (make-center-percent 10 0.125)) 0.125)
+(assert= (percent (make-center-width 10 1.25)) 0.125)
+
+;; make sure center and width are right
+(assert= (center (make-center-percent 10 0.111)) 10)
+(assert= (center (make-center-width 10 0.1)) 10)
+(assert= (width (make-center-percent 10 0.1)) 1)
+(assert= (width (make-center-width 10 1)) 1)
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

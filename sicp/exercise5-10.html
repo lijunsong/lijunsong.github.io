@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.10.  Design a new syntax for register-machine instructions and modify the simulator to use your new syntax. Can you implement your new syntax without changing any part of the simulator except the syntax procedures in this section?</div><p>  在 S 表达式的范围内，我们可以随便改动 <span class="vsymbol v">controller</span> 的语法而不需要改动其它地方。</p><p>比如我们使用 mov 代替 assign；使用 cmp 代替 test，那仅仅只需要改动 <span class="vsymbol v">make-execution-procedure</span> 就可以了，不需要改动之前的代码。</p><p>下面的代码中 <span class="vsymbol v">mov</span> 和 <span class="vsymbol v">assign</span> 可以同时使用，<span class="vsymbol v">cmp</span> 和 <span class="vsymbol v">test</span> 也可以同时使用</p><pre class="gist sicp-code"><code>(load "machine-stack-module.scm")
+(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+
+(define (make-execution-procedure inst labels machine
+                                  pc flag stack ops)
+  (cond ((or (eq? (car inst) 'assign) (eq? (car inst) 'mov))
+         (make-assign inst machine labels ops pc))
+        ((or (eq? (car inst) 'test) (eq? (car inst) 'cmp))
+         (make-test inst machine labels ops flag pc))
+        ((eq? (car inst) 'branch)
+         (make-branch inst machine labels flag pc))
+        ((eq? (car inst) 'goto)
+         (make-goto inst machine labels pc))
+        ((eq? (car inst) 'save)
+         (make-save inst machine stack pc))
+        ((eq? (car inst) 'restore)
+         (make-restore inst machine stack pc))
+        ((eq? (car inst) 'perform)
+         (make-perform inst machine labels ops pc))
+        (else (error "Unknown instruction type -- ASSEMBLE"
+                     inst))))
+
+(define iterative-machine
+  (make-machine
+   '(n b counter product)
+   (list (list '= =)
+         (list '- -)
+         (list '* *))
+   '((mov counter (reg n))
+     (mov product (const 1))
+     expt-loop
+     (cmp (op =) (reg counter) (const 0))
+     (branch (label expt-done))
+
+     (assign counter (op -) (reg counter) (const 1))
+     (assign product (op *) (reg product) (reg b))
+     (goto (label expt-loop))
+     expt-done)))
+
+(set-register-contents! iterative-machine 'n 3)
+(set-register-contents! iterative-machine 'b 12)
+(start iterative-machine)
+(assert= (get-register-contents iterative-machine 'product)
+         (* 12 12 12))</code></pre><p>其它的改动，比如 <span class="vsymbol v">goto</span> 可以自动检测之后是 <span class="vsymbol v">register</span> 还是 <span class="vsymbol v">label</span>，也可以简单地在 <span class="vsymbol v">make-goto</span> 的过程中加入相应的功能。此处省略。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

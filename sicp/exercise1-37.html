@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.37.  a. An infinite continued fraction is an expression of the form</p><p>   As an example, one can show that the infinite continued fraction expansion with the Ni and the Di all equal to 1 produces 1/, where  is the golden ratio (described in section 1.2.2). One way to approximate an infinite continued fraction is to truncate the expansion after a given number of terms. Such a truncation–a so-called k-term finite continued fraction–has the form</p><p>   Suppose that n and d are procedures of one argument (the term index i) that return the Ni and Di of the terms of the continued fraction. Define a procedure cont-frac such that evaluating (cont-frac n d k) computes the value of the k-term finite continued fraction. Check your procedure by approximating 1/ using</p><pre class="gist"><code>(cont-frac (lambda (i) 1.0)
+           (lambda (i) 1.0)
+           k)
+</code></pre><p> for successive values of k. How large must you make k in order to get an approximation that is accurate to 4 decimal places?</p><p>   b. If your cont-frac procedure generates a recursive process, write one that generates an iterative process. If it generates an iterative process, write one that generates a recursive process.</p></div><p> 递归式子与数学式子基本是等同的。我们可以将 k 项有限连分式写为如下的数学式</p><div class="left-margin todo" style="color: red;">fix space after alignment</div><p><mathjax class="$$">$$cf(i) = \left\{\begin{aligned}
+           0 &amp; i &gt; k \\
+           \frac{N_i}{D_i + f(i+1)} &amp; (i &lt;= k) \\
+           \end{aligned}
+           \right.
+$$</mathjax> 这样的式子写为我们的程序就是：</p><pre class="gist sicp-code"><code>(define (cont-frac n d k)
+  (define (rec i)
+    (cond ((&gt; i k) 0)
+          (else
+           (/ (n i)
+              (+ (d i)
+                 (rec (+ i 1)))))))
+  (rec 1))
+</code></pre><p>写迭代式时，有了前面写迭代式的经验，我们就知道需要一个变量 result 来存储结果。通过观察，我们知道迭代时候 i 的初始值应该为 k。最后我们验证这两个过程产生的结果是一样的。</p><pre class="gist sicp-code"><code>(define (cont-frac/iter n d k)
+  (define (iter i result)
+    (cond ((= i 0) result)
+          (else
+           (iter (- i 1) (/ (n i)
+                            (+ (d i) result))))))
+  (iter k 0))
+
+
+;;; tests begin
+(load "../testframe.scm")
+(assert= (cont-frac/iter (lambda (i) 1.0)
+                         (lambda (i) 1.0)
+                         100)
+         (cont-frac (lambda (i) 1.0)
+                    (lambda (i) 1.0)
+                    100))
+
+(define (spot)</code></pre><p>要使得近似值有 4 位精度，我们应该观察到第五位。下面的实验结果说明只要 k 取到大于 14 的数字都可以保证有 4 位精度：</p><pre class="gist sicp-code"><code>                                        ; 1/(golden ratio) = .6180339887498948
+
+  (display (cont-frac (lambda (i) 1.0)
+                      (lambda (i) 1.0)
+                      10))
+                                        ;Value: .6179775280898876
+
+  (display (cont-frac (lambda (i) 1.0)
+                      (lambda (i) 1.0)
+                      11))
+                                        ;Value: .6180555555555556
+
+  (display (cont-frac (lambda (i) 1.0)
+                      (lambda (i) 1.0)
+                      14))
+                                        ;Value: .6180327868852459
+)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

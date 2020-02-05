@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.23.  Alyssa P. Hacker doesn’t understand why analyze-sequence needs to be so complicated. All the other analysis procedures are straightforward transformations of the corresponding evaluation procedures (or eval clauses) in section 4.1.1. She expected analyze-sequence to look like this:</p><pre class="gist"><code>(define (analyze-sequence exps)
+  (define (execute-sequence procs env)
+    (cond ((null? (cdr procs)) ((car procs) env))
+          (else ((car procs) env)
+                (execute-sequence (cdr procs) env))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence -- ANALYZE"))
+    (lambda (env) (execute-sequence procs env))))
+</code></pre><p> Eva Lu Ator explains to Alyssa that the version in the text does more of the work of evaluating a sequence at analysis time. Alyssa’s sequence-execution procedure, rather than having the calls to the individual execution procedures built in, loops through the procedures in order to call them: In effect, although the individual expressions in the sequence have been analyzed, the sequence itself has not been.</p><p>   Compare the two versions of analyze-sequence. For example, consider the common case (typical of procedure bodies) where the sequence has just one expression. What work will the execution procedure produced by Alyssa’s program do? What about the execution procedure produced by the program in the text above? How do the two versions compare for a sequence with two expressions?</p></div><p> 首先我们看看原来的 analyze-sequence 都做了些什么：</p><p>假设我们有</p><pre class="gist"><code>(begin
+  seq1
+  seq2
+  seq3
+  seq4)
+</code></pre><p> 这样的语句。由原来的 analyze-sequence 产生的结果应该是</p><pre class="gist"><code>(lambda (env)
+  ((lambda (env)
+     ((lambda (env)
+        (seq1-proc env)
+        (seq2-proc env)) env)
+     (seq3-proc env)) env)
+  (seq4-proc env))
+</code></pre><p>  这里的 <span class="vsymbol v">seq1-proc</span>，<span class="vsymbol v">seq2-proc</span> …… 是由 <span class="vlong v">(analyze seq1)</span>，<span class="vlong v">(analyze seq2)</span> ……产生的 <span class="vlong v">(lambda (env) ..)</span> 表达式。具体形式可以参见 <a href="/sicp/chapter4-1-7.html">4.1.7 将语法分析与执行分离</a> 。</p><p>根据上面分析的结果，整个 sequence 也是 analyze 过的。</p><p>但如果把 analyze-sequence 改为了</p><pre class="gist"><code>(define (analyze-sequence exps)
+  (define (execute-sequence procs env)
+    (cond ((null? (cdr procs)) ((car procs) env))
+          (else ((car procs) env)
+                (execute-sequence (cdr procs) env))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence -- ANALYZE"))
+    (lambda (env) (execute-sequence procs env))))
+</code></pre><p> 那么，我们可以知道最后的 analyze-sequence 产生的结果是：</p><pre class="gist"><code>(lambda (env)
+  (execute-sequence '(seq1-proc seq2-proc seq3-proc seq4-proc) env))
+</code></pre><p> 也即单个语句已经被分析过了，但最后的整体并没有。（被分析过最终都是返回 <span class="vlong v">(lambda (env) ..)</span>）。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.32.  a. Show that sum and product (exercise 1.31) are both special cases of a still more general notion called accumulate that combines a collection of terms, using some general accumulation function:</p><p>(accumulate combiner null-value term a next b)</p><p>Accumulate takes as arguments the same term and range specifications as sum and product, together with a combiner procedure (of two arguments) that specifies how the current term is to be combined with the accumulation of the preceding terms and a null-value that specifies what base value to use when the terms run out. Write accumulate and show how sum and product can both be defined as simple calls to accumulate.</p><p>b. If your accumulate procedure generates a recursive process, write one that generates an iterative process. If it generates an iterative process, write one that generates a recursive process.</p></div><p> 根据<a href="/sicp/exercise1-30.html">练习 1.30</a>和<a href="/sicp/exercise1-31.html">练习 1.31</a>掌握的 sum 与 product，我们可以看到实际 <span class="vsymbol v">+</span> 与 <span class="vsymbol v">*</span> 的部分可以变为一个可变的东西，这样就能又抽象出一个过程来，用这个新的过程来定义 sum 和 product：</p><pre class="gist sicp-code"><code>(define (accumulate combiner null-value term a next b)
+  (if (&gt; a b)
+      null-value
+      (combiner (term a)
+                (accumulate combiner null-value term (next a) next b))))
+
+(define (sum term a next b)
+  (accumulate + 0 term a next b))
+
+(define (product term a next b)
+  (accumulate * 1 term a next b))
+</code></pre><p>要写出迭代的版本，与上面的思路一直，只要把 product 与 sum 的迭代的过程作对比就可以得到了。</p><pre class="gist sicp-code"><code>(define (accumulate/iter combiner null-value term a next b)
+  (define (iter c result)
+    (if (&gt; c b)
+        result
+        (iter (next c)
+              (combiner result (term c)))))
+  (iter a null-value))
+
+(define (sum/iter term a next b)
+  (accumulate/iter + 0 term a next b))
+
+(define (product/iter term a next b)
+  (accumulate/iter * 1 term a next b))
+</code></pre><p>然后是进行测试。我们先对递归与迭代的 accumulate 版本同时进行 product 与 sum 的定义，然后测试：</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+;; product tests
+(let ((p (product (lambda (x) x)
+                  1
+                  (lambda (x) (+ 1 x))
+                  10))
+      (p1 (product/iter (lambda (x) x)
+                        1
+                        (lambda (x) (+ 1 x))
+                        10)))
+  (assert= p
+           (* 2 3 4 5 6 7 8 9 10))
+  (assert= p1
+           (* 2 3 4 5 6 7 8 9 10)))
+
+;; sum tests
+; cube
+(define (inc n) (+ n 1))
+(define (cube x) (* x x x))
+(define (sum-cubes a b)
+  (sum cube a inc b))
+(define (sum-cubes/iter a b)
+  (sum/iter cube a inc b))
+(assert= (sum-cubes 1 10) 3025)
+(assert= (sum-cubes/iter 1 10) 3025)
+
+; sum-integers
+(define (identity x) x)
+(define (sum-integers a b)
+  (sum identity a inc b))
+(define (sum-integers/iter a b)
+  (sum/iter identity a inc b))
+(assert= (sum-integers 1 10) 55)
+(assert= (sum-integers/iter 1 10) 55)</code></pre><p>这一题中，我们看到了将过程作为参数传递到另外一个过程中可以带给我们一种抽象的能力。但这里也只是对比较明显的两个过程进行一种抽象，在第 XXX 节中，我们将对两个完全不一样的两个过程进行抽象。在那里，我们将学会在我们构造一个大型系统时如何使用一种思路来构造抽象。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.14.  The following procedure is quite useful, although obscure:</p><pre class="gist"><code>(define (mystery x)
+  (define (loop x y)
+    (if (null? x)
+        y
+        (let ((temp (cdr x)))
+          (set-cdr! x y)
+          (loop temp x))))
+  (loop x '()))
+</code></pre><p> Loop uses the ‘‘temporary’’ variable temp to hold the old value of the cdr of x, since the set-cdr! on the next line destroys the cdr. Explain what mystery does in general. Suppose v is defined by (define v (list ‘a ‘b ‘c ‘d)). Draw the box-and-pointer diagram that represents the list to which v is bound. Suppose that we now evaluate (define w (mystery v)). Draw box-and-pointer diagrams that show the structures v and w after evaluating this expression. What would be printed as the values of v and w ?</p></div><p> 因为 loop 使用迭代的方式完成的这个操作，我们可以把参数写出来：</p><pre class="gist"><code>(loop '(a b c d) '())
+(loop '(b c d) '(a))
+(loop '(c d) '(b a))
+(loop '(d) '(c b a))
+(loop '() '(d c b a))</code></pre><p>可以看出，最后得到了逆序。因为 loop 中使用 set-cdr! 来改变链表，这使得传递进来的参数也发生了改变。</p><p>刚开始时，v 是</p><pre class="gist"><code>v       +---+---+      +---+---+      +---+---+      +---+---+
+  -----&gt;|   |   +-----&gt;|   |   +-----&gt;|   |   +-----&gt;|   | / |
+        +-+-+---+      +-+-+---+      +-+-+---+      +-+-+---+
+          |              |              |              |
+          |              |              |              |
+          |              |              |              |
+          v              v              v              v
+        +---+          +---+          +---+          +---+
+        | a |          | b |          | c |          | d |
+        +---+          +---+          +---+          +---+</code></pre><p>经过 mystery 过程之后，变为</p><pre class="gist"><code>w                                               v
+      +---+---+      +---+---+      +---+---+      +---+---+
+-----&gt;|   |   +-----&gt;|   |   +-----&gt;|   |   +-----&gt;|   | / |
+      +-+-+---+      +-+-+---+      +-+-+---+      +-+-+---+
+        |              |              |              |
+        |              |              |              |
+        |              |              |              |
+        v              v              v              v
+      +---+          +---+          +---+          +---+
+      | d |          | c |          | b |          | a |
+      +---+          +---+          +---+          +---+</code></pre><p>结果即为：<span class="vsymbol v">w</span> 是 <span class="vlong v">(d c b a)</span>，<span class="vsymbol v">v</span> 为 <span class="vsymbol v">(a)</span></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

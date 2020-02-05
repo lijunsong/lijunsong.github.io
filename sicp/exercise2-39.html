@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.39.   Complete the following definitions of reverse (exercise 2.18) in terms of fold-right and fold-left from exercise 2.38:</p><pre class="gist"><code>(define (reverse sequence)
+  (fold-right (lambda (x y) &lt;??&gt;) nil sequence))
+(define (reverse sequence)
+  (fold-left (lambda (x y) &lt;??&gt;) nil sequence))
+
+</code></pre></div><p> </p><h3 class="section" id="secsec50ac65a93929d4c976dd9cb2706813c8">fold-right 实现 reverse</h3><p>与<a href="/sicp/exercise2-38.html">练习 2.38</a>类似，我们可以把这个 <span class="vsymbol v">fold-right</span> 给展开。</p><pre class="gist"><code>(reverse '(1 2 3 4))
+(op 1 (op 2 (op 3 (op 4 '()))))
+</code></pre><p>  在程序返回到 <span class="vlong v">(op 3 (op 4 ‘()))</span> 的时候，我们想要的结果是 <span class="vlong v">(4 3)</span>，那么，op 操作就应该是 <span class="vlong v">(append (op 4 ‘()) (list 3))</span>，于是我们可以写出 <span class="vsymbol v">fold-right</span> 的 <span class="vsymbol v">reverse</span> 过程。</p><pre class="gist sicp-code"><code>(define (reverse-1 sequence)
+  (fold-right (lambda (x y)
+                (append y (list x))) '() sequence))
+</code></pre><h3 class="section" id="secsecd0d0ba1259dc0f51fc67cbb6c4732cec">fold-left 实现 reverse</h3><p>展开这个 reverse：</p><pre class="gist"><code>(reverse '(1 2 3 4))
+(op (op (op (op 1 '()) 2) 3) 4)
+</code></pre><p>  当程序范围到 <span class="vlong v">(op (op 1 ‘()) 2)</span> 的时候，我们期望能得到 <span class="vlong v">(2 1)</span>，所以 <span class="vsymbol v">op</span> 操作应该是 <span class="vlong v">(append (list 2) (op 1 ‘()))</span></p><pre class="gist sicp-code"><code>(define (reverse-2 sequence)
+  (fold-left (lambda (x y)
+               (append (list y) x)) '() sequence))
+
+</code></pre><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><pre class="gist sicp-code"><code>(load "../testframe.scm")
+(let ((l '(1 2 3 4 5))
+      (l1 '(1)))
+  (assertequal? (reverse-1 l) '(5 4 3 2 1))
+  (assertequal? (reverse-2 l) '(5 4 3 2 1))
+  (assertequal? (reverse-1 l1) '(1))
+  (assertequal? (reverse-2 l1) '(1)))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.14.  Demonstrate that Lem is right. Investigate the behavior of the system on a variety of arithmetic expressions. Make some intervals A and B, and use them in computing the expressions A/A and A/B. You will get the most insight by using intervals whose width is a small percentage of the center value. Examine the results of the computation in center-percent form (see exercise 2.12).</div><p> </p><h3 class="section" id="secsec124a0d21d5f229ef77157215290dd5bb">除法的误差</h3><p>在 <a href="/sicp/exercise2-13.html">练习 2.13</a> 中，我们得到了乘法的误差将在乘积中叠加。练习 2.14 展示给我们，这样的误差叠加在除法中也是存在的。</p><p>这个练习想让我们看到除法的误差情况。见下面的 a 和 b 的结果</p><pre class="gist sicp-code"><code>(define A (make-center-percent 10 0.01))
+(define B (make-center-percent 15 0.05))
+
+(format #t "~%A/A's percent:~a" (percent (div-interval a a)))
+; A/A's percent:1.9998000199979854e-2
+; or 0.02 &lt;- 0.01 + 0.01
+
+(format #t "~%A/B's percent:~a" (percent (div-interval a b)))
+; A/B's percent:.05997001499250375
+; or 0.06 &lt;- 0.05 + 0.01
+</code></pre><h3 class="section" id="secsec9087f57ce4fddd58fe256444b2910410">两个代数等价的式子的分析</h3><p>首先，我们需要看到，在加法中的误差不可以通过叠加得到。两个有误差的值相加得到的值的误差趋近于较小的那个误差。</p><pre class="gist"><code>1 ]=&gt; (percent (add-interval (make-center-percent 10 0.1) (make-center-percent 20 0.01)))
+
+
+;Value: .03999999999999997
+</code></pre><p> 然后，我们通过两个计算电阻的公式计算出结果，发现差别会很大：</p><pre class="gist sicp-code"><code>(define r1 (make-center-percent 6.8 0.1))
+(define r2 (make-center-percent 4.7 0.05))
+
+(let ((result-par1 (par1 r1 r2))
+      (result-par2 (par2 r1 r2)))
+  (format #t
+          "~%par1: ~a[~5a(~5a)]"
+          result-par1 (center result-par1) (percent result-par1))
+  (format #t
+          "~%par2: ~a[~5a(~5a)]"
+          result-par2 (center result-par2) (percent result-par2)))
+
+;; par1: (2.201031010873943 . 3.4873689182805854)[2.844(.2261)]
+;; par2: (2.581558809636278 . 2.97332259363673)[2.777(.0705)]
+</code></pre><p>第二个公式 <span class="vlong v">1 / (1/r1 + 1/r2)</span> 计算结果更精确。</p><p>现在可以分析为什么了。我们现在知道，除法结果的误差为误差的叠加，而加法结果的误差趋近于较小那个误差。所以第二个式子</p><pre class="gist"><code>1 / (1/r1 + 1/r2)</code></pre><p>的误差与公式 <span class="vlong v">(r1 + r2)</span> 的误差一样。而第一个式子中</p><pre class="gist"><code>r1r2/(r1 + r2)</code></pre><p>仅仅分子一项的误差就为 <span class="vlong v">(r1 的误差 + r2 的误差)</span>。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

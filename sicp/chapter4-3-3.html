@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>这一节深入了一种 CPS（continuation passing style），使用 CPS 来实现求值器的非确定性计算。</p><p>理解这个求值器，可以对比 analyze-definition</p><pre class="gist"><code>; amb
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze (definition-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (define-variable! var val env)
+               (succeed 'ok fail2))
+             fail))))
+</code></pre><p> </p><pre class="gist"><code>; normal
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze (definition-value exp))))
+    (lambda (env)
+      (define-variable! var (vproc env) env)
+      'ok)))
+</code></pre><p> 除了 lambda 增加了两个参数之外的区别，最大的区别就是 normal 中调用 <span class="vsymbol v">define-variable!</span> 与其参数的求值过程被分离了–我们知道 scheme 中先对参数求值，再对 <span class="vsymbol v">define-variable!</span> 求值，但 amb 中一定要显示地表示出来，把这样的 control 掌握在自己手中，这样才能实现自由地掌控 succeed 与 fail 到底去做什么事情。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

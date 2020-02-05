@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.27.  Modify your reverse procedure of exercise 2.18 to produce a deep-reverse procedure that takes a list as argument and returns as its value the list with its elements reversed and with all sublists deep-reversed as well. For example,</p><pre class="gist"><code>(define x (list (list 1 2) (list 3 4)))
+
+x
+((1 2) (3 4))
+
+(reverse x)
+((3 4) (1 2))
+
+(deep-reverse x)
+((4 3) (2 1))
+
+</code></pre></div><p> 需要深度递归的过程，都需要处理三种情况：</p><ol><li>当前表为空的时候：有了这种情况的处理，递归就不会无限循环下去</li><li>第一项不为 <span class="vsymbol v">pair</span>：第一项为原子 <span class="vsymbol v">atom?</span> 时的处理。</li><li>第一项为 <span class="vsymbol v">pair</span>：第一项为序对时的处理。</li></ol><p>《The Little Schemer》简洁明了地介绍了写递归函数需要考虑的问题，这一整本书都在教如何写递归。对话风格，简洁明了，强烈推荐。</p><pre class="gist sicp-code"><code>(define (deep-reverse lst)
+  (cond ((null? lst) '())
+        ((not (pair? (car lst))) ; atom?
+         (append (deep-reverse (cdr lst)) (list (car lst))))
+        (else  ; else
+         (append (deep-reverse (cdr lst))
+                 (list (deep-reverse (car lst)))))))
+
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assertequal? (deep-reverse '((1 2 3 (4 5)) (6 7)))
+              '((7 6) ((5 4) 3 2 1)))
+
+(let ((x (list (list 1 2) (list 3 4))))
+  (assertequal? (deep-reverse x)
+                '((4 3) (2 1))))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

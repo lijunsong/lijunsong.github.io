@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 3.18.  Write a procedure that examines a list and determines whether it contains a cycle, that is, whether a program that tried to find the end of the list by taking successive cdrs would go into an infinite loop. Exercise 3.13 constructed such lists.</div><p> 和练习 3.17 类似，需要一个额外的变量来记录都访问过哪些数组</p><pre class="gist sicp-code"><code>(define (circle? lst)
+  (define (pair-in-list? x lst)
+    (cond ((null? lst) #f)
+          ((eq? x (car lst)) #t) ;; compare its pointer
+          (else (pair-in-list? x (cdr lst)))))
+
+  (define (circle/rec? l visited)
+    (cond ((null? l) #f)
+          ((pair-in-list? l visited) #t)
+          (else
+           (circle/rec? (cdr l) (cons l visited)))))
+  (circle/rec? lst '()))
+
+;;; tests begin
+
+(let ((pairs '(1 2 3)))
+  (begin
+    (set-cdr! (cddr pairs) (cdr pairs))
+    (asserteq? (circle? pairs) #t)))
+
+(let ((pairs '(1 2 3)))
+  (begin
+    (set-cdr! (cddr pairs) pairs)
+    (asserteq? (circle? pairs) #t)))
+
+(let ((pairs '(1 2 3)))
+  (begin
+    (set-cdr! (cddr pairs) (cddr pairs))
+    (asserteq? (circle? pairs) #t)))
+
+
+(define (make-cycle x)
+  (define (last-pair x)
+    (if (null? (cdr x))
+        x
+        (last-pair (cdr x))))  
+  (set-cdr! (last-pair x) x)
+  x)
+
+(let ((z (make-cycle (list 'a 'b 'c))))
+  (asserteq? (circle? z) #t))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

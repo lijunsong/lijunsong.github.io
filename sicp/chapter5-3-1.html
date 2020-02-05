@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>让我们把翻译（“将存储看作向量”）丢到一边吧，它不好理解。</p><p>这一节我们需要想想如何在我们知道的 memory 里面表示 scheme 的 list 结构。</p><p>内存模型就是一个超大的连续数组（课本上把这个东西叫 Vector）。在这个 <em>连续</em> 数组中，我们怎么表示一个 list（或者 pair） 的 car 和 cdr？</p><p>书中的模型是这样的。我们需要两个 vector， <span class="vsymbol v">the-cars</span> 存 car 的结果， <span class="vsymbol v">the-cdrs</span> 存 cdr 的结果。结果可以是另外一个 pointer，指向另外一个 vector 中的位置；可以是数字；也可以是空。</p><pre class="gist"><code>index   0   1   2   3   4   5   6   7
+the-cars      p5  n3      n4  n1      n2
+the-cdrs      p2  p4      e0  p7      e0
+</code></pre><p>  对于示例 <span class="vlong v">((1 2) 3 4)</span> 而言，它实际就是 (p5 p2) 组成的，p5 是 pair 的前半部分；p2 是 pair 的后半部分。p5 具体是什么呢？我们再看 index 是 5 的时候–<span class="vlong v">(n1 p7)</span>，即数字 1 和位置 7。</p><p>如果使用 C 来表示，我们可以这么看（当然，int 的存法可以再次抽象，注意看书本的注解 9）。</p><pre class="gist"><code>typedef union T {
+    Pair * p;
+    int n;
+} T;
+typedef struct Pair {
+    T the-car, the-cdr;  // group the-cars and the-cdrs
+} Pair;
+
+Pair e0;
+Pair pairs[N];
+
+pairs[1].the-car.p = &amp;pairs[5];
+pairs[1].the-cdr.p = &amp;pairs[2];
+
+pairs[5].the-car.n = 1;
+pairs[5].the-cdr.p = &amp;pairs[7];
+</code></pre><p> 以上仅仅模拟了 pair 的模型，在这之后，我们还要考虑如何表示大数字，如何表示 symbol，等等。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

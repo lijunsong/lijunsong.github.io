@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.29.  Exhibit a program that you would expect to run much more slowly without memoization than with memoization. Also, consider the following interaction, where the id procedure is defined as in exercise 4.27 and count starts at 0:</p><pre class="gist"><code>(define (square x)
+  (* x x))
+;;; L-Eval input:
+(square (id 10))
+;;; L-Eval value:
+&lt;response&gt;
+;;; L-Eval input:
+count
+;;; L-Eval value:
+&lt;response&gt;
+</code></pre><p> Give the responses both when the evaluator memoizes and when it does not.</p></div><p> 如果我们使用了 memoization，count 的结果将是 1；如果不使用，count 的结果将是 2。</p><p>使用 memoization 的时候，因为在调用 square 时，x 被绑定到 <span class="vlong v">(trunk (id 10) env)</span> 上。求 square 的值时，* 是 primitive procedure，所以将求 trunk 的值。而在第一次对 <span class="vlong v">( trunk (id 10)  env)</span> 求值之后，因为 memoization 的原因， env 中的 trunk 将被替换为 <span class="vlong v">(id 10)</span> 的值，这就导致了第二次 <span class="vlong v">(id 10)</span> 不会再运行 set! 而直接返回 10。count 只被改变了一次。</p><p>不使用 memoization 的时候，<span class="vlong v">(id 10)</span> 出现几次，它的过程体就会被求几次值。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Use the simulator to test the machines you designed in exercise 5.4.</div><p> 简单地将我们已经写好的 machine 载入，然后求值即可。</p><pre class="gist sicp-code"><code>(load "machine-stack-module.scm")
+(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+
+(define recursive-machine
+  (make-machine
+   '(continue n b val)
+   (list (list '- -)
+         (list '* *)
+         (list '= =))
+
+   '((assign continue (label expt-done))
+     expt-loop
+     (test (op =) (reg n) (const 0))
+     (branch (label base-case))
+
+     (save continue)
+     (save n)
+     (assign n (op -) (reg n) (const 1))
+     (assign continue (label after-expt))
+     (goto (label expt-loop))
+
+     after-expt
+     (restore n)
+     (restore continue)
+     (assign val (op *) (reg b) (reg val))
+     (goto (reg continue))
+     base-case
+     (assign val (const 1))
+     (goto (reg continue))
+     expt-done)))
+;; 12^3
+
+(load "../testframe.scm")
+(set-register-contents! recursive-machine 'n 3)
+(set-register-contents! recursive-machine 'b 12)
+(start recursive-machine)
+(assert= (get-register-contents recursive-machine 'val)
+         (* 12 12 12))
+
+
+(define iterative-machine
+  (make-machine
+   '(n b counter product)
+   (list (list '= =)
+         (list '- -)
+         (list '* *))
+   '((assign counter (reg n))
+     (assign product (const 1))
+     expt-loop
+     (test (op =) (reg counter) (const 0))
+     (branch (label expt-done))
+
+     (assign counter (op -) (reg counter) (const 1))
+     (assign product (op *) (reg product) (reg b))
+     (goto (label expt-loop))
+     expt-done)))
+
+(set-register-contents! iterative-machine 'n 3)
+(set-register-contents! iterative-machine 'b 12)
+(start iterative-machine)
+(assert= (get-register-contents iterative-machine 'product)
+         (* 12 12 12))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

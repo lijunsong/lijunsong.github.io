@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Autoload Your Major Mode in Emacs</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Autoload Your Major Mode in Emacs</h1>
+          <div class="date">2021-01-18</div>
+          <div class="tags">Emacs</div>
+        </div>
+        <div class="excerpt"><p>Don't forget to mark <span class="vlong v">(add-to-list 'auto-mode-alist ...)</span>
+        with <span class="vsymbol v">;;;###autoload</span> when you write your major mode.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>So you’ve implemented your major mode <span class="vsymbol v">my-mode</span> in Emacs. Congratulations! You can now do the following three things to start your mode in a buffer:</p><ol><li><span class="vlong v">M-x my-mode</span> to manually start your major mode.</li><li>Add <code><span class="vlong v">(add-to-list 'auto-mode-alist '("\\.suffix" . my-mode))</span></code> to the file containing your major mode definition. Emacs opens the file of suffix <span class="vsymbol v">suffix</span> and automatically loads up your major mode.</li><li><span class="vlong v">M-x my-minor-mode</span> to manually start a minor mode if you have a minor mode.</li></ol><p>Everything works locally and you list your major mode in elpa package index. However, you install your package, expect Emacs to autoload it without writing any configuration, but only to find out that Emacs doesn’t load your major mode when you open files with <span class="vsymbol v">suffix</span>. Emacs doesn’t even see any functions defined by your major mode!</p><p>You need to either</p><ul><li>Ask your users to write <span class="vsymbol v">require</span> to load the whole major mode, or</li><li>Write <em>autoload</em> yourself to properly configure your major mode.</li></ul><h3 class="section" id="secsec42d1917a0f63ac5a08c7498b83efeff3">The Problem of <span class="vsymbol v">require</span></h3><p>Why not <span class="vsymbol v">require</span>? The <span class="vsymbol v">require</span> evaluates the entire file that defines your major mode. Is it really necessary? No! All your users need is</p><ol><li>A manual way (i.e. <span class="vsymbol v">M-x</span>) to find your mode and auxiliary functions.</li><li>That your mode starts itself when file name matches some regex.</li></ol><p>Emacs just need identifiers to achieve 1, and a proper <span class="vsymbol v">auto-mode-alist</span> to achieve 2. No Need to evaluate the entire code base.</p><h3 class="section" id="secsec34ca136419c37b9f3b0e130d343dad50">Autoload</h3><p>A full-fledged Emacs configuration usually installs tens of hundreds of major modes. Emacs doesn’t load everything at start-up; modern major mode files are configured to load only when users need them.</p><p>If they are not loaded, how does Emacs know which functions are available and where to look for them? The feature is called <a href="https://www.gnu.org/software/emacs/manual/html_node/elisp/Autoload.html" class="link-url">autoload</a>, where function names are generated <em>on the side</em> initially via calling <span class="vsymbol v">autoload</span> or a magic comment <span class="vsymbol v">;;;###autoload</span>. Loading those pre-loaded function names are way faster, and the first time of using the function names will load their actual definitions.</p><p>To see the generated names, list your package directory under <span class="vsymbol v">.emacs.d/elpa-x.x/your-package</span>, you’ll see the package manager automatically generates some files on the side during installation. Take <a href="https://github.com/lijunsong/pollen-mode" class="link-url">pollen-mode</a> as an example. The following files are auto-generated:</p><div class="right-margin">So for your <span class="vsymbol v">my-mode</span>, you’ll see <span class="vsymbol v">my-mode-autoloads.el</span> and <span class="vsymbol v">my-mode-pkg.el</span></div><pre class="gist"><code>pollen-mode-autoloads.el
+pollen-mode-pkg.el
+pollen-mode.elc</code></pre><p>The interesting one is the <span class="vsymbol v">-autoloads</span> file, where the code</p><ol><li>inserts the package directory to <span class="vsymbol v">load-path</span>.</li><li>inserts <span class="vsymbol v">autoload</span> calls to functions you’ve marked <span class="vsymbol v">;;;###autoload</span>.</li></ol><pre class="gist"><code>;;; pollen-mode-autoloads.el --- automatically extracted autoloads
+;;
+;;; Code:
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+...
+(autoload 'pollen-minor-mode "pollen-mode" ...)
+(autoload 'pollen-mode "pollen-mode" ...)
+...</code></pre><p>Emacs doesn’t load <span class="vsymbol v">pollen-mode.elc</span> when it starts. Instead it loads <span class="vsymbol v">pollen-mode-autoloads.el</span>, which is extremely small, contains only a few s-exp. Emacs loads <span class="vsymbol v">pollen-mode.elc</span> only if <span class="vsymbol v">pollen-mode</span> or <span class="vsymbol v">pollen-minor-mode</span> is called.</p><h3 class="section" id="secsec994c70a276b6c92b840b9d8e4523972e">No <span class="vsymbol v">require</span> Needed After Autoload</h3><p><span class="vsymbol v">pollen-mode</span> users used to need to explicitly call <span class="vsymbol v">(require ‘pollen-mode)</span>, which evaluates the whole pollen-mode code.</p><div class="right-margin"><span class="vsymbol v">pollen-mode</span> actually receives <span class="vsymbol v">autoload</span> from a <a href="https://github.com/lijunsong/pollen-mode/commit/9673c72c5f38ab1196f17e694ed48b4ceb1b13be" class="link-url">pull request</a>.</div><p>Now with autoload, <span class="vsymbol v">pollen-mode</span> users don’t need to write <span class="vsymbol v">require</span> anymore. After Emacs installs the package, it generates <span class="vsymbol v">pollen-mode-autoloads.el</span>, and only those function names are loaded at start-up, so pollen users don’t lose anything whatsoever with speed gain.</p><p>Note that you, the mode writer, have to mark these functions explicitly with <span class="vsymbol v">;;;###autoload</span>. See Emacs user manual <a href="https://www.gnu.org/software/emacs/manual/html_node/elisp/Autoload.html" class="link-url">Autoload</a>.</p><h3 class="section" id="secsecd9d077dd9bacf6616acaacdfa540d575">Don’t Forget Autoload Code for <span class="vsymbol v">auto-mode-alist</span></h3><p>What’s more important is that you should also mark <span class="vsymbol v">auto-mode-alist</span> for autoload so that the global <span class="vsymbol v">auto-mode-alist</span> contains the mode mapping as soon as your mode is installed via the package manager. What <span class="vsymbol v">pollen-mode</span> does is to add <span class="vsymbol v">;;;###autoload</span> in front of the <span class="vsymbol v">add-to-list</span> calls:</p><div class="gist"><pre class="tiny-bottom-gap"><code>;;;; Bind pollen mode with file suffix
+;;;###autoload
+(progn
+  (add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))
+  (add-to-list 'auto-mode-alist '("\\.pmd$" . pollen-mode))
+  (add-to-list 'auto-mode-alist '("\\.pp$" pollen-mode t))
+  (add-to-list 'auto-mode-alist '("\\.p$"  pollen-mode t)))</code></pre><p class="explain">Mark <span class="vsymbol v">add-to-list</span> autoload in <span class="vsymbol v">pollen-mode.el</span>.</p></div><p>The generated <span class="vsymbol v">pollen-mode-autoloads.el</span> now contains these expressions.</p><div class="gist"><pre class="tiny-bottom-gap"><code>;;; pollen-mode-autoloads.el --- automatically extracted autoloads
+;;
+;;; Code:
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+...
+(autoload 'pollen-minor-mode "pollen-mode" ...)
+(autoload 'pollen-mode "pollen-mode" ...)
+(add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))
+(add-to-list 'auto-mode-alist '("\\.pmd$" . pollen-mode))
+(add-to-list 'auto-mode-alist '("\\.pp$" pollen-mode t))
+(add-to-list 'auto-mode-alist '("\\.p$" pollen-mode t))
+...</code></pre><p class="explain">Auto generated <span class="vsymbol v">pollen-mode-autoloads.el</span> contains mode mapping.</p></div><p>After learning how <span class="vsymbol v">autoload</span> works, <span class="vsymbol v">autoload</span> has been always my preferred way for configuring my major mode. What about you? Anything I am missing?</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

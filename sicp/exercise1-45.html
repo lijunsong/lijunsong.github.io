@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 1.45.  We saw in section 1.3.3 that attempting to compute square roots by naively finding a fixed point of y  x/y does not converge, and that this can be fixed by average damping. The same method works for finding cube roots as fixed points of the average-damped y  x/y2. Unfortunately, the process does not work for fourth roots–a single average damp is not enough to make a fixed-point search for y  x/y3 converge. On the other hand, if we average damp twice (i.e., use the average damp of the average damp of y  x/y3) the fixed-point search does converge. Do some experiments to determine how many average damps are required to compute nth roots as a fixed-point search based upon repeated average damping of y  x/yn-1. Use this to implement a simple procedure for computing nth roots using fixed-point, average-damp, and the repeated procedure of exercise 1.43. Assume that any arithmetic operations you need are available as primitives.</div><p> 为了测试 average damp 次数与 nth root 的关系，我们定义一个过程，这个过程以 average damp 的次数以及 nth root 的 n 为参数，然后运行 fixed-point 过程，观察是否能够得到结果。如果进入了死循环，那么当前的 average damp 的次数还不够，就增加 average damp 的次数。</p><pre class="gist sicp-code"><code>(load "fixed-point.scm")
+(load "43-repeated.scm")
+
+(define (average x y)
+  (/ (+ x y) 2))
+
+(define (average-damp f)
+  (lambda (x) (average x (f x))))
+
+(define (power x n)
+  (if (&lt;= n 0) 1 (* x (power x (- n 1)))))
+
+(define (nth-root-testing average-damping-times n)
+  (lambda (x)
+    (fixed-point ((repeated average-damp average-damping-times)
+                  (lambda (y) (/ x (power y (- n 1)))))
+                 1.0)))
+</code></pre><p>然后我们可以得到如下的一些测试结果：</p><pre class="gist"><code>==============================    ====================
+((nth-root-testing 0  2) 1024)    infinite loop
+((nth-root-testing 1  2) 1024)    32.0000000000008
+((nth-root-testing 1  3) 1024)    10.079366187684354
+((nth-root-testing 1  4) 1024)    infinite loop
+((nth-root-testing 2  4) 1024)    5.65685424949238
+((nth-root-testing 2  5) 1024)    4.000001066833838
+((nth-root-testing 2  6) 1024)    3.1748038863282293
+((nth-root-testing 2  7) 1024)    2.691796716281978
+((nth-root-testing 2  8) 1024)    infinite loop
+((nth-root-testing 3  8) 1024)    2.3784142300068343
+((nth-root-testing 3  9) 1024)    2.1601204050836174
+((nth-root-testing 3 10) 1024)    2.000001183010332
+((nth-root-testing 3 11) 1024)    1.8778630537548755
+((nth-root-testing 3 12) 1024)    1.7817995120073165
+((nth-root-testing 3 13) 1024)    1.7043576123984447
+((nth-root-testing 3 14) 1024)    1.6406664288586745
+((nth-root-testing 3 15) 1024)    1.587396859718543
+((nth-root-testing 3 16) 1024)    infinite loop
+((nth-root-testing 4 16) 1024)    1.5422108254105882
+.                                 .
+((nth-root-testing 4 31) 1024)    1.2505702303239892
+((nth-root-testing 4 32) 1024)    infinite loop
+==============================    ====================</code></pre><p>可以观察出，如果我们的 average-damp 的时间是 t，那么这个 t 足够求 <mathjax class="$">$2^t$</mathjax> 的 nth root。</p><p>利用这个结果，我们可以定义 nth-root，并且使用这个 nth-root 过程，我们可以定义 sqrt 等过程了。</p><pre class="gist sicp-code"><code>(define (nth-root n)
+  (lambda (x)
+    (fixed-point ((repeated average-damp (ceiling (sqrt n)))
+                  (lambda (y) (/ x (power y (- n 1)))))
+                 1.0)))
+
+(define (new-sqrt x)
+  ((nth-root 2) x))
+
+; (new-sqrt 4) =&gt; 1.999993326908296</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

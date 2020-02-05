@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.71.  Suppose we have a Huffman tree for an alphabet of n symbols, and that the relative frequencies of the symbols are 1, 2, 4, ..., <mathjax class="$">$2^{n-1}$</mathjax>. Sketch the tree for n=5; for n=10. In such a tree (for general n) how may bits are required to encode the most frequent symbol? the least frequent symbol?</div><p> 我们可以把树画成下面这个样子的。</p><pre class="gist"><code>({A B C D E},31}
+      /  \
+     /    \
+    /      \
+ A, 2^4  ({B C D E}, 15)
+             /  \
+            /    \
+           /      \
+        B, 2^3    ({C D E}, 7)
+                     /  \
+                    /    \
+                   /      \
+                 C, 2^2   ({D E}, 3)
+                            / \
+                           /   \
+                          /     \
+                         D, 2   E, 1</code></pre><p>因为 <mathjax class="$">$2^1, 2^2, 2^3, \dots$</mathjax> 的数列前面 n 项和永远比第 n + 1 项小 1，所以 n 为多少，就有几层树（每个 symbol 都单独地占了一层）。</p><p>因此，频率最高的，只要 1 bit，最低的，要 n-1 个 bit 位。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

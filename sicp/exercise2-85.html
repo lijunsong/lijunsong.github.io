@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.85.  This section mentioned a method for ‘‘simplifying’’ a data object by lowering it in the tower of types as far as possible. Design a procedure drop that accomplishes this for the tower described in exercise 2.83. The key is to decide, in some general way, whether an object can be lowered. For example, the complex number 1.5 + 0i can be lowered as far as real, the complex number 1 + 0i can be lowered as far as integer, and the complex number 2 + 3i cannot be lowered at all. Here is a plan for determining whether an object can be lowered: Begin by defining a generic operation project that ‘‘pushes’’ an object down in the tower. For example, projecting a complex number would involve throwing away the imaginary part. Then a number can be dropped if, when we project it and raise the result back to the type we started with, we end up with something equal to what we started with. Show how to implement this idea in detail, by writing a drop procedure that drops an object as far as possible. You will need to design the various projection operations53 and install project as a generic operation in the system. You will also need to make use of a generic equality predicate, such as described in exercise 2.79. Finally, use drop to rewrite apply-generic from exercise 2.84 so that it ‘‘simplifies’’ its answers.</div><p> 下面是一种与题目不一样的思路。</p><h3 class="section" id="secsec3d7c5a1d21d9337bff2610dc089bb8e5">successive drop</h3><p>与题目不同的思路是，我们可以和 raise 一样来定义 drop，最终调用 <span class="vsymbol v">successive-drop</span> 来尝试转换一个数。</p><pre class="gist sicp-code"><code>(define (drop x)
+  ((get 'drop (type-tag x)) (contents x)))
+
+(define (successive-drop x)
+  (let ((new (drop x)))
+    (if (same-type new x)
+        x
+        (successive-drop new))))
+</code></pre><p>我们的思路是，complex 如果可以 drop 的时候，drop 为 <span class="vsymbol v">scheme-number</span> 否则 drop 返回原来的 complex；rational 在可以 drop 的时候，drop 为 <span class="vsymbol v">scheme-number</span> 否则返回原来的 rational；<span class="vsymbol v">scheme-number</span> 任何时候都 drop 为它自己。所以 <span class="vsymbol v">successive-drop</span> 的终止条件是，如果 drop 前和 drop 后的类型一样则终止。</p><p>然后我们只需要把 <span class="vsymbol v">successive-drop</span> 运用到 <span class="vsymbol v">apply-generic</span> 的最终结果上就可以。</p><pre class="gist sicp-code"><code>(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (successive-drop
+           (apply proc (map contents args)))
+          (if (&gt;= (length args) 2)
+              (let* ((type-tags (map type-tag args))
+                     (top-type (the-most-top-type type-tags))
+                     (coerced-args (map (lambda (x)
+                                          (successive-raise x top-type))
+                                        args))
+                     (new-type-tags (map type-tag coerced-args)))
+                (let ((proc (get op new-type-tags)))
+                  (if proc
+                      (successive-drop
+                       (apply proc (map contents coerced-args)))
+                      (error "No method for these types"
+                             (list op type-tags)))))
+              (error "No method for these types -- APPLY-GENERIC"
+                     (list op type-tags)))))))</code></pre><h3 class="section" id="secsec0e0e4ad8bff263dfee45f162668007ce">每一种类型的 drop</h3><p><span class="vsymbol v">scheme-number</span> 的 drop：</p><pre class="gist sicp-code"><code>  (put 'drop 'scheme-number
+       (lambda (x)
+         (make-scheme-number (contents x)))) ; drop to itself</code></pre><p><span class="vsymbol v">rational</span> 的 drop：</p><pre class="gist sicp-code"><code>  (define (drop x)
+    (if (= 1 (denom x))
+        (make-scheme-number (numer x))
+        (make-rational (numer x)
+                       (denom x))))
+  (put 'drop 'rational drop)</code></pre><p><span class="vsymbol v">rectangular</span> 的 drop：</p><pre class="gist sicp-code"><code>  (put 'drop 'rectangular
+       (lambda (x)
+         (if (= 0 (imag-part x))
+             (make-scheme-number (real-part x))
+             (make-complex-from-real-imag (real-part x)
+                                          (imag-part x)))))</code></pre><p><span class="vsymbol v">polar</span> 的 drop：</p><pre class="gist sicp-code"><code>  (put 'drop 'polar
+       (lambda (x)
+         (if (= 0 (imag-part x))
+             (make-scheme-number (real-part x))
+             (make-complex-from-mag-ang (magnitude x)
+                                        (angle x)))))</code></pre><p><span class="vsymbol v">complex</span> 的 drop 最为简单：</p><pre class="gist sicp-code"><code>  (put 'drop 'complex 
+       (lambda (x) (drop x)))</code></pre><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><pre class="gist sicp-code"><code>
+(load "../testframe.scm")
+
+;; regression test
+(assert= (add 3 3) 6)
+(assertequal? (add 3 (make-rational 1 4))
+              (make-rational 13 4))
+(assertequal? (add 3 (make-complex-from-real-imag 3 5))
+              (make-complex-from-real-imag 6 5))
+
+(assertequal? (add (make-rational 2 5)
+                   (make-rational 1 5))
+              (make-rational 3 5))
+
+(assertequal? (add (make-complex-from-real-imag 3 8)
+                   (make-complex-from-real-imag 5 6))
+              (make-complex-from-real-imag 8 14))
+
+
+;; tests for drop
+(assert= (add (make-rational 1 2)
+              (make-rational 1 2)) 1)
+
+(assert= (sub (make-complex-from-real-imag 3 4)
+              (make-complex-from-real-imag 2 4))
+         1)
+
+(assert= (add 3 3) 6)
+
+
+
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

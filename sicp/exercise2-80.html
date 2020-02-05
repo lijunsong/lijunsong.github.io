@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.80.  Define a generic predicate =zero? that tests if its argument is zero, and install it in the generic arithmetic package. This operation should work for ordinary numbers, rational numbers, and complex numbers.</div><p> 要判断一个数是否是 0，那么在不同的 package，我们就可以分别判断相应类型的数字是否是 0：</p><ol><li><em>scheme-number</em> <span class="vlong v">(lambda (x) (= 0 x))</span></li><li><em>rational</em> <span class="vlong v">(lambda (x) (= 0 (numer x)))</span></li><li><em>polar</em> <span class="vlong v">(lambda (x) (= 0 (real-part x)))</span></li><li><em>rectangular</em> <span class="vlong v">(lambda (x) (= 0 (real-part x)))</span></li><li><em>complex</em> 已经有了 polar 与 rectangular 的判断，所以这里可以直接写为 <span class="vlong v">(lambda (x) (=zero? x))</span></li></ol><p>把以上操作放入相应的包内，并全局定义 <span class="vsymbol v">=zero?</span> 就可以。</p><pre class="gist"><code>(define (=zero? x) (apply-generic '=zero? x))
+</code></pre><p> 借用这个 <span class="vsymbol v">=zero?</span> 的操作，我们可以定义<a href="/sicp/exercise2-78.html">练习 2.78</a>的 <span class="vsymbol v">equ?</span>：</p><pre class="gist"><code>(define (equ? x y) (=zero? (sub x y)))
+</code></pre><p> 其余不需要变动。</p><p>下面是测试：</p><pre class="gist sicp-code"><code>
+(load "../testframe.scm")
+
+(asserttrue (=zero? 0))
+(asserttrue (=zero? (sub (make-rational 1 12)
+                         (make-rational 1 12))))
+(asserttrue (=zero? (make-complex-from-mag-ang 0 12)))
+(asserttrue (=zero? (make-complex-from-real-imag 0 0)))
+
+(asserttrue (equ? '(scheme-number . 3) '(scheme-number . 3)))
+(asserttrue (equ? 3 3))
+
+(asserttrue (equ? (make-rational 12 20) (make-rational 3 5)))
+
+(asserttrue (equ? (make-complex-from-mag-ang 3 4)
+                  (make-complex-from-mag-ang 3 4)))
+
+(asserttrue (equ? (make-complex-from-mag-ang 3 4)
+                  (make-complex-from-mag-ang 3 4)))
+
+(asserttrue (equ? (make-complex-from-real-imag 1 1)
+                  (sub (make-complex-from-real-imag 2 3)
+                       (make-complex-from-real-imag 1 2))))
+
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

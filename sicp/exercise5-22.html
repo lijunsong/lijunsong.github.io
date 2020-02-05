@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.22.  Exercise 3.12 of section 3.3.1 presented an append procedure that appends two lists to form a new list and an append! procedure that splices two lists together. Design a register machine to implement each of these procedures. Assume that the list-structure memory operations are available as primitive operations.</div><p> append 可以如下实现，val 寄存器保存最后的结果。</p><pre class="gist sicp-code"><code>(load "machine-stack-module.scm")
+(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+
+(define controller
+  '((assign continue (label append-done))
+    append-loop
+      (test (op null?) (reg x))
+      (branch (label base-case))
+
+      (save continue)
+      (assign continue (label after-append-cdr))
+
+      (save x)
+      (assign x (op cdr) (reg x))
+      (goto (label append-loop))
+
+    after-append-cdr
+      (restore x)
+      (assign x (op car) (reg x))
+      (assign val (op cons) (reg x) (reg val))
+      (restore continue)
+      (goto (reg continue))
+
+    base-case
+      (assign val (reg y))
+      (goto (reg continue))
+
+    append-done
+    ))
+
+(define machine-append
+  (make-machine
+   '(x continue val y)
+   (list (list 'null? null?)
+         (list 'cdr cdr)
+         (list 'car car)
+         (list 'cons cons))
+   controller))
+
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+(load "../testframe.scm")
+(let ((x (list 'a 'b))
+      (y (list 'c 'd)))
+  (set-register-contents! machine-append 'x x)
+  (set-register-contents! machine-append 'y y)
+  (start machine-append)
+  (assertequal? (get-register-contents machine-append 'val)
+                (append x y)))
+</code></pre><p>``append!`` 的实现需要注意寄存器的使用。下面是一个错误的实现</p><pre class="gist"><code>(define machine-append!
+  (make-machine
+   '(x y tmp val)
+   (list (list 'cdr cdr)
+         (list 'set-cdr! set-cdr!)
+         (list 'null? null?))
+   '(last-pair
+       (assign tmp (op cdr) (reg x))
+       (test (op null?) (reg tmp))
+       (branch (label last-pair-done))
+       (assign x (op cdr) (reg x))
+       (goto (label last-pair))
+     last-pair-done
+       (perform (op set-cdr!) (reg x) (reg y))
+       (assign val (reg x))
+     )))
+</code></pre><p> 在逻辑上，last-pair 首先调用，最后 x 将会保存 last-pair 的值，<span class="vsymbol v">append!</span> 再继续使用 x 的值。在测试的时候，我们会发现 x 的值是 <span class="vlong v">(b c d)</span> 而不是 <span class="vlong v">(a b c d)</span> 。</p><pre class="gist"><code>(let* ((x (list 'a 'b))
+       (y (list 'c 'd)))
+  (set-register-contents! machine-append! 'x x)
+  (set-register-contents! machine-append! 'y y)
+  (start machine-append!)
+  (display (get-register-contents machine-append! 'x)))
+; (b c d)
+</code></pre><p> 这是因为 machine 中，assign 是用 <span class="vsymbol v">set!</span> 实现的， <span class="vsymbol v">set!</span> 会改变 <span class="vsymbol v">x</span> 的指针位置，在 last-pair 之后 x 就变成了最后一个 pair (b)，所以 append 之后，x 是 <span class="vlong v">(b c d)</span> 。</p><p>我们只需要稍微修改，使用另外一个寄存器而不使用 x 就可以。</p><pre class="gist sicp-code"><code>(define machine-append!-wrong
+  (make-machine
+   '(x y tmp val)
+   (list (list 'cdr cdr)
+         (list 'set-cdr! set-cdr!)
+         (list 'null? null?))
+   '(last-pair
+       (assign tmp (op cdr) (reg x)) 
+       (test (op null?) (reg tmp))
+       (branch (label last-pair-done))
+       (assign x (op cdr) (reg x))
+       (goto (label last-pair))
+     last-pair-done
+       (perform (op set-cdr!) (reg x) (reg y))
+       (assign val (reg x))
+     )))
+
+(define machine-append!
+  (make-machine
+   '(x y x1 tmp val)
+   (list (list 'cdr cdr)
+         (list 'set-cdr! set-cdr!)
+         (list 'null? null?))
+   '((assign x1 (reg x))
+     last-pair ;input x1, output val
+       (assign tmp (op cdr) (reg x1)) 
+       (test (op null?) (reg tmp))
+       (branch (label last-pair-done))
+       (assign x1 (op cdr) (reg x1))
+       (goto (label last-pair))
+     last-pair-done
+       (perform (op set-cdr!) (reg x1) (reg y))
+       (assign val (reg x))
+     )))
+
+(define (append! x y)
+  (set-cdr! (last-pair x) y)
+  x)
+(define (last-pair x)
+  (if (null? (cdr x))
+      x
+      (last-pair (cdr x))))
+
+(let* ((x (list 'a 'b))
+       (y (list 'c 'd))
+       (w (append x y)))
+  (set-register-contents! machine-append! 'x x)
+  (set-register-contents! machine-append! 'y y)
+  (start machine-append!)
+  ;; the content of x should have been changed now!
+  (assertequal? (get-register-contents machine-append! 'x) w))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

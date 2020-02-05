@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.33.  You can obtain an even more general version of accumulate (exercise 1.32) by introducing the notion of a filter on the terms to be combined. That is, combine only those terms derived from values in the range that satisfy a specified condition. The resulting filtered-accumulate abstraction takes the same arguments as accumulate, together with an additional predicate of one argument that specifies the filter. Write filtered-accumulate as a procedure. Show how to express the following using filtered-accumulate:</p><p>a. the sum of the squares of the prime numbers in the interval a to b (assuming that you have a prime? predicate already written)</p><p>b. the product of all the positive integers less than n that are relatively prime to n (i.e., all positive integers i &lt; n such that GCD(i,n) = 1).</p></div><p> 我们已经知道 accumulate 能够顺序从 a 到 b 进行处理。filtered-accumulate 的特点在于，在处理 a 到 b 的序列的时候，我们能够剔除掉不满足我们条件的数字，所以很容易想到两个过程的差别在于 filtered-accumulate 对于序列中的一个数字 x，我们要首先去判断这个 x 是不是满足我们条件的数字，如果满足条件才去进行 combiner 的步骤</p><pre class="gist sicp-code"><code>(define (filtered-accumulate combiner null-value term a next b p)
+  (cond ((&gt; a b) null-value)
+        ((not (p a))
+         (filtered-accumulate combiner null-value term (next a) next b p))
+        (else
+         (combiner (term a)
+                   (filtered-accumulate combiner null-value term (next a) next b p)))))
+</code></pre><p>使用这个过程，我们可以来定义 a 和 b 题目中要求的过程了。现在只需要对各种条件一一入座就行：</p><pre class="gist sicp-code"><code>(load "prime.scm")
+(define (sum-of-square-of-prime a b)
+  (define (inc x) (+ x 1))
+  (filtered-accumulate + 0 square a inc b prime?))
+
+(define (product-of-positive-and-prime n)
+  (define (identity x) x)
+  (define (inc x) (+ 1 x))
+  (define (gcd a b)
+    (if (= b 0)
+        a
+        (gcd b (remainder a b))))
+  (define (relative-prime-to-n? x)
+    (= (gcd x n) 1))
+  (filtered-accumulate * 1 identity 1 inc n relative-prime-to-n?))
+</code></pre><p>最后我们来进行测试：</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(assert= (sum-of-square-of-prime 1 10)
+         (+ (* 2 2) (* 3 3) (* 5 5) (* 7 7)))
+(assert= (product-of-positive-and-prime 10)
+         (* 3 7 9))
+(assert= (product-of-positive-and-prime 11)
+         (* 1 2 3 4 5 6 7 8 9 10))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

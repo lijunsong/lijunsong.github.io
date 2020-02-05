@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.21.  The procedure square-list takes a list of numbers as argument and returns a list of the squares of those numbers.</p><pre class="gist"><code>(square-list (list 1 2 3 4))
+(1 4 9 16)
+</code></pre><p> Here are two different definitions of square-list. Complete both of them by filling in the missing expressions:</p><pre class="gist"><code>(define (square-list items)
+  (if (null? items)
+      nil
+      (cons &lt;??&gt; &lt;??&gt;)))
+(define (square-list items)
+  (map &lt;??&gt; &lt;??&gt;))
+</code></pre></div><p> </p><pre class="gist sicp-code"><code>(define (square-list items)
+  (if (null? items)
+      '()
+      (cons (square (car items))
+            (square-list (cdr items)))))
+
+(define (square-list-2 items)
+  (map (lambda (item) (square item)) items))
+
+;;; tests begin
+
+(load "../testframe.scm")
+
+(let ((lst (list 2 3 4 5 6)))
+  (assertequal? (square-list lst)
+                (square-list-2 lst)))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

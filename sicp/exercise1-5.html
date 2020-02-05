@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.5.  Ben Bitdiddle has invented a test to determine whether the interpreter he is faced with is using applicative-order evaluation or normal-order evaluation. He defines the following two procedures:</p><pre class="gist"><code>(define (p) (p))
+
+(define (test x y)
+  (if (= x 0)
+      0
+      y))
+</code></pre><p> Then he evaluates the expression</p><p>      (test 0 (p))</p><p>   What behavior will Ben observe with an interpreter that uses applicative-order evaluation? What behavior will he observe with an interpreter that uses normal-order evaluation? Explain your answer. (Assume that the evaluation rule for the special form if is the same whether the interpreter is using normal or applicative order: The predicate expression is evaluated first, and the result determines whether to evaluate the consequent or the alternative expression.)</p></div><p> </p><ul><li>applicative-order evaluation 即先计算再传递</li><li>normal-order evaluation 即先传递再计算</li></ul><p>对于 Ben 的程序，<span class="vsymbol v">applicative-order</span> 将会先去计算过程调用时候的参数，这使得</p><pre class="gist"><code>(test 0 (p))
+</code></pre><p> 先去计算 (p)，于是程序进入了死循环。</p><p>如果这个语言是 <span class="vsymbol v">normal-order</span>，则这个过程的调用被替代成了：</p><pre class="gist"><code>(if (= x 0)
+    0
+    (p))
+</code></pre><p> 返回结果 0。</p><p>这两个求值顺序都有什么作用呢？为什么要设计这两种求值顺序呢？</p><p>在<a href="/sicp/exercise1-6.html">练习 1.6</a>中可以看出一些答案。而在第三章 “stream” 中，可以看到某些时候我们也会刻意地去模仿 <span class="vlong v">normal-order evalutation</span>。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.4.  Recall the definitions of the special forms and and or from chapter 1:</p><p>- and: The expressions are evaluated from left to right. If any expression evaluates to false, false is returned; any remaining expressions are not evaluated. If all the expressions evaluate to true values, the value of the last expression is returned. If there are no expressions then true is returned. - or: The expressions are evaluated from left to right. If any expression evaluates to a true value, that value is returned; any remaining expressions are not evaluated. If all expressions evaluate to false, or if there are no expressions, then false is returned.</p><p>Install and and or as new special forms for the evaluator by defining appropriate syntax procedures and evaluation procedures eval-and and eval-or. Alternatively, show how to implement and and or as derived expressions.</p></div><p> 解本题的时候，为了方便，我们将以 <a href="/sicp/exercise4-3.html">练习 4.3</a> 的 data-directed 的解释器为基础。</p><h3 class="section" id="secsec4cc3e0f251ff9c5cf42fbd65c3355c6b">special forms</h3><p>需要注意的是 or 的操作。如果某一个项已经是 true 了，就要把那一项的值给返回而不是返回 true，所以我们需要单独将每一项的求值过程独立运行，只用值去作 true or false 的判断，避免同一句语句运行两次。</p><p>and 的过程如下</p><pre class="gist sicp-code"><code>(define (install-eval-and)
+  (define (last-exp? e) (empty-exp? (cdr e)))
+  (define (empty-exp? e) (null? e))
+
+  (define (eval-and-sequence es env)
+    (cond ((last-exp? es) (eval (car es) env))
+          (else
+           (if (false? (eval (car es) env))
+               false
+               (eval-and-sequence (cdr es) env)))))
+
+  (define (eval-and exp env)
+    (cond ((empty-exp? exp) true)
+          (else
+           (eval-and-sequence exp env))))  
+
+  (put 'eval 'and eval-and))
+</code></pre><p>or 的过程与 and 的非常相似，如下：</p><pre class="gist sicp-code"><code>(define (install-eval-or)
+  (define (last-exp? e) (empty-exp? (cdr e)))
+  (define (empty-exp? e) (null? e))
+
+  (define (eval-or-sequence es env)
+    (cond ((last-exp? es) (eval (car es) env))
+          (else
+           (let ((v (eval (car es) env)))
+             (if (true? v)
+                 v
+                 (eval-or-sequence (cdr es) env))))))
+
+  (define (eval-or exp env)
+    (cond ((empty-exp? exp) false)
+          (else
+           (eval-or-sequence exp env))))
+  (put 'eval 'or eval-or))</code></pre><p>最后是测试</p><pre class="gist sicp-code"><code>(let ((test-env (setup-environment)))
+  (begin
+    (install-eval-and)
+    (eval '(define var1 1) test-env)
+    (assert= (eval '(and 1 2 3 4 var1) test-env) 1)
+    (asserteq? (eval '(and 1 2 false 3 4) test-env) false)
+    (eval '(and (begin (set! var1 (+ var1 1)) var1)
+                (begin (set! var1 (+ var1 1)) var1)
+                false
+                (begin (set! var1 (+ var1 1)) var1))
+          test-env)
+    (assert= (eval 'var1 test-env) 3)))
+
+
+(let ((test-env (setup-environment)))
+  (begin
+    (install-eval-or)
+    (eval '(define var1 1) test-env)
+    (assert= (eval '(or 4 var1) test-env) 4)
+    (assert= (eval '(or false false false 3 4) test-env) 3)
+    (assert= (eval '(or  (begin (set! var1 (+ var1 1)) false)
+                         (begin (set! var1 (+ var1 1)) false)
+                         var1
+                         (begin (set! var1 (+ var1 1)) false))
+                   test-env)
+             3)))
+</code></pre><h3 class="section" id="secsec032dfc3579f032ccdee019566108f91f">derived form</h3><p>and 和 or 都可以转换为 if。</p><p>and 的转换只需要借助 if 即可：</p><pre class="gist sicp-code"><code>
+(define (install-eval-derived-and)
+  (define (last-exp? e) (empty-exp? (cdr e)))
+  (define (empty-exp? e) (null? e))
+
+  ;; import make-if
+  (define (make-if tst thn els)
+    ((get 'constructor if-tag) tst thn els))
+
+  (define (and-&gt;if exps)
+    (if (last-exp? exps)
+        (car exps)
+        (make-if (car exps)
+                 (and-&gt;if (cdr exps))
+                 'false)))
+
+  (define (eval-and exp env)
+    (cond ((empty-exp? exp) true)
+          (else
+           (eval (and-&gt;if exp) env))))
+
+  (put 'eval 'and eval-and))</code></pre><p>但 or 的转换必须使用 lambda 来确保每个 or 中的元素只运行了一遍。比如</p><pre class="gist"><code>(or (begin (set! x 1) x) 2 3)
+
+</code></pre><p> 将被转化为</p><pre class="gist"><code>((lambda (v)
+   (if v
+       v
+       ((lambda (v)
+          (if v
+              v
+              ((lambda (v)
+                 (if v
+                     v))
+               3)))
+        2)))
+ (begin (set! x 1)
+        x))
+
+</code></pre><p> </p><pre class="gist sicp-code"><code>
+(define (install-eval-derived-or)
+  (define (last-exp? e) (empty-exp? (cdr e)))
+  (define (empty-exp? e) (null? e))
+
+  ;; import make-lambda and make-if
+  (define (make-lambda p b)
+    ((get 'constructor lambda-tag) p b))
+
+  (define (make-if tst thn els)
+    ((get 'constructor if-tag) tst thn els))
+
+  (define (or-&gt;if-lambda exps)
+    (if (last-exp? exps)
+        (car exps)
+        (list (make-lambda '(v)
+                           (list
+                            (make-if 'v 'v (or-&gt;if-lambda (cdr exps)))))
+              (car exps))))
+
+  (define (eval-or exp env)
+    (cond ((empty-exp? exp) false)
+          (else
+           (eval (or-&gt;if-lambda exp) env))))
+
+  (put 'eval 'or eval-or))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

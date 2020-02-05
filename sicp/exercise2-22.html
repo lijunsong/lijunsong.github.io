@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.22.  Louis Reasoner tries to rewrite the first square-list procedure of exercise 2.21 so that it evolves an iterative process:</p><pre class="gist"><code>(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons (square (car things))
+                    answer))))
+  (iter items nil))
+</code></pre><p> Unfortunately, defining square-list this way produces the answer list in the reverse order of the one desired. Why?</p><p>   Louis then tries to fix his bug by interchanging the arguments to cons:</p><pre class="gist"><code>(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons answer
+                    (square (car things))))))
+  (iter items nil))
+</code></pre><p> This doesn’t work either. Explain.</p></div><p> 观察 <span class="vsymbol v">iter</span> 过程</p><pre class="gist"><code>(define (iter things answer)
+  (if (null? things)
+      answer
+      (iter (cdr things)
+            (cons (square (car things))
+                  answer))))
+</code></pre><p>  虽然在递归的时候，<span class="vsymbol v">answer</span> 参数的位置使用了正序的 <span class="vlong v">(cons (square (car things)) answer)</span> ，但每一次进入这个迭代式递归的时候，<span class="vsymbol v">answer</span> 参数位置都是将 <span class="vsymbol v">things</span> 的第一个放到当前的 <span class="vsymbol v">answer</span> 前面，这样到了下一层递归时，<span class="vsymbol v">answer</span> 就是 <span class="vsymbol v">things</span> 的前面几个元素。</p><p>如果以 <span class="vlong v">(1 2 3 4 5)</span> 为例，我们对 <span class="vsymbol v">iter</span> 进行 trace：</p><pre class="gist"><code>;;1 ]=&gt; (trace iter)
+
+;;Unspecified return value
+
+;;1 ]=&gt; (square-list '(1 2 3 4 5))
+
+;; [Entering #[compound-procedure 3 iter]
+;;     Args: (1 2 3 4 5)
+;;           ()]
+;; [Entering #[compound-procedure 3 iter]
+;;     Args: (2 3 4 5)
+;;           (1)]
+;; [Entering #[compound-procedure 3 iter]
+;;     Args: (3 4 5)
+;;           (4 1)]
+;; [Entering #[compound-procedure 3 iter]
+;;     Args: (4 5)
+;;           (9 4 1)]
+;; [Entering #[compound-procedure 3 iter]
+;;     Args: (5)
+;;           (16 9 4 1)]
+;; [Entering #[compound-procedure 3 iter]
+;;     Args: ()
+;;           (25 16 9 4 1)]
+;; [(25 16 9 4 1)
+;;       &lt;== #[compound-procedure 3 iter]
+;;     Args: ()
+;;           (25 16 9 4 1)]
+;; [(25 16 9 4 1)
+;;       &lt;== #[compound-procedure 3 iter]
+;;     Args: (5)
+;;           (16 9 4 1)]
+;; [(25 16 9 4 1)
+;;       &lt;== #[compound-procedure 3 iter]
+;;     Args: (4 5)
+;;           (9 4 1)]
+;; [(25 16 9 4 1)
+;;       &lt;== #[compound-procedure 3 iter]
+;;     Args: (3 4 5)
+;;           (4 1)]
+;; [(25 16 9 4 1)
+;;       &lt;== #[compound-procedure 3 iter]
+;;     Args: (2 3 4 5)
+;;           (1)]
+;; [(25 16 9 4 1)
+;;       &lt;== #[compound-procedure 3 iter]
+;;     Args: (1 2 3 4 5)
+;;           ()]
+;;Value 4: (25 16 9 4 1)
+
+</code></pre><p> 事实上，当我们试着去看第 2 层的递归时，我们可以清楚地看到，<span class="vsymbol v">answer</span> 值是 <code>'(1)</code>, 下一步就是把 <span class="vsymbol v">things</span> 的第一个元素 <span class="vnumber v">2</span> 拿出来，平方之后放到 <span class="vsymbol v">answer</span> 的前面。</p><p>第二种方法产生的顺序是对的，但错误地使用了 <span class="vsymbol v">cons</span> 来组装 <span class="vsymbol v">answer</span>。下面是这个错误的方法产生的答案以及一个正确的迭代式的递归过程 <span class="vsymbol v">square-list</span>。</p><pre class="gist sicp-code"><code>(define (square-list-2 items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons answer
+                    (square (car things))))))
+  (iter items '()))
+
+;1 ]=&gt; (square-list-2 '(1 2 3 4 5))
+
+;Value 7: (((((() . 1) . 4) . 9) . 16) . 25)
+
+;;; the right way:
+(define (square-list-right items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (append answer 
+                      (list (square (car things)))))))
+  (iter items '()))
+
+;1 ]=&gt; (square-list-right '(1 2 3 4 5))
+
+;Value 8: (1 4 9 16 25)
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

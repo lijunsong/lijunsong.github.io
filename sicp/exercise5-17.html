@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.17.  Extend the instruction tracing of exercise 5.16 so that before printing an instruction, the simulator prints any labels that immediately precede that instruction in the controller sequence. Be careful to do this in a way that does not interfere with instruction counting (exercise 5.15). You will have to make the simulator retain the necessary label information.</div><p> 这一题稍微复杂。</p><p>我们可以在运行时处理 label 的信息。比如运行到 goto 的时候，记录 goto 到的标签；branch 时，查看是否会跳转，如果跳转，则更新标签信息。但这么做会打乱模块间的独立性。</p><p>这里的解法是在 assemble 时，分析得到每一个 instruction 和对应的 label，保存在一个 associate list 里面。每一次在执行的时候直接从这个 list 取就可以。</p><p>在 assemble 的时候，有一个非常重要的函数 <span class="vsymbol v">extract-labels</span> 。关于它的作用，我们可以从下面这个 assertion 看出来：</p><pre class="gist"><code>(let ((text
+       '(label1
+         (inst1 arg)
+         (inst2 arg)
+         label2
+         (inst3 arg)
+         (inst4 arg)
+         label3)))
+  (let ((labels (extract-labels text (lambda (labels insts) labels)))
+        (insts (extract-labels text (lambda (labels insts) insts))))
+    (begin
+      (assertequal?
+       labels
+       '((label1 ((inst1 arg)) ((inst2 arg)) ((inst3 arg)) ((inst4 arg)))
+         (label2 ((inst3 arg)) ((inst4 arg)))
+         (label3)))
+      (assertequal?
+       insts
+       '(((inst1 arg))
+         ((inst2 arg))
+         ((inst3 arg))
+         ((inst4 arg))))
+      (assertequal? (lookup-label labels 'label1)
+                    '(((inst1 arg)) ((inst2 arg)) ((inst3 arg)) ((inst4 arg)))))))
+</code></pre><p> 它能把 label 和之后的 instruction 都对应起来（信息保存在 labels 参数中）。我们只需要从后往前对每一个 instruction 都构造一个 <span class="vlong v">(inst . label)</span> 的 pair，然后把这些 pair 再组成 associate list。每一个 inst 开始执行的时候就匹配（使用 <span class="vsymbol v">eq?</span> 而不是 <span class="vsymbol v">equal?</span>）对应的 label。</p><pre class="gist sicp-code"><code>(define (assemble constroller-text machine)
+  (extract-labels constroller-text
+                  (lambda (labels insts)
+                    ;; labels contains useful information
+                    (set-inst-label! labels machine)
+                    (update-insts! insts labels machine)
+                    insts)))
+;; 2
+(define (set-inst-label! labels machine)
+  (define (make-inst-label labels-insts)
+    (if (null? labels-insts)
+        '()
+        (let* ((label-insts (car labels-insts))
+               (label (car label-insts))
+               (insts (cdr label-insts)))
+          (append (make-inst-label (cdr labels-insts))
+                  (map (lambda (inst) (cons (car inst) label)) insts)))))
+  ((machine 'install-label-info) (make-inst-label labels)))</code></pre><p>在 <span class="vsymbol v">set-inst-label!</span> 中， <span class="vlong v">(make-inst-label labels)</span> 将会返回</p><pre class="gist"><code>((inst1 . label1)
+ (inst2 . label2)
+ (inst3 . label3)
+ ...
+ )
+</code></pre><p> 然后把这些信息传递给 machine。machine 在 <span class="vsymbol v">execute</span> 的函数中调用</p><pre class="gist sicp-code"><code>      (define (print-inst-label inst)
+        (if trace-flag
+            (begin
+              (newline)
+              (cond ((assv inst inst-label)
+                     (display (cdr (assv inst inst-label)))
+                     (display ": "))
+                    (else
+                     (display "NO LABEL: ")))
+              (display inst))))</code></pre><p>注意这里使用 <span class="vsymbol v">assv</span> 而不是 <span class="vsymbol v">assoc</span> 。内容一样的 instruction 不一定就是同一个 instruction。我们要用 <span class="vsymbol v">assv</span> 匹配指针的位置。另外要注意有的 instruction 可能没有标签。</p><p>然后是测试，这个测试里面有两条内容一样但属于不同标签的 <span class="vlong v">(goto (reg continue))</span> instruction。</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+(define controller
+  '((assign continue (label fact-done))     ; set up final return address
+   fact-loop
+    (test (op =) (reg n) (const 1))
+    (branch (label base-case))
+    ;; Set up for the recursive call by saving n and continue.
+    ;; Set up continue so that the computation will continue
+    ;; at after-fact when the subroutine returns.
+    (save continue)
+    (save n)
+    (assign n (op -) (reg n) (const 1))
+    (assign continue (label after-fact))
+    (goto (label fact-loop))
+   after-fact
+    (restore n)
+    (restore continue)
+    (assign val (op *) (reg n) (reg val))   ; val now contains n(n - 1)!
+    (goto (reg continue))                   ; return to caller
+   base-case
+    (assign val (const 1))                  ; base case: 1! = 1
+    (goto (reg continue))                   ; return to caller
+   fact-done))
+
+(define (factorial n)
+  (if (&lt; n 2)
+      1
+      (* n (factorial (- n 1)))))
+
+(define fact-machine
+  (make-machine
+   '(n val continue)
+   (list (list '= =)
+         (list '- -)
+         (list '* *))
+   controller))
+
+(define (run-fact n)
+  (fact-machine 'reset)
+  (set-register-contents! fact-machine 'n n)
+  (fact-machine 'trace-on)
+  (start fact-machine)
+  (fact-machine 'print-inst-count)
+  (get-register-contents fact-machine 'val))
+
+(assert= (run-fact 2) (factorial 2))
+(assert= (run-fact 3) (factorial 3))
+(assert= (run-fact 4) (factorial 4))
+(assert= (run-fact 5) (factorial 5))
+(assert= (run-fact 6) (factorial 6))
+(assert= (run-fact 7) (factorial 7))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

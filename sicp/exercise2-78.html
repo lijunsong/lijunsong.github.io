@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.78.  The internal procedures in the scheme-number package are essentially nothing more than calls to the primitive procedures +, -, etc. It was not possible to use the primitives of the language directly because our type-tag system requires that each data object have a type attached to it. In fact, however, all Lisp implementations do have a type system, which they use internally. Primitive predicates such as symbol? and number? determine whether data objects have particular types. Modify the definitions of type-tag, contents, and attach-tag from section 2.4.2 so that our generic system takes advantage of Scheme’s internal type system. That is to say, the system should work as before except that ordinary numbers should be represented simply as Scheme numbers rather than as pairs whose car is the symbol scheme-number.</div><p> 为了保持原系统的功能，我们应该在输入没有提供 scheme-number 这个标签的时候，依然为这个数据打上这个标签。</p><pre class="gist sicp-code"><code>(define (attach-tag type-tag contents)
+  (if (eq? type-tag 'scheme-number)
+      contents
+      (cons type-tag contents)))
+
+(define (contents datum)
+  (cond ((pair? datum)
+         (cdr datum))
+        ((number? datum) datum)
+        (else
+         (error "Bad tagged datum -- CONTENTS" datum))))
+
+(define (type-tag datum)
+  (cond ((pair? datum)
+         (car datum))
+        ((number? datum)
+         'scheme-number)
+        (else
+         (error "Bad tagged datum -- TYPE-TAG" datum))))
+</code></pre><p>测试的时候我们可以如下测试：</p><pre class="gist sicp-code"><code>
+(load "../testframe.scm")
+
+(assert= (add '(scheme-number . 3) '(scheme-number . 4)) 7)
+(assert= (sub '(scheme-number . 3) '(scheme-number . 4)) -1)
+(assert= (mul '(scheme-number . 3) '(scheme-number . 4)) 12)
+(assert= (div '(scheme-number . 12) '(scheme-number . 4)) 3)
+(assert= (add 3 4) 7)
+(assert= (sub 3 4) -1)
+(assert= (mul 3 4) 12)
+(assert= (div 12 4) 3)
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

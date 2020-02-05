@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.12.  The procedures set-variable-value!, define-variable!, and lookup-variable-value can be expressed in terms of more abstract procedures for traversing the environment structure. Define abstractions that capture the common patterns and redefine the three procedures in terms of these abstractions.</div><p> </p><p>本题我们将以在 <a href="/sicp/exercise4-11.html">练习 4.11</a> 中新定义的 frame 作为基础。</p><p>让我们来再观察这三个过程。假设我们要找的是 <span class="vsymbol v">x</span> （或者是给 <span class="vsymbol v">x</span> 赋值，或者是定义 <span class="vsymbol v">x</span> ），对于这三个过程而言：</p><p><span class="vsymbol v">set-variable-value!</span> 在某个 <span class="vsymbol v">frame</span> 中找到了包含 <span class="vsymbol v">x</span> 与 x 值的序对，然后把这个序对中 <span class="vsymbol v">x</span> 的值给替换掉；如果没有找到则提示 <span class="vsymbol v">error</span></p><p><span class="vsymbol v">define-variable!</span> 在某个 <span class="vsymbol v">frame</span> 中找到了包含 <span class="vsymbol v">x</span> 与 <span class="vsymbol v">x</span> 值的序对，然后把这个序对中 <span class="vsymbol v">x</span> 的值给替换掉；如果没有找到则在第一个 <span class="vsymbol v">frame</span> 中创建一个这样的序对。</p><p><span class="vsymbol v">lookup-variable-value</span> 在某个 <span class="vsymbol v">frame</span> 中找到了包含 <span class="vsymbol v">x</span> 与 <span class="vsymbol v">x</span> 值的序对，然后把这个序对中 x 的值返回；如果没有找到则提示 <span class="vsymbol v">error</span>。</p><p>可以看出我们这里的共同的模式为：</p><ol><li>到 <span class="vsymbol v">env</span> 去找与 <span class="vsymbol v">x</span> 有关的序对，返回这个序对以供使用</li><li>如果找到，则做一件事情</li><li>如果没有找到则做另外一件事情。</li></ol><p>因此，我们可以抽象出第一步这个共同的模式–无论哪个操作都需要去 env 中去找到与 <span class="vsymbol v">x</span> 有关的序对，然后返回这个序对。</p><pre class="gist sicp-code"><code>(define (lookup-env var env)
+  (define (lookup-frame frame)
+    (cond ((null? frame)
+           (lookup-env var (enclosing-environment env)))
+          ((eq? var (car (car frame)))
+           (car frame))
+          (else
+           (lookup-frame (cdr frame)))))
+  (if (eq? env the-empty-environment)
+      '()
+      (lookup-frame (first-frame env))))
+</code></pre><p>这里值得注意的是，在写 <span class="vsymbol v">lookup-frame</span> 的时候，一定不能使用 <span class="vsymbol v">false</span> 来表示在当前的 <span class="vsymbol v">frame</span> 中没有找到某个值。一定是在 <span class="vsymbol v">lookup-frame</span> 当前 <span class="vsymbol v">frame</span> 为 <span class="vsymbol v">null?</span> 的时候直接递归去找下一个 <span class="vsymbol v">env</span>。因为返回 <span class="vsymbol v">false</span> 时，可能是找到了变量但变量本身的值为 <span class="vsymbol v">false</span>，也可能是没有找到所以返回 <span class="vsymbol v">false</span>。</p><p>有了这个操作之后，我们需要定义的三个操作就可以非常一致地定义如下：</p><pre class="gist sicp-code"><code>
+(define (lookup-variable-value var env)
+  (let ((var-val (lookup-env var env)))
+    (if (null? var-val)
+        (error 'lookup-variable-value "Unbound variable" var)
+        (cdr var-val))))
+
+
+(define (set-variable-value! var val env)
+  (let ((var-val (lookup-env var env)))
+    (if (null? var-val)
+        (error 'set-variable-value! "Unbound variable -- SET!" var)
+        (set-cdr! var-val val))))
+
+(define (define-variable! var val env)
+  (let ((var-val (lookup-env var env)))
+    (if (null? var-val)
+        (add-binding-to-frame! var val (first-frame env))        
+        (set-cdr! var-val val))))
+</code></pre><p>最后依然是使用 regression test 进行测试。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

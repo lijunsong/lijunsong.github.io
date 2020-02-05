@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.25.  Suppose that (in ordinary applicative-order Scheme) we define unless as shown above and then define factorial in terms of unless as</p><pre class="gist"><code>(define (factorial n)
+  (unless (= n 1)
+          (* n (factorial (- n 1)))
+          1))
+</code></pre><p> What happens if we attempt to evaluate (factorial 5)? Will our definitions work in a normal-order language?</p></div><p>  对 applicative-order，<span class="vsymbol v">unless</span> 如果被定义成了过程，则参数会全部计算完成之后才被传到过程体里面。所以</p><pre class="gist"><code>(* n (factorial (- n 1)))
+</code></pre><p> 会不断地求值，得到死循环（无限递归）。</p><p>而作为 <span class="vsymbol v">normal-order</span>，<span class="vsymbol v">unless</span> 就相当于 <span class="vsymbol v">if</span> 语句。每一次调用 <span class="vsymbol v">unless</span> 都相当于 <span class="vsymbol v">if</span> 语句先判断 <span class="vlong v">(= n 1)</span>，所以在 <span class="vsymbol v">normal-order</span> 中，这个 factorial 过程是可以得到结果的。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

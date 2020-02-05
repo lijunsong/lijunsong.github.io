@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 1.38.  In 1737, the Swiss mathematician Leonhard Euler published a memoir De Fractionibus Continuis, which included a continued fraction expansion for e - 2, where e is the base of the natural logarithms. In this fraction, the Ni are all 1, and the Di are successively 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, .... Write a program that uses your cont-frac procedure from exercise 1.37 to approximate e, based on Euler’s expansion.</div><p> 根据描述，Euler’s continued fraction 公式为：</p><p><mathjax class="$$">$$e - 2 = \frac{1}{1+\frac{1}{2+\frac{1}{1+\frac{1}{1+\frac{1}{4+\dots}}}}}
+$$</mathjax> 但这个公式不适合于我们的 cont-frac 过程，因为序列 1,  2, 1, 1, 4, 1, 1, 6……不容易从用函数来描述项数与值的关系。</p><p>我们可以变一下，这样来想这个公式</p><div class="left-margin todo" style="color: red;">fix this</div><p><mathjax class="$$">$$e - 1 = \left\( \frac{1}{1+\frac{1}{1+\frac{1}{2+\frac{1}{1+\frac{1}{1+\frac{1}{4+\dots}}}}}} \right\)^{-1}
+$$</mathjax> 这样，我们的过程变为需要处理 1, 1, 2, 1, 1, 4, 1, 1, 6……方便地处理 2 4 6 等数–它们都为 (2i)/3。</p><pre class="gist sicp-code"><code>(load "37-cont-frac.scm")
+(load "../testframe.scm")
+(let ((e-1
+       (/ 1
+          (cont-frac (lambda (i) 1.0)
+                     (lambda (i)
+                       (if (= (remainder i 3) 0)
+                           (/ (* 2 i) 3)
+                           1))
+                     100)))
+      (e 2.7182818284590452353602874713))
+  (display (+ e-1 1))) ;Value: 2.7182818284590455</code></pre><p>最后我们可以对 e - 1 求值，这个值加上 1 就是 e 的近似值</p><pre class="gist"><code>;Value: 2.7182818284590455</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

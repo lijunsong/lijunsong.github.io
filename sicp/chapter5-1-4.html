@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <h3 class="section" id="secsec539dee6da6b9bdde9b6244a3b82f501c">理解递归的代码排布</h3><p>gcd 与 factorial 都使用了递归，但在编译的时候，它们的不同之处对编译时寄存器的安排影响很大。</p><pre class="gist"><code>(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+
+(define (gcd a b)
+  (if (= b 0)
+      a
+      (gcd b (remainder a b))))
+</code></pre><p> gcd 不需要记录每一步的结果，最终的结果就是整个 gcd 计算式的结果。factorial 则需要记录 n 的值与子程序返回值。</p><p>factorial 的代码排布如下（SICP 图 5.11）：</p><pre class="gist"><code>(controller
+   (assign continue (label fact-done))     ; set up final return address
+ fact-loop
+   (test (op =) (reg n) (const 1))
+   (branch (label base-case))
+   ;; Set up for the recursive call by saving n and continue.
+   ;; Set up continue so that the computation will continue
+   ;; at after-fact when the subroutine returns.
+   (save continue)
+   (save n)
+   (assign n (op -) (reg n) (const 1))
+   (assign continue (label after-fact))
+   (goto (label fact-loop))
+ after-fact
+   (restore n)
+   (restore continue)
+   (assign val (op *) (reg n) (reg val))   ; val now contains n(n - 1)!
+   (goto (reg continue))                   ; return to caller
+ base-case
+   (assign val (const 1))                  ; base case: 1! = 1
+   (goto (reg continue))                   ; return to caller
+ fact-done)
+</code></pre><p> 如果我们能知道每一步 stack 都是什么样子的，则更有助于我们理解这段代码。以 (factorial 4) 为例，在 n 为 1 之前的 stack 的样子如下：</p><pre class="gist"><code>+--------------+
+|      2       |
++--------------+
+|  after-fact  |
++--------------+
+|      3       |
++--------------+
+|  after-fact  |
++--------------+
+|      4       |
++--------------+
+|    done      |
++--------------+</code></pre><p>当 n 为 1 的时候，程序跳转到 base-case 执行，val 寄存器被赋值 1，然后开始返回到调用者（caller）的位置，不断地把 stack 中的数据恢复到 n 和 continue 寄存器中。</p><p>所以，</p><pre class="gist"><code>val = 1
+
++--------------+
+|      2       |  n = 2
++--------------+
+|  after-fact  |  continue = after-fact
++--------------+
+|      3       |
++--------------+
+|  after-fact  |
++--------------+
+|      4       |
++--------------+
+|    done      |
++--------------+</code></pre><p>一次 restore 之后：</p><pre class="gist"><code>val = 1 * 2 = 2
+
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|      3       | n = 3
++--------------+
+|  after-fact  | continue = after-fact
++--------------+
+|      4       |
++--------------+
+|    done      |
++--------------+</code></pre><p>第二次 restore：</p><pre class="gist"><code>val = 2 * 3 = 6
+
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|      4       | n = 4
++--------------+
+|    done      | continue = done
++--------------+</code></pre><p>最后 val 将为 24，这个时候程序将跳转到 continue 的位置，即 done 的位置：</p><pre class="gist"><code>val = 6 * 4 = 24
+
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|              |
++--------------+
+|              |
++--------------+</code></pre><p>计算结束。每一次计算之前压入当前的 label 和 n 的值，计算之后弹出到相应的寄存器中。</p><h3 class="section" id="secsecdc84670abe65a35969839d79bc897931">双递归</h3><pre class="gist"><code>(define (fib n)
+  (if (&lt; n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+
+</code></pre><p> 双递归的计算过程是一直深度优先计算 <span class="vlong v">(fib (- n 1))</span> ，到了最后一层时，开始计算 <span class="vlong v">(fib (- n 2))</span> 。然后依次计算上一层的 <span class="vlong v">(fib (- n 2))</span> 。所以对于</p><pre class="gist"><code>(controller
+   (assign continue (label fib-done))
+ fib-loop
+   (test (op &lt;) (reg n) (const 2))
+   (branch (label immediate-answer))
+   ;; set up to compute Fib(n - 1)
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)                           ; save old value of n
+   (assign n (op -) (reg n) (const 1)); clobber n to n - 1
+   (goto (label fib-loop))            ; perform recursive call
+ afterfib-n-1                         ; upon return, val contains Fib(n - 1)
+   (restore n)
+   (restore continue)
+   ;; set up to compute Fib(n - 2)
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)                         ; save Fib(n - 1)
+   (goto (label fib-loop))
+ afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+   (assign n (reg val))               ; n now contains Fib(n - 2)
+   (restore val)                      ; val now contains Fib(n - 1)
+   (restore continue)
+   (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+           (op +) (reg val) (reg n))
+   (goto (reg continue))              ; return to caller, answer is in val
+ immediate-answer
+   (assign val (reg n))               ; base case:  Fib(n) = n
+   (goto (reg continue))
+ fib-done)
+
+</code></pre><p> <span class="vsymbol v">fib-loop</span> 是 fib 的入口，每一次 fib 的调用都会跳转到 <span class="vsymbol v">fib-loop</span>，。每一次 <span class="vlong v">(fib (- n 1))</span> 之后，也即 <span class="vsymbol v">afterfib-n-1</span>，都应该去计算 <span class="vlong v">(fib (- n 2))</span>。计算过 <span class="vlong v">(fib (- n 2))</span> 之后，也即 <span class="vsymbol v">afterfib-n-2</span>，都应该计算两次结果的和，并返回上一层 caller。</p><p>这段代码先进入 n 的计算，不断压入 n 的值。到了递归的最后一层，开始回到 <span class="vsymbol v">afterfib-n-1</span>，然后计算 n - 2 进入 <span class="vlong v">(fib (- n 2))</span>，接下来则跳到 <span class="vsymbol v">afterfib-n-2</span> 计算。然后返回到上一层，又回到 <span class="vsymbol v">aftrfib-n-1</span>。</p><p>我们使用 <span class="vlong v">(fib 4)</span> 来看。在 <span class="vsymbol v">fib-loop</span> 快要跳出时（也即，n 为 1时），stack 内的情况如下：</p><pre class="gist"><code>n: 2
+continue: afterfib-n-1
+
++--------------+
+|     2        |
++--------------+
+| afterfib-n-1 |
++--------------+
+|     3        |
++--------------+
+| afterfib-n-1 |
++--------------+
+|     4        |
++--------------+
+|   fib-done   |
++--------------+</code></pre><p>然后 val 被复制为 n 即为 1，返回到 <span class="vsymbol v">afterfib-n-1</span> 中。为 n 赋值 2，continue 赋值 <span class="vsymbol v">afterfib-n-1</span>，计算 <span class="vlong v">(- n 2)</span>，即计算 n = 2 时候 <span class="vlong v">(fib (- n 2))</span>。在这个 <span class="vsymbol v">afterfib-n-1</span> 结束的时候，stack 的情况</p><pre class="gist"><code>n: 0
+continue: afterfib-n-2
+val: 1
+
++--------------+
+|     1        |
++--------------+
+| afterfib-n-1 |
++--------------+
+|     3        |
++--------------+
+| afterfib-n-1 |
++--------------+
+|     4        |
++--------------+
+|   fib-done   |
++--------------+</code></pre><p>然后程序进入 fib-loop，计算 <span class="vlong v">(fib (- n 2))</span> 的值，这个时候 val 已经 save 了，所以新的计算并不会影响之前计算的值。<span class="vsymbol v">fib-loop</span> 这次会因为 n &lt; 2 而直接跳转到 <span class="vsymbol v">immediate-answer</span>，val = 0，然后跳转到 <span class="vsymbol v">afterfib-n-2</span>。<span class="vsymbol v">afterfib-n-2</span> 结束时 stack 的情况：</p><pre class="gist"><code>n: 0
+continue: afterfib-n-1
+val: 1
+
++--------------+
+|     3        |
++--------------+
+| afterfib-n-1 |
++--------------+
+|     4        |
++--------------+
+|   fib-done   |
++--------------+</code></pre><p>下一步程序会跳转到 <span class="vsymbol v">afterfib-n-1</span> 执行 <span class="vlong v">n = 3</span> 时的代码。</p><p>到这里一轮递归就结束了。之后的可以接下去分析。</p><h3 class="section" id="secsecd5f94b7af799c673babcb15c547c0f2a">尾递归的空间的占用情况</h3><p>尾递归时候，每一个递归返回的值就是最后计算结果的值。不需要保存额外的空间来保存中间值。</p><p>gcd 即为尾递归，使用这样的代码排布方式，不会使用额外的寄存器与额外的栈，空间是常量。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

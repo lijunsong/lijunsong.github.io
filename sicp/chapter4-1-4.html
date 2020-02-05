@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>在这一小节中，我们启动了 eval，并且进行了一些简单的求值。</p><p><a href="/sicp/exercise4-14.html">练习 4.14</a> 让我们开始考虑（或者我们从开始就在想），什么样的过程算是 primitive procedure，而什么样的是 compound procedure 呢？也就是，为什么 cons，car，cdr 可以放到 primitve 里面，但例如 map 就必须要自己来实现呢？</p><p>这里需要推广开的的问题是，哪些是我们可以借用宿主语言来实现的，哪些不可以。</p><p>在我们实现 eval 的时候，很大一部分东西都借用了宿主语言来表示。比如 symbol，number，list。但另外一部分也没有，比如 lambda 和 procedure。在 scheme 里面我们实现了另外一个 scheme 语言的求值器，它的意义到底在哪里呢？该有的东西早就有了啊，这么来做难道不是轻而易举吗？</p><p>在完成了 <a href="/sicp/exercise4-14.html">练习 4.14</a> 我们心里面应该清楚下面这个问题了：哪些是可以使用拿来主义，直接借用宿主 scheme 解释本身来实现的，哪些东西是需要我们自己来实现的。</p><p>数据结构我们是可以直接拿来用的。因为我们学习的是编程语言设计，我们不想要被底层的东西烦到。所以一个数字到底是整数还是浮点数，一个 list 和一个 pair 如何构造等问题，我们根本就不需要知道，所以我们可以直接使用 scheme 的表示方法来表示我们求值器里面的 number, string, symbol, list。也是因为这个原因，凡是对 number, string, symbol, list 的操作，我们都可以直接把它放到 primitive 里面。</p><p>但对于涉及到 procedure 的，我们就不能直接拿过来使用了。因为 procedure 对于一门编程语言的功能至关重要；我们在 C，C++ 中看到了函数（或者方法）是不能作为一种值传递的（因为在声明变量的时候，是没有一种类型可以当做 procedure 类型的，哦，除非你使用指针）。在我们设计的 eval 里面，我们当然可以把 <span class="vlong v">(lambda (x) (+ x 1))</span> 直接当做宿主的 lambda 表达式，但这样的话，我们可以实现的功能就实在太受限制了–那样做的话，我们甚至不能操作 lambda 的 environment。所以我们要自己来构造 lambda 闭包，需要使用 list 结构把 lambda 的参数，过程体与 env 给保存起来以便之后使用。所以我们的 lambda 与宿主的 lambda 相差甚远。因此，凡是涉及到使用过程的（高阶函数）过程，我们都没有办法直接放到现有的 eval 里面，因此 map，reduce，for-each 等等都不能直接使用。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

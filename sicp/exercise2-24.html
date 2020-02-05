@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.24.  Suppose we evaluate the expression (list 1 (list 2 (list 3 4))). Give the result printed by the interpreter, the corresponding box-and-pointer structure, and the interpretation of this as a tree (as in figure 2.6).</div><p> </p><h3 class="section" id="secseca3c8151514e329419466d7bcd27f4aba">打印结果</h3><pre class="gist"><code>1 ]=&gt; (list 1 (list 2 (list 3 4)))
+
+;Value 3: (1 (2 (3 4)))</code></pre><p> </p><h3 class="section" id="secsec27e894719e00fcb39eef5c3ee111f2a2">box-and-pointer 结构</h3><pre class="gist"><code>(1 (2 (3 4)))
+         +---+---+       +---+---+
+--------&gt;|   | --+------&gt;|   |nil|
+         +-+-+---+       +-+-+---+
+           |               |
+           |               |
+         +-+-+           +-+-+---+        +---+---+
+         | 1 |           |   | --+-------&gt;|   |nil|
+         +---+           +-+-+---+        +-+-+---+
+                           |                |
+                           |                |
+                         +-+-+            +-+-+---+        +---+---+
+                         | 2 |            |   | --+-------&gt;|   |nil|
+                         +---+            +-+-+---+        +-+-+---+
+                                            |                |
+                                            |                |
+                                          +-+-+            +-+-+
+                                          | 3 |            | 4 |
+                                          +---+            +---+
+
+</code></pre><h3 class="section" id="secsec9d40becd9b2531ffe9d0e1887f8cbf48">tree 结构</h3><pre class="gist"><code>tree     .
+        / \
+       /   \
+      /     \
+     /       \
+    /         \.
+   1          / \
+             /   \
+            /     \
+           /       \.
+          2        /\
+                  /  \
+                 /    \
+                /      \
+               3        4</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

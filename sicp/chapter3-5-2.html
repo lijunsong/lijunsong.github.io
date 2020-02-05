@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <h3 class="section" id="secsecf360ec598c6455c52310004d7a9cd6a8">无限流</h3><p>因为 stream 可以延迟之后将要做的操作，所以可以使用 stream 来产生一个无限大的数字序列。</p><p>在这个序列中，我们可以要多少取多少，不用担心序列是否会被取完。</p><p>搭配上 stream-filter，我们就可以使用 sieve 算法来生成无限大的素数序列了。</p><h3 class="section" id="secsecea25dfcdf264a5f34ebf2d1abb9976a4">理解隐式定义的流</h3><p>定义无限的整数流可以使用如下两种形式</p><pre class="gist"><code>(define (integers-starting-from n)
+  (cons-stream n (integers-starting-from (+ n 1))))
+
+(define integers (integers-starting-from 1))
+</code></pre><p> 与</p><pre class="gist"><code>(define ones (cons-stream 1 ones))
+
+(define integers (cons-stream 1 (add-streams ones integers)))
+</code></pre><p> 对第一种形式，我们应该比较容易理解，因为流在递归一个过程，这个过程将产生流的下一个值与其后的一个 promise。使用替换模型来解释程序，则 integers 为：</p><pre class="gist"><code>(cons-stream 1 (cons-stream 2 (cons-stream 3 (cons-stream 4 ..))))
+
+</code></pre><p> 对第二种形式，integers 流将自己毫无变动地传递到了一个过程中以产生下一个值。我们可以如下来看这个替换模型：</p><pre class="gist"><code>(cons-stream 1
+             ; #[promise 1] expanded from (stream-map + (1 . #[Promise 1]) ..)
+             (cons-stream (+ (stream-car s)
+                             (stream-car s))
+                          ;#[promise 2] &lt;= (stream-map + (2 . #[promise 2]) ..)
+                          (cons-stream (+ (stream-car s)
+                                          (stream-car s))
+                                       ;#[primise 3]
+                                       (stream-map + (cdr-stream s) (cdr-stream s))))
+</code></pre><p> 当运行 <span class="vlong v">#[promise 1]</span> 时，s 为 <span class="vlong v">(1 . #[promise 1])</span> 所以 stream-car 是 1；两个相加之后变为 2</p><p><span class="vlong v">#[promise 2]</span> 中 s 实际为 <span class="vlong v">(2 . #[promise 2])</span>，所以 stream-car 是 2，两个相加之后变为 4</p><p>运行到 <span class="vlong v">#[promise 3]</span> 的时候，s 实际为 <span class="vlong v">(4 . #[promise 3])</span>，所以 stream-car 是 8。以此类推。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

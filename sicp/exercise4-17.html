@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.17.  Draw diagrams of the environment in effect when evaluating the expression &lt;e3&gt; in the procedure in the text, comparing how this will be structured when definitions are interpreted sequentially with how it will be structured if definitions are scanned out as described. Why is there an extra frame in the transformed program? Explain why this difference in environment structure can never make a difference in the behavior of a correct program. Design a way to make the interpreter implement the ‘‘simultaneous’’ scope rule for internal definitions without constructing the extra frame.</div><p> 对于原始的表达式</p><pre class="gist"><code>(lambda &lt;vars&gt;
+  (define u &lt;e1&gt;)
+  (define v &lt;e2&gt;)
+  &lt;e3&gt;)
+</code></pre><p> 我们可以如下画图 environment 的图：</p><pre class="gist"><code>+--------------------------------------+
+| sth: --+                             |
+|        |                             |
++--------+-----------------------------+
+         |                         ^
+         |                         |
+         |                 E1      |
+         |                  +------+-----+
+         v                  | &lt;vars&gt;     |
+Parameter: &lt;vars&gt;           | u:&lt;e1&gt;     |
+     body: (define..)       | v:&lt;e2&gt;     |
+           (define..)       +------------+
+           &lt;e3&gt;                     &lt;e3&gt;</code></pre><p>对于新的表达式</p><pre class="gist"><code>(lambda &lt;vars&gt;
+  (let ((u '*unassigned*)
+        (v '*unassigned*))
+    (set! u &lt;e1&gt;)
+    (set! v &lt;e2&gt;)
+    &lt;e3&gt;))
+</code></pre><p> 我们可以做出如下的 environment 图：</p><pre class="gist"><code>+--------------------------------------+
+| sth: --+                             |
+|        |                             |
++--------+-----------------------------+
+         |                         ^
+         |                         |
+         |                 E1      |
+         |                  +------+-----+
+         v                  |&lt;vars&gt;      |&lt;----------+
+Parameter: &lt;vars&gt;           +------------+           |
+                                                     |
+     body: (let ((u '*unassigned*)                   |  E2
+                 (v '*unassigned*))           +------+-----+
+             ...                              |u: *unass..*|
+             &lt;e3&gt;)                            |v: *unass..*|
+                                              +------------+
+                                                      &lt;e3&gt;</code></pre><p>对于一个“正确”的程序（一个 “不正确”的程序见 <a href="/sicp/exercise4-19.html">练习 4.19</a> ，这两个过程在运行的时候是没有任何区别的。原因在于，对于我们设计的寻找变量的机制而言，新多出来的 E2 与 E1 的合并正好就是原来的 environment 图的 E1。所以没有任何区别。</p><p>设计一个过程只产生一个 frame：TODO。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

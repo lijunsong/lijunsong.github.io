@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.53.  Without running the program, describe the elements of the stream defined by</p><pre class="gist"><code>(define s (cons-stream 1 (add-streams s s)))
+</code></pre></div><p> 对于 s，第一个元素是 1，其余元素是 s 与 s 的和。所以，第二个元素是 s 的第一个元素与 s 的第一个元素的和，即 2。第三个元素是 s 的第二个元素与第二个元素的和，即 4。第四个元素是 s 的第三个元素与第三个元素的和，即 8，以此类推。</p><p><mathjax class="$$">$$
+2^0, 2^1, 2^2 , 2^3, \dots
+$$</mathjax> 我们可以输入如下程序到解释器中查看结果</p><pre class="gist sicp-code"><code>(load "stream.scm")
+(load "50-stream-map.scm")
+
+(define (add-streams s1 s2)
+  (stream-map + s1 s2))
+
+(define s (cons-stream 1 (add-streams s s)))
+
+; (stream-ref s 1) =&gt; 2
+; (stream-ref s 2) =&gt; 4
+; (stream-ref s 3) =&gt; 8</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

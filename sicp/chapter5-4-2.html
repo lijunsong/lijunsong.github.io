@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>我们先看看不是 tail recursion 的实现</p><pre class="gist"><code>; no tail recursion
+ev-sequence
+  (test (op no-more-exps?) (reg unev))
+  (branch (label ev-sequence-end))
+  (assign exp (op first-exp) (reg unev))
+  (save unev)
+  (save env)
+  (assign continue (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev (op rest-exps) (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-end
+  (restore continue)
+  (goto (reg continue))
+</code></pre><p> 对于 <span class="vsymbol v">sequence</span>，这个 <span class="vsymbol v">evaluator</span> 首先查看还有没有后续的 <span class="vsymbol v">expression</span>，如果没有则返回 <span class="vsymbol v">caller</span> 的位置。如果有（哪怕只有最后一条），也把当前的 <span class="vsymbol v">env</span> 放到 <span class="vsymbol v">stack</span> 上，然后执行后续的操作（调用 <span class="vsymbol v">eval-dispatch</span>）。</p><p>而对于 tail recursion 来说，</p><pre class="gist"><code>; tail recursion
+ev-sequence
+  (assign exp (op first-exp) (reg unev))
+  (test (op last-exp?) (reg unev))
+  (branch (label ev-sequence-last-exp))
+  (save unev)
+  (save env)
+  (assign continue (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev (op rest-exps) (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-last-exp
+  (restore continue)
+  (goto (label eval-dispatch))
+</code></pre><p> 它对最后一个 <span class="vsymbol v">expression</span> 单独处理。如果它是最后一个，直接调用 <span class="vsymbol v">eval-dispatch</span> 进行处理。这样设计不会对最后一个 <span class="vsymbol v">expression</span> 的 <span class="vsymbol v">env</span> 进行压栈，所以如果可以进行 <span class="vlong v">tail recursion</span> 的话，stack 是不会增加的。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

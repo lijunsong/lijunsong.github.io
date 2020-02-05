@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.12.  The following procedure for appending lists was introduced in section 2.2.1:</p><pre class="gist"><code>(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+</code></pre><p> Append forms a new list by successively consing the elements of x onto y. The procedure append! is similar to append, but it is a mutator rather than a constructor. It appends the lists by splicing them together, modifying the final pair of x so that its cdr is now y. (It is an error to call append! with an empty x.)</p><pre class="gist"><code>(define (append! x y)
+  (set-cdr! (last-pair x) y)
+  x)
+</code></pre><p> Here last-pair is a procedure that returns the last pair in its argument:</p><pre class="gist"><code>(define (last-pair x)
+  (if (null? (cdr x))
+      x
+      (last-pair (cdr x))))
+</code></pre><p> Consider the interaction</p><pre class="gist"><code>(define x (list 'a 'b))
+(define y (list 'c 'd))
+(define z (append x y))
+z
+(a b c d)
+(cdr x)
+&lt;response&gt;
+(define w (append! x y))
+w
+(a b c d)
+(cdr x)
+&lt;response&gt;
+</code></pre><p> What are the missing &lt;response&gt;s? Draw box-and-pointer diagrams to explain your answer.</p></div><p> 第一个 <span class="vsymbol v">&lt;response&gt;</span> 是 <span class="vsymbol v">(b)</span>；而第二个 <span class="vsymbol v">&lt;response&gt;</span> 是 <span class="vlong v">(b c d)</span></p><p>我们可以这样使用图形来看这个问题。</p><p>当使用 <span class="vlong v">(append x y)</span> 的时候，<span class="vsymbol v">append</span> 将返回新的一个 <span class="vsymbol v">pair</span>，<span class="vsymbol v">pair</span> 的 <span class="vsymbol v">car</span> 部分是 <span class="vsymbol v">x</span>，<span class="vsymbol v">cdr</span> 部分是 <span class="vsymbol v">y</span>。<span class="vsymbol v">x</span> 没有变化。</p><pre class="gist"><code>z     +---+---+
+-----&gt;|   |   +------------------------------+
+      +-+-+---+                              |
+        |                                    |
+        |                                    |
+        v                                    v
+x     +---+---+      +---+---+       y     +---+---+      +---+---+
+-----&gt;|   |   +-----&gt;|   | / |       -----&gt;|   |   +-----&gt;|   | / |
+      +-+-+---+      +-+-+---+             +-+-+---+      +-+-+---+
+        |              |                     |              |
+        v              v                     v              v
+      +---+          +---+                 +---+          +---+
+      | a |          | b |                 | c |          | d |
+      +---+          +---+                 +---+          +---+</code></pre><p>当我们使用 <span class="vlong v">(append! x y)</span> 的时候，盒子变成了下面这样–<span class="vsymbol v">x</span> 的最后一个链接链接到了 <span class="vsymbol v">y</span> 上面。</p><pre class="gist"><code>w ---+                         y -------+
+     |                                  v
+     |  +---+---+      +---+---+      +---+---+      +---+---+
+x ---+-&gt;|   |   +-----&gt;|   |   +-----&gt;|   |   +-----&gt;|   | / |
+        +-+-+---+      +-+-+---+      +-+-+---+      +-+-+---+
+          |              |              |              |
+          v              v              v              v
+        +---+          +---+          +---+          +---+
+        | a |          | b |          | c |          | d |
+        +---+          +---+          +---+          +---+</code></pre><p>所以 <span class="vlong v">(cdr x)</span> 会得到 <span class="vlong v">(b c d)</span></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

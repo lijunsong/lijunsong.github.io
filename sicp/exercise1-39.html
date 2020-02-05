@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.39.  A continued fraction representation of the tangent function was published in 1770 by the German mathematician J.H. Lambert:</p><p>where x is in radians. Define a procedure (tan-cf x k) that computes an approximation to the tangent function based on Lambert’s formula. K specifies the number of terms to compute, as in exercise 1.37.</p></div><p> 与练习 1.38 一样，我们需要把这个 tan 的式子稍作改动，以适应我们的 cont-frac 过程：</p><p><mathjax class="$$">$$-x * tanx = \frac{-x^2}{1+{\frac{-x^2}{3+\frac{-x^2}{\dots}}}}
+$$</mathjax> 于是我们可以如下定义 tan-cf（需要注意的是 cont-frac 的分子在这里是 <mathjax class="$">$-x^2$</mathjax> ）。</p><pre class="gist sicp-code"><code>(load "37-cont-frac.scm")
+
+(define (tan-cf x k)
+  (let ((xx (* x x)))
+    (/ (cont-frac (lambda (i) (- 0 xx))
+                  (lambda (i) (- (* 2 i) 1))
+                  k)
+       (- 0 x))))
+
+(tan-cf (/ 3.1415926 4) 100)
+;Value: .9999999732051038
+; the built-in tan will produce
+; 1 ]=&gt; (tan (/ 3.1415926 4))
+;Value: .9999999732051039
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

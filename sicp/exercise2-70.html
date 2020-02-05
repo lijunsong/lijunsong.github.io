@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.70.  The following eight-symbol alphabet with associated relative frequencies was designed to efficiently encode the lyrics of 1950s rock songs. (Note that the ‘‘symbols’’ of an ‘‘alphabet’’ need not be individual letters.)</p><pre class="gist"><code>A	2	NA	16
+BOOM	1	SHA	3
+GET	2	YIP	9
+JOB	2	WAH	1</code></pre><p>   Use generate-huffman-tree (exercise 2.69) to generate a corresponding Huffman tree, and use encode (exercise 2.68) to encode the following message:</p><pre class="gist"><code>Get a job
+
+Sha na na na na na na na na
+
+Get a job
+
+Sha na na na na na na na na
+
+Wah yip yip yip yip yip yip yip yip yip
+
+Sha boom</code></pre><p>   How many bits are required for the encoding? What is the smallest number of bits that would be needed to encode this song if we used a fixed-length code for the eight-symbol alphabet?</p></div><p> 有了<a href="/sicp/exercise2-69.html">练习 2.69</a>与<a href="/sicp/exercise2-68.html">练习 2.68</a>，我们可以如下求这个歌词的编码：</p><pre class="gist sicp-code"><code>(load "69-generate-huffman-tree.scm")
+(load "68-encode.scm")
+
+(define pairs
+  '((A 2) (NA 16) (BOOM 1) (SHA 3) (GET 2) (YIP 9) (JOB 2) (WAH 1)))
+
+(define tree
+  (generate-huffman-tree pairs))
+
+(encode '(Get a JOB
+              Sha na na na na na na na na
+              Get a job
+              Sha na na na na na na na na
+              Wah yip yip yip yip yip yip yip yip yip
+              Sha boom)
+        tree)
+
+;; length: 84
+;; (1 1 1 1 1 1 1 0 0 1 1 1 1 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 0 0 1 1 1 1 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 1 1 0 1 1 0 1 1)
+
+
+</code></pre><p>如果使用 fixed-length 编码，共 8 个字符则每个字符需要 4 位的编码才够。歌词总共 36 个字符，所以需要 <mathjax class="$">$36 \times 4 = 144$</mathjax> 个二进制位。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

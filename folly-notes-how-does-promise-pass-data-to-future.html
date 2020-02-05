@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: How Does Promise Pass Data to Future</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: How Does Promise Pass Data to Future</h1>
+          <div class="date">2020-06-10</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p>How is <span class="vsymbol v">folly::Promise</span> implemented such that <span class="vsymbol v">Promise::setValue</span> can safely pass data to the associated <span class="vsymbol v">future</span> even if the promise is destroyed immediately after calling <span class="vsymbol v">setValue</span>?</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>We’ve seen how to use <span class="vsymbol v">folly::Promise</span> to <a href="/folly-notes-convert-old-style-callbacks-to-chained-callbacks.html">convert old style callbacks to chained callbacks</a>. The key is to wrap promise in callback and call <span class="vsymbol v">setValue</span> to pass the data back:</p><pre class="gist"><code>SemiFuture&lt;rpcReply&gt; future_async_call(rpcArgs* args) {
+  Promise promise;
+  auto f = promise.getSemiFuture();
+  async_call(args, [p=std::move(promise)](rpcReply&amp;&amp; r) mutable {
+    p.setValue(std::move(r));
+  });
+  return f;
+}</code></pre><p>Here is a question I always have about promise: how is it implemented such that it is safe to destroy a <span class="vsymbol v">folly::Promise</span> after calling <span class="vsymbol v">setValue</span>? In another word, how does <span class="vsymbol v">setValue</span> pass the data to the future?</p><h3 class="section" id="secsec7f161cbc6d23646a91eb8656f46056c2"><span class="vsymbol v">Promise::setValue</span></h3><p>What does <span class="vsymbol v">Promise::setValue</span> do? Let’s take a look at relevant code:</p><pre class="gist"><code>template &lt;class T&gt;
+SemiFuture&lt;T&gt; Promise&lt;T&gt;::getSemiFuture() {
+  if (retrieved_) {
+    throw_exception&lt;FutureAlreadyRetrieved&gt;();
+  }
+  retrieved_ = true;
+  return SemiFuture&lt;T&gt;(&amp;getCore());
+}
+
+template &lt;class T&gt;
+template &lt;class M&gt;
+void Promise&lt;T&gt;::setValue(M&amp;&amp; v) {
+  static_assert(!std::is_same&lt;T, void&gt;::value, "Use setValue() instead");
+
+  setTry(Try&lt;T&gt;(std::forward&lt;M&gt;(v)));
+}
+template &lt;class T&gt;
+void Promise&lt;T&gt;::setTry(Try&lt;T&gt;&amp;&amp; t) {
+  throwIfFulfilled();
+  core_-&gt;setResult(std::move(t));
+}
+
+...
+Core&amp; getCore() {
+  return getCoreImpl(core_);
+}
+Core const&amp; getCore() const {
+  return getCoreImpl(core_);
+}
+...
+// shared core state object
+// usually you should use `getCore()` instead of directly accessing `core_`.
+using Core = futures::detail::Core&lt;T&gt;;
+Core* core_;</code></pre><p>Note that</p><ul><li>Promise wraps <span class="vsymbol v">futures::detail::Core</span>, and simply calls <span class="vsymbol v">core_-&gt;setResult</span> in <span class="vsymbol v">setValue</span>.</li><li><span class="vsymbol v">getSemiFuture</span> simply constructs a <span class="vsymbol v">SemiFuture</span> from <span class="vsymbol v">core_</span>.</li></ul><p>So we’ll have to understand how <span class="vsymbol v">Core</span> is implemented to find the answser to our question.</p><h3 class="section" id="secsec6318d8d37b72bd1b1bb8653456745e4f">Core::setResult</h3><p>Core has <a href="https://github.com/facebook/folly/blob/3d8f5dcda6f5fc84a577f2e7f210908fb241158b/folly/futures/detail/Core.h#L387-L406" class="link-url">good documentation on how it works</a>. It does nothing special but storing the callback and the result: both of them must be present so the callback can be triggered with the result. From the documentation, it uses a small state machine to guard its state transition from state <span class="vsymbol v">Start</span> to state <span class="vsymbol v">Done</span>.</p><pre class="gist"><code>///   +----------------------------------------------------------------+
+///   |                       ---&gt; OnlyResult -----                    |
+///   |                     /                       \                  |
+///   |                  (setResult())             (setCallback())     |
+///   |                   /                           \                |
+///   |   Start ---------&gt;                              ------&gt; Done   |
+///   |     \             \                           /                |
+///   |      \           (setCallback())           (setResult())       |
+///   |       \             \                       /                  |
+///   |        \              ---&gt; OnlyCallback ---                    |</code></pre><p>First let’s take a look at members to get a sense of what a <span class="vsymbol v">Core</span> stores:</p><pre class="gist"><code>template &lt;typename T&gt;
+class Core final {
+  ...
+  using Context = std::shared_ptr&lt;RequestContext&gt;;
+
+  union {
+    Callback callback_;
+  };
+  // place result_ next to increase the likelihood that the value will be
+  // contained entirely in one cache line
+  union {
+    Result result_;
+    Core* proxy_;
+  };
+  std::atomic&lt;State&gt; state_;
+  std::atomic&lt;unsigned char&gt; attached_;
+  ...
+};</code></pre><p>It stores a callback, a result, its state, and attached number for reference count (see below). It stores many other members, but we just need to see those above to continue our exploration.</p><div class="right-margin"><p>What <span class="vsymbol v">Core</span> supports are</p><pre class="gist"><code>bool hasCallback()
+bool hasResult()
+bool ready()
+
+void setCallback(...)
+void setProxy(...)
+void setResult(...)
+void setExecutor(...)
+void setInterruptHandler(...)
+
+void detachFuture()
+void detachPromise()
+void raise(...)</code></pre></div><p>Let’s get back to <span class="vsymbol v">setResult</span>. It is implemented as</p><pre class="gist"><code>/// Call only from producer thread.
+/// Call only once - else undefined behavior.
+///
+/// See FSM graph for allowed transitions.
+///
+/// If it transitions to Done, synchronously initiates a call to the callback,
+/// and might also synchronously execute that callback (e.g., if there is no
+/// executor, if the executor is inline or if completingKA represents the
+/// same executor as does executor_).
+void setResult(Executor::KeepAlive&lt;&gt;&amp;&amp; completingKA, Try&lt;T&gt;&amp;&amp; t) {
+  DCHECK(!hasResult());
+
+  ::new (&amp;result_) Result(std::move(t));
+
+  auto state = state_.load(std::memory_order_acquire);
+  switch (state) {
+    case State::Start:
+      if (folly::atomic_compare_exchange_strong_explicit(
+              &amp;state_,
+              &amp;state,
+              State::OnlyResult,
+              std::memory_order_release,
+              std::memory_order_acquire)) {
+        return;
+      }
+      assume(
+          state == State::OnlyCallback ||
+          state == State::OnlyCallbackAllowInline);
+      FOLLY_FALLTHROUGH;
+
+    case State::OnlyCallback:
+    case State::OnlyCallbackAllowInline:
+      state_.store(State::Done, std::memory_order_relaxed);
+      doCallback(std::move(completingKA), state);
+      return;
+    case State::OnlyResult:
+    case State::Proxy:
+    case State::Done:
+    case State::Empty:
+    default:
+      terminate_with&lt;std::logic_error&gt;("setResult unexpected state");
+  }
+}</code></pre><p>Here we see it does state transition, but more importantly,</p><ol><li>It stores the result locally to <span class="vsymbol v">result_</span>.</li><li>If there is a callback stored, <span class="vsymbol v">setResult</span> triggers the callback.</li><li>If there is a result stored already, <span class="vsymbol v">setResult</span> termiantes the program because there must be only one result.</li></ol><p><span class="vsymbol v">Core</span> is really nothing special here. It stores the result when <span class="vsymbol v">setResult</span> is called, and stores the callback when <span class="vsymbol v">setCallback</span> is called. If both are present, trigger the callback via <span class="vsymbol v">doCallback</span>.</p><h3 class="section" id="secsecab69763720b053abc460838741734359">Attach and Detach: Reference Counting in Core</h3><p>Now that we’ve learned <span class="vsymbol v">Core</span> supports data passing via a shared state, let’s try to answer the question: after we call <span class="vsymbol v">setValue</span>, what happens if we delete the promise object immediately?</p><p>To answer that question, let’s take a look at the ownership of core in <span class="vsymbol v">Promise</span> and <span class="vsymbol v">SemiFuture</span>.</p><p>When Promise is created, it creates a core via <span class="vsymbol v">make</span>.</p><pre class="gist"><code>template &lt;class T&gt;
+Promise&lt;T&gt;::Promise() : retrieved_(false), core_(Core::make()) {}</code></pre><p>When a <span class="vsymbol v">Core</span> is created this way, internally <span class="vsymbol v">Core::attched_</span> is initialized to 2 because <em>a core has two attachments</em>: one is the promise, or “the producer,” and the other one the future associated with the promise, or “the comsumer.” The <span class="vsymbol v">attached_</span> is for reference counting.</p><pre class="gist"><code>Core() : state_(State::Start), attached_(2) {}</code></pre><p>Calling <span class="vsymbol v">getSemiFuture</span> will check and set <span class="vsymbol v">retrieved_</span> to true; there must be only one future associated with a promise. and <span class="vsymbol v">core_</span> will be passed into <span class="vsymbol v">SemiFuture</span>:</p><pre class="gist"><code>template &lt;class T&gt;
+SemiFuture&lt;T&gt; Promise&lt;T&gt;::getSemiFuture() {
+  if (retrieved_) {
+    throw_exception&lt;FutureAlreadyRetrieved&gt;();
+  }
+  retrieved_ = true;
+  return SemiFuture&lt;T&gt;(&amp;getCore());
+}</code></pre><p>Does <span class="vsymbol v">SemiFuture</span>‘s constructor do anything sepecial with the core?</p><pre class="gist"><code>explicit SemiFuture(Core* obj) : Base(obj) {}</code></pre><p><span class="vsymbol v">Core</span> simply got passed to base class. What about the base class FutureBase, does it do anything special?</p><pre class="gist"><code>explicit FutureBase(Core* obj) : core_(obj) {}</code></pre><p>No, the core’s raw poiner is just passed into <span class="vsymbol v">SemiFuture</span> and stored there.</p><p>We know that when we call <span class="vsymbol v">Promise::setValue</span>, <span class="vsymbol v">Core::setResult</span> is called, which simply stores the value internally if the callback is not stored yet. If we delete promise immediately, the following code in promise will execute:</p><pre class="gist"><code>template &lt;class T&gt;
+Promise&lt;T&gt;::~Promise() {
+  detach();
+}
+
+template &lt;class T&gt;
+void Promise&lt;T&gt;::detach() {
+  if (core_) {
+    if (!retrieved_) {
+      core_-&gt;detachPromise();
+    }
+    futures::detail::coreDetachPromiseMaybeWithResult(*core_);
+    core_ = nullptr;
+  }
+}</code></pre><p>If a future is retrieved, the destructor of <span class="vsymbol v">Promise</span> simply does nothing; it does not destroy <span class="vsymbol v">core_</span>.</p><p>If a future is not retrieved, it calls <span class="vsymbol v">Core::detachPromise</span>, which decreases <span class="vsymbol v">attached_</span> and <span class="vsymbol v">core_</span> is freed:</p><pre class="gist"><code>/// Called by a destructing Promise (in the producer thread, by definition).
+/// Calls `delete this` if there are no more references to `this`
+/// (including if `detachFuture()` is called previously or concurrently).
+void detachPromise() noexcept {
+  DCHECK(hasResult());
+  detachOne();
+}
+
+void detachOne() noexcept {
+  auto a = attached_.fetch_sub(1, std::memory_order_acq_rel);
+  assert(a &gt;= 1);
+  if (a == 1) {
+    delete this;
+  }
+}</code></pre><div class="nice-separator"></div><p>Now we can answer the question: how does <span class="vsymbol v">Promise</span> passes value to <span class="vsymbol v">Future</span>.</p><p>There is no data passing between <span class="vsymbol v">Promise</span> and <span class="vsymbol v">Future</span>; they share the same internal state via <span class="vsymbol v">Core</span>. <span class="vsymbol v">Promise</span> is the data supplier; <span class="vsymbol v">Future</span> is the callback supplier. Promise, the data supplier, can be destroyed before a callback is supplied because <span class="vsymbol v">Core</span> is reference counted.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

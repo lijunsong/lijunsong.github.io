@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.76.  As a large system with generic operations evolves, new types of data objects or new operations may be needed. For each of the three strategies–generic operations with explicit dispatch, data-directed style, and message-passing-style–describe the changes that must be made to a system in order to add new types or new operations. Which organization would be most appropriate for a system in which new types must often be added? Which would be most appropriate for a system in which new operations must often be added?</div><p> </p><h3 class="section" id="secsec6062b5a24fd7cdd5efff76fbf67f404a">新类型</h3><p>当添加一个新的类型的时候，三种编程类型的比较如下。</p><ol><li><em>explicit dispatch</em> 需要在过程中新加入一个 if 的判断语句</li><li><em>data-directed</em> 需要在表中新加入一列（即对每个操作都需要一个过程来描述对于这个新的类型应该怎么办）</li><li><em>message-passing-style</em> 新建一个过程，在过程中添加对数据的操作</li></ol><h3 class="section" id="secsec02e858ede3a2436960d165b0cebcc001">新操作</h3><p>当添加一个新的操作的时候，三种编程类型的比较如下。</p><ol><li><em>explicit dispatch</em> 需要新添加一个过程，对每种类型都需要写 if 来判断</li><li><em>data-directed</em> 需要在表上添加上一行，即在每种数据类型中，都添加一个过程，然后把过程加入表中。</li><li><em>message-passing-style</em> 需要在每个类型中的 dispatch 里面添加一个过程。</li></ol><h3 class="section" id="secsec9291653c55f5fa43fae6915bb1acb923">比较</h3><p>当新的类型常常会被添加进来的时候，使用 <span class="vsymbol v">data-directed</span> 或者 <span class="vsymbol v">message-passing-style</span> 都是比较好的解决方案。因为他们都不用修改外部的接口。</p><p>当新的操作常常会被添加进来的时候，三种方式都差不多。<span class="vsymbol v">data-directed</span> 与 <span class="vsymbol v">message-passing-style</span> 需要为每一种类型（例如之前的每一个package）添加相应的操作，<span class="vlong v">explicitly dispatch</span> 也只需要为这个新操作去判断每一种数据类型。但对于成百上前个数据类型的话，恐怕三种方式都使得系统难以维护。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.29.  A binary mobile consists of two branches, a left branch and a right branch. Each branch is a rod of a certain length, from which hangs either a weight or another binary mobile. We can represent a binary mobile using compound data by constructing it from two branches (for example, using list):</p><pre class="gist"><code>(define (make-mobile left right)
+  (list left right))
+</code></pre><p> A branch is constructed from a length (which must be a number) together with a structure, which may be either a number (representing a simple weight) or another mobile:</p><pre class="gist"><code>(define (make-branch length structure)
+  (list length structure))
+</code></pre><p> a.  Write the corresponding selectors left-branch and right-branch, which return the branches of a mobile, and branch-length and branch-structure, which return the components of a branch.</p><p>   b.  Using your selectors, define a procedure total-weight that returns the total weight of a mobile.</p><p>   c.  A mobile is said to be balanced if the torque applied by its top-left branch is equal to that applied by its top-right branch (that is, if the length of the left rod multiplied by the weight hanging from that rod is equal to the corresponding product for the right side) and if each of the submobiles hanging off its branches is balanced. Design a predicate that tests whether a binary mobile is balanced.</p><p>   d.  Suppose we change the representation of mobiles so that the constructors are</p><pre class="gist"><code>(define (make-mobile left right)
+  (cons left right))
+(define (make-branch length structure)
+  (cons length structure))
+</code></pre><p> How much do you need to change your programs to convert to the new representation?</p></div><p> </p><h3 class="section" id="secsec9eb23a337ff85ce51667b7013d5c534a">选择函数</h3><pre class="gist sicp-code"><code>(define (make-mobile left right)
+  (list left right))
+
+;;; a)
+;; selectors
+(define (left-branch mobile)
+  (car mobile))
+
+(define (right-branch mobile)
+  (cadr mobile))
+
+(define (make-branch length structure)
+  (list length structure))
+
+(define (branch-length branch)
+  (car branch))
+
+(define (branch-strucuture branch)
+  (cadr branch))
+
+;; a) tests begin
+(load "../testframe.scm")
+
+(let ((mobile (make-mobile (make-branch 2 34)
+                           (make-branch 3 45))))
+  (assert= (branch-length (left-branch mobile)) 2)
+  (assert= (branch-strucuture (right-branch mobile)) 45))
+</code></pre><h3 class="section" id="secseccebd5f7ae771a8fefe3817f409ef8c5b">total-weight</h3><p>一个不恰当的 <span class="vsymbol v">total-weight</span> 可能如下：</p><pre class="gist sicp-code"><code>
+;;; b)
+;; total-weight: return the total weight of a mobile
+(define (total-weight mobile)
+  (define (branch-weight branch)
+    (cond ((pair? (branch-strucuture branch)) ; it is a mobile
+           (total-weight (branch-strucuture branch)))
+          (else
+           (branch-strucuture branch))))
+  (+ (branch-weight (left-branch mobile))
+     (branch-weight (right-branch mobile))))
+</code></pre><p>这个 <span class="vsymbol v">total-weight</span> 的不恰当之处是在于去直接判断一个结构是不是 <span class="vsymbol v">mobile</span>，但我们的构造中并没有办法去得知一个结构是不是 <span class="vsymbol v">mobile</span>。思考问题时候的思路应该是如何判断它是不是一个 <span class="vsymbol v">branch</span>，而不是去判读是否是 <span class="vsymbol v">mobile</span>。</p><pre class="gist sicp-code"><code>(define (total-weight mobile)
+  (define (branch-weight branch)
+    (cond ((number? (branch-strucuture branch))
+           (branch-strucuture branch))
+          (else
+           (total-weight (branch-strucuture branch)))))
+  (+ (branch-weight (left-branch mobile))
+     (branch-weight (right-branch mobile))))
+
+;; b) tests begin
+(let ((test-mobile
+       (make-mobile
+        (make-branch 2 (make-mobile (make-branch 4 3)
+                                    (make-branch 6 12)))
+        (make-branch 3 (make-mobile (make-branch 19 20)
+                                    (make-branch 22 31))))))
+  (assert= (total-weight test-mobile) 66))</code></pre><h3 class="section" id="secsecdba1526a98d515caba3926e528ffe4e5">balanced?</h3><p><span class="vsymbol v">balanced?</span> 将接受一个 <span class="vsymbol v">mobile</span> 作为参数，递归去 <span class="vsymbol v">left</span> 和 <span class="vsymbol v">right</span> 查看是否平衡，以及当前 <span class="vsymbol v">mobile</span> 是否平衡。因为作为参数的 <span class="vsymbol v">mobile</span> 可能为上一个分支的 structure，可能为数字，所以下面的 <span class="vsymbol v">balanced?</span> 需要判读这个 structure 是一个数字还是另外一个活动体：</p><pre class="gist sicp-code"><code>;; balanced? test case:
+
+; submobile is not balanced!
+(define unbalanced-mobile
+  (make-mobile (make-branch 100 (make-mobile (make-branch 4 10)
+                                             (make-branch 5 10)))
+               (make-branch 20 (make-mobile (make-branch 6 50)
+                                            (make-branch 7 50)))))
+(define balanced-mobile-1
+  (make-mobile (make-branch 100 (make-mobile (make-branch 100 20)
+                                             (make-branch 20 100)))
+               (make-branch 20 (make-mobile (make-branch 10 300)
+                                            (make-branch 10 300)))))
+
+(define balanced-mobile-2
+  (make-mobile (make-branch 100 22)
+               (make-branch 20 (make-mobile (make-branch 10 100)
+                                            (make-branch 100 10)))))
+
+(define balanced-mobile-3
+  (make-mobile (make-branch 100 22)
+               (make-branch 22 100)))
+
+(define (balanced? mobile)
+  (define (branch-weight branch)
+    (if (number? (branch-strucuture branch))
+        (branch-strucuture branch)
+        (total-weight (branch-strucuture branch))))
+  (cond ((number? mobile) #t)
+        (else
+         (let ((left (left-branch mobile))
+               (right (right-branch mobile)))
+           (cond ((not (= (* (branch-length left)
+                             (branch-weight left))
+                          (* (branch-length right)
+                             (branch-weight right))))
+                  #f)
+                 ((not (and (balanced? (branch-strucuture left))
+                            (balanced? (branch-strucuture right))))
+                  #f)
+                 (else #t))))))
+
+
+;; c) tests begin
+(asserteq? (balanced? unbalanced-mobile) #f)
+(asserteq? (balanced? balanced-mobile-1) #t)
+(asserteq? (balanced? balanced-mobile-2) #t)
+(asserteq? (balanced? balanced-mobile-3) #t)
+
+</code></pre><p>在 《Ansi Common Lisp》 中， Paul 总结了写递归函数的诀窍。</p><p>这里的 <span class="vsymbol v">balanced?</span> 不是复杂的过程，但一旦混淆了 <span class="vsymbol v">branch</span> 和 <span class="vsymbol v">mobile</span> 两个结构，或者没有看出传递到 balanced? 中的可能是数字，那么 <span class="vsymbol v">balanced?</span> 是很难又快又准地写出来的。</p><h3 class="section" id="secsec60a11fdbf3a51592c6a548c4acdbcf09">更改底层结构</h3><p>即使我们更改了 <span class="vsymbol v">make-branch</span> 和 <span class="vsymbol v">make-mobile</span>，我们也只需要修改选择函数就可以。这个练习再次体现了“数据抽象”的好处。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

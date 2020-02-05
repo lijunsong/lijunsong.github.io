@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.33.  Ben Bitdiddle tests the lazy list implementation given above by evaluating the expression</p><pre class="gist"><code>(car '(a b c))
+</code></pre><p> To his surprise, this produces an error. After some thought, he realizes that the ‘‘lists’’ obtained by reading in quoted expressions are different from the lists manipulated by the new definitions of cons, car, and cdr. Modify the evaluator’s treatment of quoted expressions so that quoted lists typed at the driver loop will produce true lazy lists.</p></div><p> 我们已经使用了新的 cons car cdr 的表示方法但 quote 没有变化。这导致了新的 car 不能操作以前的 cons 构造出来的对象。</p><p>我们需要更改 <span class="vsymbol v">text-of-quotation</span> 得到的 text，如果这里的 text 是一个 pair，那么我们应该使用新的 eval，调用 cons 来构造这个 pair。</p><p>需要注意的是转化出的 cons 应该使用 quote 来保留原表的类型：</p><pre class="gist"><code>'(a b c)
+;=&gt; (cons (quote a) (cons (quote b) (cons (quote c) '())))
+</code></pre><p> 这里的思路与 <span class="vsymbol v">cond-&gt;if</span>，<span class="vsymbol v">let-&gt;lambda</span>，<span class="vsymbol v">let*-&gt;let</span> 等等思路是一样的：</p><pre class="gist sicp-code"><code>
+(define (text-of-quotation exp env)
+  (let ((text (cadr exp)))
+    (if (pair? text)
+        (eval (quote-list-&gt;cons text) env)
+        text)))
+
+;; convert a list to cons construction
+(define (quote-list-&gt;cons lst)
+  (cond ((null? lst) '())
+        ((not (pair? lst)) lst)
+        (else
+         (list 'cons (list 'quote (car lst)) (quote-list-&gt;cons (cdr lst))))))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p><em>本节是 <a href="/sicp/chapter4-3-3.html">4.3.3 实现 Amb 求值器</a> 的基础，需要认真理解每一个细节–需要能够写出每一个 analyze 之后最终完整的 lambda 形式的返回值。</em> </p><p>本节将解释器中的分析与解释的过程相分离。</p><p>这里以</p><pre class="gist"><code>(define (f x) (+ x 1) (+ x 2))
+</code></pre><p>  为例解释本节所作的解释器与之前解释器的不同。</p><p>analyze 整个调用过程与返回值如下：</p><ol><li><p>analyze-definition <span class="vlong v">(define (f x) (+ x 1) (+ x 2))</span></p><p>返回： <span class="vlong v">(lambda (env) (define-variable! var (vproc env) env))</span> 。</p><p>其中：var 是 f；vproc 是 <span class="vlong v">(analyze-lambda (lambda (x) (+ x 1) (+ x 2)))</span> 的结果。</p></li><li><p><span class="vlong v">(analyze-lambda (lambda (x) (+ x 1) (+ x 2)))</span></p><p>返回：<span class="vlong v">(lambda (env) (make-procedure vars bproc env))</span></p><p>其中：vars 是 ‘(x)；bproc 是 (analyze-sequence ‘((+ x 1) (+ x 2))) 的结果。</p></li><li><p><span class="vlong v">(analyze-sequence ‘((+ x 1) (+ x 2)))</span></p><p>返回：<span class="vlong v">(lambda (env) “((+ x 1) (+ x 2))的sequence”)</span></p><p>其中：“<span class="vlong v">((+ x 1) (+ x 2))</span>的sequence” 是一个复杂的表达式，具体分析可以见 <a href="/sicp/exercise4-23.html">练习 4.23</a> 。</p></li></ol><p>在第三点中返回的 sequence 其实是：</p><pre class="gist"><code>(lambda (env)
+  ((lambda (env)
+     (execute-application (lambda (env) (lookup-variable-value '+ env))
+                          (map (lambda (aproc) (aproc env))
+                               ((lambda (env) (lookup-variable-value 'x env))
+                                (lambda (env) 1)))))
+   env)
+  ((lambda (env)
+     (execute-application (lambda (env) (lookup-variable-value '+ env))
+                          (map (lambda (aproc) (aproc env))
+                               ((lambda (env) (lookup-variable-value 'x env))
+                                (lambda (env) 2)))))
+   env))
+</code></pre><p> 从上面的分析可以看出，整个 analyze 过程实际已经把程序完全摆设好，只等最终的 lambda 式子传入一个 env 来运行整个摆设好的代码。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

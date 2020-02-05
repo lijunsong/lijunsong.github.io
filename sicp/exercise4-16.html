@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.16.  In this exercise we implement the method just described for interpreting internal definitions. We assume that the evaluator supports let (see exercise 4.6).</p><p>a.  Change lookup-variable-value (section 4.1.3) to signal an error if the value it finds is the symbol *unassigned*.</p><p>b.  Write a procedure scan-out-defines that takes a procedure body and returns an equivalent one that has no internal definitions, by making the transformation described above.</p><p>c.  Install scan-out-defines in the interpreter, either in make-procedure or in procedure-body (see section 4.1.3). Which place is better? Why?</p></div><p> </p><h3 class="section" id="secsec785437e1439f0e25952ddd18ea2937bc">lookup-variable-value</h3><p>下面的 lookup-variable-value 是基于练习XX，已经抽象出一个 lookup-env 的操作。</p><pre class="gist sicp-code"><code>;; a new lookup-variable-value
+;; which can signal an error caused by unassigned variable
+(define (lookup-variable-value var env)
+  (let ((var-val (lookup-env var env)))
+    (cond ((null? var-val)
+           (error 'lookup-variable-value "Unbound variable" var))
+          ((eq? (cdr var-val) '*unassigned*)
+           (erorr 'lookup-variable-value "Assign to an unassigned variable" var))
+          (else
+           (cdr var-val)))))
+</code></pre><h3 class="section" id="secsec9b5f00b5b4cc43acae4c9b76712e5d3e">scan-out-defines</h3><p>这里的 <span class="vsymbol v">scan-out-defines</span> 实际需要考虑的问题更多，不仅仅是 <span class="vsymbol v">define</span> 语句的 <span class="vsymbol v">sequence</span> 的前后问题，还有 define sequence 与普通语句前后的问题。</p><pre class="gist"><code>(lambda (t)
+  (inc (dec (inc t)))
+  (define (inc x) (+ 1 x))
+  (define (dec x) (+ -1 x)))
+</code></pre><p>  比如上面这个 lambda 内的定义。<span class="vsymbol v">inc</span> 与 <span class="vsymbol v">dec</span> 在定义之前就已经使用了，这是否允许呢？可以看到编程语言的设计，在实现上，实际是很小的一个部分。更多应该考虑的是如此设计是否能提供某种必要的性能。下面的实现中，将允许这样的定义。</p><pre class="gist sicp-code"><code>;; scan-out-defines will desugar internal defines statements.
+(define (scan-out-defines body)
+  ; selectors
+  (define (definition? exp)
+    (tagged-list? exp definition-tag))
+
+  (define (definition-variable exp)
+    (if (symbol? (car exp))
+        (car exp)
+        (caar exp)))
+  (define (definition-value exp)
+    (if (symbol? (car exp))
+        (cadr exp)
+        (make-lambda (cdar exp)   ; formal parameters
+                     (cdr exp)))) ; body
+
+  (define (make-lambda parameter body)
+    ((get 'constructor lambda-tag) parameter body))
+
+  (define (make-let vars vals body)
+    ((get 'constructor 'let) vars vals body))
+
+  (define (make-assignments vars vals)
+    (map (lambda (var val)
+           (list assignment-tag var val))
+         vars vals))
+
+  ;; all the definition is raised to the top
+  (define (collect-vars exps)
+    (let* ((defs (filter definition? exps))
+           (rest (filter (lambda (e)
+                           (not (definition? e))) exps))
+           (vars (map (lambda (e)
+                        (definition-variable (cdr e))) defs))
+           (vals (map (lambda (e)
+                        (definition-value (cdr e))) defs)))
+      (if (null? defs)
+          exps
+          (list
+           (make-let vars
+                     (map (lambda (x) ''*unassigned*) vars)
+                     (append (make-assignments vars vals) rest))))))
+
+  (collect-vars body))
+</code></pre><p><span class="vsymbol v">collect-vars</span> 是最主要的过程。它会首先过滤出 <span class="vsymbol v">define</span> 的语句，同时按照原顺序得到不是 <span class="vsymbol v">define</span> 的语句。最后组成一个 let 语句。值得注意的有几点：</p><ol><li><span class="vsymbol v">scan-out-defines</span> 应该最后返回一个 list，因为 procedure 的 body 是使用一个 list 表示的。</li><li>let 的实现中，let 的 body 部分应该允许传递一个 list，因为 let 的 body 部分即 lambda 的 body，而 lambda 的 body 是可以使用多语句的。</li><li>语句中没有出现 define 的情况需要考虑进去。</li><li>在转换的时候， <code>'*unassigned*</code> 应该表示为 <code>''*unassigned*。</code></li></ol><h3 class="section" id="secsec01fffa78b621448c67ed11deee7204f5">安装 scan-out-defines</h3><p>这里我们需要安装 <span class="vsymbol v">scan-out-defines</span>。与之前我们设计的有理数一样，如果有理数需要分子分母进行约分，那么除以 gcd 的部分应该放到构造函数中，以免除以 gcd 的部分被重复运行。这里也是，我们直接把 <span class="vsymbol v">scan-out-defines</span> 过程放到构造函数中，这样我们就可以只运行一遍就得到想要的结果了。</p><pre class="gist sicp-code"><code>;; install scan-out-defines in the system
+(define (make-procedure parameters body env)
+  (list 'procedure parameters (scan-out-defines body) env))
+</code></pre><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><pre class="gist sicp-code"><code>(assertequal? (scan-out-defines (cddr '(lambda (x)
+                                         (define u 1)
+                                         (define v 2)
+                                         3)))
+              '((let ((u '*unassigned*)
+                      (v '*unassigned*))
+                  (set! u 1)
+                  (set! v 2)
+                  3)))
+
+(assertequal? (scan-out-defines (cddr '(lambda (t)
+                                         (define (inc x) (+ 1 x))
+                                         (define (dec x) (+ -1 x))
+                                         (inc (dec (inc t))))))
+              '((let ((inc '*unassigned*)
+                      (dec '*unassigned*))
+                  (set! inc (lambda (x) (+ 1 x)))
+                  (set! dec (lambda (x) (+ -1 x)))
+                  (inc (dec (inc t))))))
+
+(assertequal? (scan-out-defines (cddr '(lambda (t)
+                                         (inc (dec (inc t)))
+                                         (define (inc x) (+ 1 x))
+                                         (define (dec x) (+ -1 x)))))
+              '((let ((inc '*unassigned*)
+                      (dec '*unassigned*))
+                  (set! inc (lambda (x) (+ 1 x)))
+                  (set! dec (lambda (x) (+ -1 x)))
+                  (inc (dec (inc t))))))
+
+(assertequal? (scan-out-defines (cddr '(lambda (t)
+                                         (+ t 1)
+                                         (+ t -1))))
+              '((+ t 1)
+                (+ t -1)))
+
+;; test evaluation
+
+(let ((test-env (setup-environment)))
+  (assert= (eval '((lambda (x)
+                           (define u 1)
+                           (define v 2)
+                           (+ u v x)) 1) test-env)
+                4)
+
+  (assert= (eval '((lambda (t)
+                          (define (inc x) (+ 1 x))
+                          (define (dec x) (+ -1 x))
+                          (inc (dec (inc t))))
+                        10) test-env)
+                11)
+
+  (assert= (eval '((lambda (t)
+                          (inc (dec (inc t)))
+                          (define (inc x) (+ 1 x))
+                          (define (dec x) (+ -1 x)))
+                        10) test-env)
+                11)
+
+  (assert= (eval '((lambda (t)
+                          (+ t 1)
+                          (+ t -1))
+                        10) test-env)
+                9))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

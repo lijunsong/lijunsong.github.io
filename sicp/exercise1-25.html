@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.25.  Alyssa P. Hacker complains that we went to a lot of extra work in writing expmod. After all, she says, since we already know how to compute exponentials, we could have simply written</p><p>(define (expmod base exp m)   (remainder (fast-expt base exp) m))</p><p>Is she correct? Would this procedure serve as well for our fast prime tester? Explain.</p></div><p> 对比之前的版本</p><pre class="gist"><code>(define (expmod base exp m)
+  (remainder (fast-expt base exp) m))
+
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (square (expmod base (/ exp 2) m))
+                    m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))
+</code></pre><p>  我们可以看出，只有一个语句的版本是全部算出 exp 次方的值之后再去进行 remainder 操作，而后一个版本，每次计算的都是比较小的值（因为每次递归返回的时候，都只是 remainder 的值，都小于 m。</p><p>我们现在用 Fermat 方法来测试 <span class="vnumber v">100000001</span> 是否是素数，来验证一下这个想法。</p><p>使用第一种方法，假设，随机生成了一个小于该数的数为 <span class="vnumber v">99999999</span>。那么我们就要求</p><pre class="gist"><code>(remainder
+    (fast-expt 99999999 100000001)
+    100000001)</code></pre><p>我们就需要求出 <mathjax class="$">$99999999^{100000001}$</mathjax> 的数值。这是不现实的。而第二种方法中，每次 expmod 返回的值都不会大于 <span class="vnumber v">100000001</span>。所做的操作最大的就是 square 或者是与 <span class="vnumber v">99999999</span> 的乘积，是完全可以接受的。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

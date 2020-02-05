@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 3.17.  Devise a correct version of the count-pairs procedure of exercise 3.16 that returns the number of distinct pairs in any structure. (Hint: Traverse the structure, maintaining an auxiliary data structure that is used to keep track of which pairs have already been counted.)</div><p> 定义一个正确的 count-pairs 关键在于需要一个数组来记录都访问过哪些 pair。查找两个 pair 是否一致的关键在于使用 eq?。它仅仅对比两个参数的指针是否是一个。</p><pre class="gist sicp-code"><code>(define (count-pairs x)
+  (define (pair-in-list? x lst)
+    (cond ((null? lst) #f)
+          ((eq? x (car lst)) #t) ;; compare its pointer
+          (else (pair-in-list? x (cdr lst)))))
+
+  (define (record x visited)
+    (cond ((not (pair? x)) visited)
+          ((pair-in-list? x visited)
+           (let* ((car-visited (record (car x) visited))
+                  (cdr-visited (record (cdr x) car-visited)))
+             cdr-visited))
+          (else
+           (let* ((include-x (cons x visited))
+                  (car-visited (record (car x) include-x))
+                  (cdr-visited (record (cdr x) car-visited)))
+             cdr-visited))))
+  (length (record x '())))
+
+(define count3 (list 1 2 3))
+
+(define count4
+  (let ((pairs (list 1 2 3)))
+    (begin
+      (set-car! pairs (cddr pairs))
+      pairs)))
+
+(define count5
+  (let ((pairs (list 1 2 3)))
+    (begin
+      (set-car! pairs (cddr pairs))
+      (set-car! (cdr pairs) (cddr pairs))
+      pairs)))
+
+(define count7
+  (let ((pairs (list 1 2 3)))
+    (begin
+      (set-car! pairs (cdr pairs))
+      (set-car! (cdr pairs) (cddr pairs))
+      pairs)))
+
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assert= (count-pairs count3) 3)
+(assert= (count-pairs count4) 3)
+(assert= (count-pairs count5) 3)
+(assert= (count-pairs count7) 3)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

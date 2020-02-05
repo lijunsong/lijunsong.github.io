@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.9.  The width of an interval is half of the difference between its upper and lower bounds. The width is a measure of the uncertainty of the number specified by the interval. For some arithmetic operations the width of the result of combining two intervals is a function only of the widths of the argument intervals, whereas for others the width of the combination is not a function of the widths of the argument intervals. Show that the width of the sum (or difference) of two intervals is a function only of the widths of the intervals being added (or subtracted). Give examples to show that this is not true for multiplication or division.</div><p> </p><h3 class="section" id="secsec14dc7d737fb7c531fffd9f5afd1e53b0">练习 2.9 </h3><p>假设</p><p>- interval1 是 [l1, u1]，宽度为</p><p><mathjax class="$$">$$
+w1 = \frac{(l1 + u1)}{2}
+$$</mathjax> - interval2 是 [l2, u2]，宽度为</p><p><mathjax class="$$">$$
+w2 = \frac{(l2 + u2)}{2}
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec690b85dc5301ebc572ff8caa2435f6e8">加法</h4><p>对于 + 而言，求和的结果为 [l1 + l2, u1 + u2]，宽度为</p><p><mathjax class="$$">$$
+\frac{l1 + l2 + u1 + u2}{2} = w1 + w2
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec86e38b5d8cd58a9528a7b720fbf383d2">减法</h4><p>求差的结果为 [l1 - u2, u1 - l2]，宽度为</p><p><mathjax class="$$">$$
+\frac{l1 + u1 - l2 - u2, 2} = w1 - w2
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec3efe78310096a23a82bd4c38ec1d7f4c">乘法和除法</h4><p>无法列出式子</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

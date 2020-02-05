@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 2.84.  Using the raise operation of exercise 2.83, modify the apply-generic procedure so that it coerces its arguments to have the same type by the method of successive raising, as discussed in this section. You will need to devise a way to test which of two types is higher in the tower. Do this in a manner that is ‘‘compatible’’ with the rest of the system and will not lead to problems in adding new levels to the tower.</div><p> </p><h3 class="section" id="secsecd1e5abd78f76c525dcd1858278b513cf">raise</h3><p>raise 的解析可以见<a href="/sicp/exercise2-83.html">练习 2.83</a>的解析。</p><pre class="gist sicp-code"><code>(define (raise x)
+  (let ((f (get 'raise (type-tag x))))
+    (if f
+        (f (contents x))
+        (error "RAISE ERROR" x))))
+
+(define (successive-raise type-datum top-type)
+  (if (eq? (type-tag type-datum) top-type)
+      type-datum
+      (successive-raise (raise type-datum) top-type)))
+
+(define tower '(scheme-number rational complex))
+</code></pre><h3 class="section" id="secsecf5d5fa320721a3e4006cfdac98d97b60">寻找最上层的类型</h3><p>有各种不同的方法来寻找最上层的类型，这里，我使用了 member 过程来求出某个类型及其上层类型：</p><pre class="gist"><code>(member 'rational '(scheme-number rational complex))
+;=&gt; (rational complex)
+</code></pre><p> 有了这个过程，我们可以如下写</p><pre class="gist sicp-code"><code>(define (the-most-top-type type-tags)
+  (define (uppers tags upper-tower)
+    (cond ((null? tags) (car upper-tower))
+          (else
+           (let ((maybe-uppers (member (car tags) upper-tower)))
+             (if maybe-uppers
+                 (uppers (cdr tags) maybe-uppers)
+                 (uppers (cdr tags) upper-tower))))))
+  (uppers type-tags tower))
+</code></pre><h3 class="section" id="secsec88352196d0e7580eeb48b1b202809ef0">apply-generic</h3><p>我们不需要修改 apply-generic 的只有一种参数的情况。当参数个数大于 2 的时候，我们才需要去使用我们的新方法：</p><pre class="gist sicp-code"><code>(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (&gt;= (length args) 2)
+              (let* ((type-tags (map type-tag args))
+                     (top-type (the-most-top-type type-tags))
+                     (coerced-args (map (lambda (x)
+                                          (successive-raise x top-type))
+                                        args))
+                     (new-type-tags (map type-tag coerced-args)))
+                (let ((proc (get op new-type-tags)))
+                  (if proc
+                      (apply proc (map contents coerced-args))
+                      (error "No method for these types"
+                             (list op type-tags)))))
+              (error "No method for these types -- APPLY-GENERIC"
+                     (list op type-tags)))))))</code></pre><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><p>这里测试的目的是看我们的 apply-generic 是否能把某种类型正确地转换为其父类型然后进行算数运算。</p><pre class="gist sicp-code"><code>
+(load "../testframe.scm")
+
+(assert= (add 3 3) 6)
+(assertequal? (add 3 (make-rational 1 4))
+              (make-rational 13 4))
+(assertequal? (add 3 (make-complex-from-real-imag 3 5))
+              (make-complex-from-real-imag 6 5))
+
+(assertequal? (add (make-rational 2 5)
+                   (make-rational 1 5))
+              (make-rational 3 5))
+
+(assertequal? (add (make-complex-from-real-imag 3 8)
+                   (make-complex-from-real-imag 5 6))
+              (make-complex-from-real-imag 8 14))
+
+
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

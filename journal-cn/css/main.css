@@ -1,0 +1,126 @@
+html, * {
+    font-size: 16px;
+    font-family: Helvetica, STXiHei, "华文细黑", "Microsoft YaHei", "微软雅黑", SimSun, "宋体", Heiti, "黑体", sans-serif;
+    line-height: 1.5rem;
+    letter-spacing: normal;
+    font-color: #555;
+}
+
+blockquote {
+    margin: 0;
+    padding: 1rem 2rem;
+    border-left: 3px solid #EEE;
+}
+
+li p {
+    margin: 0;
+    display: inline;
+}
+
+.indexing {
+    margin: 2rem 1rem;
+}
+
+.entry a {
+    color: #555;
+    text-decoration: none;
+}
+
+.entry a:hover {
+    color: #111;
+    text-decoration: none;
+}
+
+.subtitle {
+    color: #999;
+    margin-left: 1rem;
+}
+
+.section {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    border-top: 1px solid #AAA;
+}
+
+.contents {
+    margin-bottom: 5rem;
+}
+.header, .footer {
+    min-height: 5rem;
+}
+
+.year-title {
+    border: 1px solid #AAA;
+    margin-bottom: 10px;
+    padding: 0.5rem;
+    font-size: 150%;
+}
+
+.page-tree {
+    display: flex;
+    border-top: 1px solid #DDD;
+    padding: 1rem 0;
+}
+.page-tree-prev, .page-tree-mid {
+    flex-grow: 1;
+}
+.page-tree-link a {
+    color: #555;
+    text-decoration: none:
+}
+.page-tree-link a:hover {
+    color: #111;
+    text-decoration: none:
+}
+
+.title {
+    font-size: 1.4rem;
+    margin-bottom: 3rem;
+}
+
+.doc-body {
+    position: relative;
+}
+
+.right-margin, .inline-margin {
+    position: initial;
+    width: 80%;
+    margin: 1rem auto;
+    background-color: #f7f7f7;
+    color: #5a5a5a;
+}
+
+@media screen and (min-width: 35.5em) {
+    .entries {
+        column-count: 2;
+    }
+
+}
+
+@media screen and (min-width: 64em) {
+    .right-margin {
+        position: absolute;
+        right: 5px;
+        top: auto;
+        width: 23.3333333%; /* four columns */
+        margin: 0px;
+        background-color: #f7f7f7;
+        color: #5a5a5a;
+        padding: 0.2rem;
+        border-radius: 5px;
+    }
+
+    .entries {
+        column-count: 3;
+    }
+
+}
+
+@media screen and (min-width: 2000px) {
+    .container {
+        max-width: 1280px;
+    }
+    html, * {
+        font-size: 20px;
+    }
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.38.  The accumulate procedure is also known as fold-right, because it combines the first element of the sequence with the result of combining all the elements to the right. There is also a fold-left, which is similar to fold-right, except that it combines elements working in the opposite direction:</p><pre class="gist"><code>(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence))
+</code></pre><p> What are the values of</p><pre class="gist"><code>(fold-right / 1 (list 1 2 3))
+(fold-left / 1 (list 1 2 3))
+(fold-right list nil (list 1 2 3))
+(fold-left list nil (list 1 2 3))
+</code></pre><p> Give a property that op should satisfy to guarantee that fold-right and fold-left will produce the same values for any sequence.</p></div><p> 对于题目中的几个操作，我们可以从下面几个角度来看：</p><pre class="gist"><code>(fold-right / 1 (list 1 2 3))</code></pre><p><span class="vlong v">(/ 1 (/ 2 (/ 3 1)))</span> 最初的 1 被放在了最后。</p><pre class="gist"><code>(fold-left / 1 (list 1 2 3))</code></pre><p><span class="vlong v">(/ (/ (/ 1 1) 2) 3)</span> 最初的 1 与 list 中第一个元素做完除法之后的结果与 list 中的第二个元素进行除法操作，以此类推之后的操作。</p><pre class="gist"><code>(fold-right list '() (list 1 2 3))</code></pre><p><span class="vlong v">(list 1 (list 2 (list 3 ‘())))</span></p><pre class="gist"><code>(fold-left list '() (list 1 2 3))</code></pre><p><span class="vlong v">(list (list (list ‘() 1) 2) 3)</span></p><p>如果要让 fold-left 与 fold-right 得到相同的结果，那么我们要保证 op 对参数的顺序是不能有要求的。</p><p>对于除法来说 <span class="vsymbol v">x/y</span> 不等于 <span class="vsymbol v">y/x</span>，所以两个结果不同。</p><p>对于 list 来说，<span class="vsymbol v">x/y</span> 不等于 <span class="vsymbol v">y/x</span>，所以两个结果不同。</p><p>比如我们可以对加法进行 fold 的运算</p><pre class="gist"><code>(fold-left + 0 '(1 2 3 4 5)) ; 15
+(fold-right + 0 '(1 2 3 4 5)) ; 15</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.77.  Louis Reasoner tries to evaluate the expression (magnitude z) where z is the object shown in figure 2.24. To his surprise, instead of the answer 5 he gets an error message from apply-generic, saying there is no method for the operation magnitude on the types (complex). He shows this interaction to Alyssa P. Hacker, who says ‘‘The problem is that the complex-number selectors were never defined for complex numbers, just for polar and rectangular numbers. All you have to do to make this work is add the following to the complex package:‘’</p><pre class="gist"><code>(put 'real-part '(complex) real-part)
+(put 'imag-part '(complex) imag-part)
+(put 'magnitude '(complex) magnitude)
+(put 'angle '(complex) angle)
+</code></pre><p> Describe in detail why this works. As an example, trace through all the procedures called in evaluating the expression (magnitude z) where z is the object shown in figure 2.24. In particular, how many times is apply-generic invoked? What procedure is dispatched to in each case?</p></div><p> 要理解这一题，需要理解两点：</p><ol><li>data-directed 是如何工作的？</li><li> 当前的表中是什么样子？</li></ol><h3 class="section" id="secsecebef21caff87f0e3e2447929f8d910b8">data-directed 如何工作</h3><p>data-directed 实际是 type-directed。对于一种数据，我们的操作可以自动地识别这种数据的类型，然后分配相应的过程来处理。</p><p>在这一节中的类型以及相应的过程（只是部分过程）如下表</p><pre class="gist"><code>========== ============= ======= =========== ======= ============= ======== ========= ============================= =================== =================
+           (rectangular) (polar) rectangular polar   scheme-number rational (complex) (scheme-number scheme-number) (rational rational) (complex complex)
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+add        X                                                                          +                             add-rat             add-complex
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+sub        X                                                                          -                             sub-rat             sub-complex
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+mul        X                                                                          *                             mul-rat             mul-complex
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+div        X                                                                          /                             div-rat             div-complex
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+make       X                                                                          (lambda (x) (tag x))          make-rat            X
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+real-part  real1         real2
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+imag-part  imag1         imag2
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+magnitude  mag1          mag2                                               X
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+make-from*                       real-imag   mag-ang
+---------- ------------- ------- ----------- ------- ------------- -------- --------- ----------------------------- ------------------- -----------------
+Angle      angle1        angle2
+========== ============= ======= =========== ======= ============= ======== ========= ============================= =================== =================
+</code></pre><p>如果对 complex 使用 <span class="vsymbol v">magnitude</span>，那么程序将会去表中查找 <span class="vsymbol v">magnitude</span> 行，<span class="vsymbol v">(complex)</span> 列去查看是否有过程。因为我们的 <span class="vsymbol v">magnitude</span> 只针对 rectangular 和 polar 有相应过程，所以解释器报错了。</p><p>所以，当我们添加了</p><pre class="gist"><code>(put 'magnitude '(complex) magnitude)
+</code></pre><p> 了之后，我们就在 <span class="vsymbol v">magnitude</span> 行，<span class="vsymbol v">(complex)</span> 列安装 <span class="vsymbol v">magnitude</span> 过程。因为 <span class="vsymbol v">magnitude</span> 过程是定义为</p><pre class="gist"><code>(define (magnitude z) (apply-generic 'magnitude z))
+</code></pre><p> 所以，计算 <span class="vlong v">(magnitude (complex polar 3 . 34))</span> 则回调用两次 <span class="vsymbol v">apply-generic</span>，第一次剥掉了 complex 标签，第二次剥掉了 polar 标签。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

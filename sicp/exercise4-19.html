@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.19.  Ben Bitdiddle, Alyssa P. Hacker, and Eva Lu Ator are arguing about the desired result of evaluating the expression</p><pre class="gist"><code>(let ((a 1))
+  (define (f x)
+    (define b (+ a x))
+    (define a 5)
+    (+ a b))
+  (f 10))
+</code></pre><p> Ben asserts that the result should be obtained using the sequential rule for define: b is defined to be 11, then a is defined to be 5, so the result is 16. Alyssa objects that mutual recursion requires the simultaneous scope rule for internal procedure definitions, and that it is unreasonable to treat procedure names differently from other names. Thus, she argues for the mechanism implemented in exercise 4.16. This would lead to a being unassigned at the time that the value for b is to be computed. Hence, in Alyssa’s view the procedure should produce an error. Eva has a third opinion. She says that if the definitions of a and b are truly meant to be simultaneous, then the value 5 for a should be used in evaluating b. Hence, in Eva’s view a should be 5, b should be 15, and the result should be 20. Which (if any) of these viewpoints do you support? Can you devise a way to implement internal definitions so that they behave as Eva prefers?</p></div><p> Eva 的想法的确是更加符合理想中的“同步定义”的规范的。a 和 b 是同时定义的，那么 a 与 b 无论如何相互引用，理想中实现的解释器都应该为其确定先后步骤，然后计算结果。但要实现这个功能，必须要去预测过程将会如何运行，最后才能排布最终的 <span class="vsymbol v">set!</span> 的顺序。</p><p>对于某些过程，我们是可以预测运行的顺序的，比如上面的过程，我们可以确定，应该排布为</p><pre class="gist"><code>(set! a 5)
+(set! b (+ a x))
+</code></pre><p> 但，对于另外一部分程序，比如使用了 if 的程序，我们完全不能判断运行时会进入哪一部分，这样的情况是没有办法排布 set! 的。</p><pre class="gist"><code>(define b (if (&lt;= x 3)
+              (+ a x)
+              (+ c x))
+(define c (if (&gt; x 3)
+              (+ b x))
+</code></pre><p> 要排布上面过程的 <span class="vsymbol v">set!</span> 只能得到 x 的值的时候才可以。</p><p>这最终引发的思考是：到底什么是“同时定义”呢？同时这个词，并不是在所有情况下都是意义明确的。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.67.  Define an encoding tree and a sample message:</p><pre class="gist"><code>(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))
+
+(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+</code></pre><p> Use the decode procedure to decode the message, and give the result.</p></div><p> 直接使用 decode 即可得到结果：</p><pre class="gist sicp-code"><code>(load "huffman-tree.scm")
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))
+
+(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+
+;(decode sample-message sample-tree)
+                                        ; (a d a b b c a)</code></pre><p>再简单画图更直观地看看</p><pre class="gist"><code>huffman tree
+
+              ({a b c d}, 8)
+                 / \
+                /   \
+               /     \
+            (a, 4)  ({b c d}, 4)
+                     /  \
+                    /    \
+                   /      \
+                (b, 2)   ({c d}, 2)
+                          / \
+                         /   \
+                        /     \
+                      (d, 1) (c, 1)
+</code></pre><p>0 向左边子树移动，1 向右边子树移动。对于 <span class="vlong v">(0 1 1 0 0 1 0 1 0 1 1 1 0)</span> 就可以得到 <span class="vlong v">(a d a b b c a)</span>。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

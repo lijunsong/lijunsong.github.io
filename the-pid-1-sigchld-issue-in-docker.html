@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>The SIGCHLD Issue of Running Daemon as Pid 1 in Docker</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">The SIGCHLD Issue of Running Daemon as Pid 1 in Docker</h1>
+          <div class="date">2020-09-15</div>
+          <div class="tags">docker</div>
+        </div>
+        <div class="excerpt"><p>Troubleshooting why my ftp docker container is dead after I exit a tmux session.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>I manage all types of home automation in docker. One of them is the old school ftp for my scanner to upload files. In every running container I also start a tmux daemon, and I always attach the tmux session when I need a shell.</p><p>One day during scanning some letters, I attached the tmux session inside the ftp container and soon the scanner started to complain the ftp was not reachable.</p><p>The container was dead. Weird.</p><p>After spending some time reproducing the issue, I could reliably reproduce the unexpected container exit by doing tmux attach and immediately exiting the bash running in tmux.</p><p>How did the bash logout cause the container to exit?</p><p>The only option I have is to strace <span class="vsymbol v">vsftpd</span>. The container exits only when <span class="vsymbol v">vsftpd</span> exits.</p><pre class="gist"><code># strace -p 1
+strace: Process 1 attached
+accept(3, ...</code></pre><p>From strace output, the ftp server is blocked in <span class="vsymbol v">accept</span> call. As soon as the bash exits, it receives <span class="vsymbol v">SIGCHLD</span>.</p><pre class="gist"><code>accept(3, 0x7ffe6f971450, [28])         = ? ERESTARTSYS (To be restarted if SA_RESTART is set)
+--- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12, si_uid=0, si_status=0, si_utime=0, si_stime=0} ---
+alarm(1)                                = 0
+rt_sigreturn({mask=[]})                 = -1 EINTR (Interrupted system call)
+alarm(0)                                = 1
+wait4(-1, NULL, WNOHANG, NULL)          = 12
+--- SIGSEGV {si_signo=SIGSEGV, si_code=SEGV_MAPERR, si_addr=NULL} ---</code></pre><p>From the syscall arguments, what’s the pid being killed (the reason for <span class="vsymbol v">SIGCHLD</span>)? <span class="vsymbol v">si_pid=12</span>. What is pid 12? It’s the tmux session’s daemon:</p><pre class="gist"><code># ps -afx -o pid,ppid,user,args
+  PID  PPID USER     COMMAND
+   32     0 root     bash
+   46    32 root      \_ strace -p 1
+   27     0 root     tmux new-session -A -s ftptest
+    1     0 root     vsftpd
+   12     1 root     tmux new-session -s ftptest -d
+   13    12 root      \_ -bash
+   48    13 root          \_ ps -afx -o pid,ppid,user,args</code></pre><p>And tmux deamon’s parent PID is 1, which is <span class="vsymbol v">vsftpd</span>.</p><p>Well, one thing I notice is that when the last bash exits, the tmux deamon also exits. And we know <a href="https://elixir.bootlin.com/linux/v5.0/source/kernel/exit.c#L896" class="link-url">when a child process exits, kernel sends <span class="vsymbol v">SIGCHLD</span> to the parent of the child process</a>. This is usually not a problem as the default signal handler of <span class="vsymbol v">SIGCHLD</span> simply ignores the signal. However, from vsftpd source I see it installs a handler for <span class="vsymbol v">SIGCHLD</span>. Apparently <span class="vsymbol v">vsftpd</span> thinks one of its children exits and thus it starts the cleanup process which then hits SIGSEGV that crashes the program.</p><p>We have two options regardless of how <span class="vsymbol v">vsftpd</span> chooses to handle SIGCHLD:</p><div class="right-margin">Another option is to use some images that support init script.</div><ol><li>Let’s not send the SIGCHLD signal out in the first place. However, kernel does this internally, so we can’t really change it.</li><li>Let’s run something else as pid 1, not <span class="vsymbol v">vsftpd</span>.</li></ol><p>To do the latter, docker can actually run the command in a shell. Here is a <a href="https://docs.docker.com/engine/reference/builder/#entrypoint" class="link-url">quote</a> from docker reference page:</p><div class="blockquote"><blockquote>You can specify a plain string for the <span class="vsymbol v">ENTRYPOINT</span> and it will execute in <span class="vlong v">/bin/sh -c</span></blockquote></div><p>So the simple fix is</p><pre class="gist"><code>-ENTRYPOINT ["vsftpd"]
++ENTRYPOINT /usr/sbin/vsftpd</code></pre><p>After the fix, vsftpd and tmux are not parent-child relation anymore:</p><pre class="gist"><code>root@services# ps auxf
+USER       PID  COMMAND
+root        32  bash
+root        46   \_ ps auxf
+root         1  /bin/sh -c /usr/sbin/vsftpd
+root         6  /usr/sbin/vsftpd
+root        14  tmux new-session -s ftp -d
+root        15   \_ -bash</code></pre><p>Now exiting tmux doesn’t cause vsftpd to crash. Yay!</p><p>One thing to note is that <span class="vlong v">docker stop</span> sends <V>SIGTERM</V>. If process 1 doesn’t exit in 10s, it sends down <V>SIGKILL</V> to forcefully kill all processes. One drawback of using <span class="vsymbol v">sh</span> to start a process is that <span class="vsymbol v">sh</span> in wait syscall does resume wait after it receives the SIGTERM:</p><pre class="gist"><code># strace -p 1
+strace: Process 1 attached
+wait4(-1, 0x7ffe10cb9adc, 0, NULL)      = ? ERESTARTSYS (To be restarted if SA_RESTART is set)
+--- SIGTERM {si_signo=SIGTERM, si_code=SI_USER, si_pid=0, si_uid=0} ---
+wait4(-1,  &lt;unfinished ...&gt;)            = ?</code></pre><p>This means <span class="vlong v">docker stop</span> has to wait for 10s to stop the container.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

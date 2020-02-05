@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>From OCaml Bugs to Internals: Threads</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">From OCaml Bugs to Internals: Threads</h1>
+          <div class="date">2016-04-18</div>
+          <div class="tags">ocamlcompiler</div>
+        </div>
+        <div class="excerpt"><p>How is caml thread implemented? We'll look at a memory leak
+        bug in the thread implementation and learn about the internal of the
+        OCaml thread.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <h3 class="section" id="secseccf65217a531c307daa6dbbe0c45250f4">The bug</h3><div class="left-margin">See <a href="https://github.com/ocaml/ocaml/issues/7220" class="link-url">the bug</a>.</div><p>Running the following small program will eat all your memory if you compile it to native code using compilers prior to 4.03.</p><pre class="gist"><code>let _ =
+ Printexc.record_backtrace true;
+ let rec loop () =
+   let t = Thread.create (fun () -&gt;
+     try
+       raise Not_found
+     with Not_found -&gt; ()
+   ) () in
+   Thread.join t;
+   loop ()
+ in
+ loop ()</code></pre><p>A thread is created and exits immediately after catching an exception. Once the two threads have joined, the loop in a tail position starts every from the beginning.</p><p>Let’s learn briefly about how threads are implemented in OCaml before looking at what’s going wrong here.</p><h3 class="section" id="secsec080f970039c57e5346923c689a4b9af3">Overview of the birth and death of a thread</h3><p>The code of the <a href="https://caml.inria.fr/pub/docs/manual-ocaml/libref/Thread.html" class="link-url">Thread</a> module locate in <span class="vsymbol v">otherlibs/systhreads</span>, mostly implemented in <span class="vsymbol v">st_stubs.c</span>.</p><p>Thread in native code is implemented using OS-specific threads. <span class="vsymbol v">st_stubs.c</span> implements module APIs. For example, <span class="vsymbol v">caml_thread_new</span> implements <span class="vsymbol v">Thread.create</span>. <span class="vsymbol v">st_posix.h</span> and <span class="vsymbol v">st_win32.h</span> implement OS-specific thread-related functions. We only walk through the native Posix thread below.</p><div class="right-margin">Why detached? </div><p>When Thread.create starts a caml thread, a new <span class="vsymbol v">caml_thread_t</span> struct is initialized and added to a thread chain. It then starts a detached pthread and associates the pthread with the caml thread. The newly created pthread, as all of the other threads, needs to acquire a master lock to run.</p><p>As for the master lock, it is implemented in pthread mutex and condition variables. A thread aquires the master lock by calling <span class="vsymbol v">leave_blocking_section</span> and releases by <span class="vsymbol v">enter_blocking_section</span>. Before a thread entering blocking section, it saves global states into its own space, and releases the lock. After a thread acquires the lock, it restores global states from its own space. Because of the master lock, threads run concurrently, and never makes the program run faster. We’ll see why a master lock is needed. For now let’s focus on the overview.</p><div class="right-margin">If you think <span class="vsymbol v">blocking_section</span> is not intuitive, remember that all threads except one are blocked and waiting inside the blocking_section. Therefore, <em>enter</em> releases lock and <em>leave</em> acquires lock.</div><p>When a thread is exiting, it broadcasts its exit for any thread waiting on <span class="vsymbol v">join</span> and removes itself from the thread chain before releasing the lock.</p><p>Given this overview, we’re ready to dig into the problem of the bug in detail.</p><h3 class="section" id="secsecd530a993b699fcc015b47f8e65723650">revisit the bug</h3><p>Backtrace is a data structure that records running thread’s running stack when an exception is raised. It is one of the global states that a thread needs to save. A global variable <span class="vsymbol v">backtrace_buffer</span> is pointed to thread’s local <span class="vsymbol v">backtrace_buffer</span> whenever a thread is leaving the blocking section, and thread’s local <span class="vsymbol v">backtrace_buffer</span> will point to the global variable for bookkeeping whenever a thread is entering the blocking section.</p><p>We also know the culprit is the <span class="vsymbol v">caml_backtrace_buffer</span> from the the bug description. The thread is created with its own backtrace initialized to NULL. During its running, the backtrace_buffer gets its space from <span class="vsymbol v">malloc</span>. When the thread exits, it call <span class="vsymbol v">caml_thread_stop</span>, which frees the thread-local <span class="vsymbol v">backtrace_buffer</span> if it is not <span class="vsymbol v">NULL</span>.</p><p>Gasche has a well written exploration on this topic. I won’t repeat the process here. Here is a brief summary to help you see it in a glance: Recall how a global state gets into a thread’s private space? The backtrace info is malloc-ed and stored in the global <span class="vsymbol v">backtrace_buffer</span> during a thread is running, but it will be stored in thread-local space only if the thread enters the blocking section. So what if the thread exits without entering the blocking section? Right, that global variable will never be saved into the private space and unfortunately a thread only frees its private space.</p><p>A patch is made to separate entering blocking section and saving global states, as exiting also requires to save global states.</p><p>I find his exploration really inspiring. If you’re trying to contribute to Open Source community, there are always some modules out there that you don’t understand. But don’t let that be an execuse of not reading the code. If you want to learn the whole thing, you must sit down and spend some time doing your homework. After working on a bug and reading the code, you’ll understand at least what others are talking about. Gradually you’ll be able to talk about the same thing. That’s how a junior developer grows.</p><h3 class="section" id="secsec95fc6faca80ae602b7574d5001fda5cd">FAQ</h3><p>Question: how are pthreads and threads associated?</p><p>They are associated by pthread_key_t. A <span class="vsymbol v">caml_thread_t</span> is treated as a key. When a pthread activates, it get the caml thread struct from the key stored in a pthread.</p><p>Question: In code, <span class="vsymbol v">leave_blocking_section</span> and <span class="vsymbol v">caml_thread_leave_blocking_section</span> seem being aliased. Are they?</p><p>Question: How C stub functions are mapped to OCaml APIs?</p><p>Question: Why do we need the master lock?</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

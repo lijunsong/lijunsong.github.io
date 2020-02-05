@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.30.  The sum procedure above generates a linear recursion. The procedure can be rewritten so that the sum is performed iteratively. Show how to do this by filling in the missing expressions in the following definition:</p><pre class="gist"><code>(define (sum term a next b)
+  (define (iter a result)
+    (if &lt;??&gt;
+        &lt;??&gt;
+        (iter &lt;??&gt; &lt;??&gt;)))
+  (iter &lt;??&gt; &lt;??&gt;))
+</code></pre></div><p> 迭代式的 sum 可以如下写：</p><pre class="gist sicp-code"><code>(define (sum term a next b)
+  (define (iter a result)
+    (if (&gt; a b)
+        result
+        (iter (next a)
+              (+ (term a) result))))
+  (iter a 0))
+</code></pre><p>同样，我们需要进行测试</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+; cube
+(define (inc n) (+ n 1))
+(define (sum-cubes a b)
+  (sum cube a inc b))
+(assert= (sum-cubes 1 10) 3025)
+
+; sum-integers
+(define (identity x) x)
+(define (sum-integers a b)
+  (sum identity a inc b))
+(assert= (sum-integers 1 10) 55)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

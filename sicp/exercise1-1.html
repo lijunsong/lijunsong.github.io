@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.1.  Below is a sequence of expressions. What is the result printed by the interpreter in response to each expression? Assume that the sequence is to be evaluated in the order in which it is presented.</p><pre class="gist"><code>10
+(+ 5 3 4)
+(- 9 1)
+(/ 6 2)
+(+ (* 2 4) (- 4 6))
+(define a 3)
+(define b (+ a 1))
+(+ a b (* a b))
+(= a b)
+(if (and (&gt; b a) (&lt; b (* a b)))
+    b
+    a)
+(cond ((= a 4) 6)
+      ((= b 4) (+ 6 7 a))
+      (else 25))
+(+ 2 (if (&gt; b a) b a))
+(* (cond ((&gt; a b) a)
+         ((&lt; a b) b)
+         (else -1))
+   (+ a 1))
+
+</code></pre></div><p> 依次键入解释器结果</p><pre class="gist"><code>1 ]=&gt; 10
+;Value: 10
+
+1 ]=&gt; (+ 5 3 4)
+;Value: 12
+
+1 ]=&gt; (- 9 1)
+;Value: 8
+
+1 ]=&gt; (/ 6 2)
+;Value: 3
+
+1 ]=&gt; (+ (* 2 4) (- 4 6))
+;Value: 6
+
+1 ]=&gt; (define a 3)
+;Value: a
+
+1 ]=&gt; (define b (+ a 1))
+;Value: b
+
+1 ]=&gt; (+ a b (* a b))
+;Value: 19
+
+1 ]=&gt; (= a b)
+;Value: #f
+
+1 ]=&gt; (if (and (&gt; b a) (&lt; b (* a b)))
+    b
+    a)
+;Value: 4
+
+1 ]=&gt; (cond ((= a 4) 6)
+      ((= b 4) (+ 6 7 a))
+      (else 25))
+;Value: 16
+
+1 ]=&gt; (+ 2 (if (&gt; b a) b a))
+;Value: 6
+
+1 ]=&gt; (* (cond ((&gt; a b) a)
+         ((&lt; a b) b)
+         (else -1))
+   (+ a 1))
+;Value: 16</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

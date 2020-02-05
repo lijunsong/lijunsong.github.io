@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 5.27.  For comparison with exercise 5.26, explore the behavior of the following procedure for computing factorials recursively:</p><pre class="gist"><code>(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+</code></pre><p> By running this procedure with the monitored stack, determine, as a    function of n, the maximum depth of the stack and the total number    of pushes used in evaluating n! for n &gt; 1. (Again, these functions    will be linear.) Summarize your experiments by filling in the    following table with the appropriate expressions in terms of n:</p><pre class="gist"><code>=============  =================== ======================
+    func           maximum depth     number of pushes
+=============  =================== ======================
+  recursive
+-------------  ------------------- ----------------------
+  iterative
+=============  =================== ======================</code></pre><p>   The maximum depth is a measure of the amount of space used by the    evaluator in carrying out the computation, and the number of pushes    correlates well with the time required.</p></div><p> 运行之后我们可以得到如下结果</p><pre class="gist"><code>;;; EC-Eval input:
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+
+(total-pushes = 3 maximum-depth = 3)
+;;; EC-Eval value:
+ok
+
+;;; EC-Eval input:
+(factorial 1)
+
+(total-pushes = 16 maximum-depth = 8)
+;;; EC-Eval value:
+1
+
+;;; EC-Eval input:
+(factorial 2)
+
+(total-pushes = 48 maximum-depth = 13)
+;;; EC-Eval value:
+2
+
+;;; EC-Eval input:
+(factorial 3)
+
+(total-pushes = 80 maximum-depth = 18)
+;;; EC-Eval value:
+6
+
+;;; EC-Eval input:
+(factorial 4)
+
+(total-pushes = 112 maximum-depth = 23)
+;;; EC-Eval value:
+24
+
+;;; EC-Eval input:
+(factorial 5)
+
+(total-pushes = 144 maximum-depth = 28)
+;;; EC-Eval value:
+120
+
+;;; EC-Eval input:
+(factorial 6)
+
+(total-pushes = 176 maximum-depth = 33)
+;;; EC-Eval value:
+720
+</code></pre><p> pushes 的关系是</p><p><mathjax class="$$">$$
+p(n) = 32 \times n - 16
+$$</mathjax> depth 的关系是</p><p><mathjax class="$$">$$
+p(n) = 5 \times n + 3
+$$</mathjax> </p><pre class="gist"><code>=============  =================== ======================
+    func           maximum depth     number of pushes
+=============  =================== ======================
+  recursive           5n+3               32n-16
+-------------  ------------------- ----------------------
+  iterative           10                 35n+29
+=============  =================== ======================</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>关于在一个程序里面调用一段子程序（函数）的代码（以 C 为例），让我们想想在 x86 上是怎样的，和这里有什么不同。</p><p>在 x86 上，eip 寄存器决定下一个指令的位置，call ＋ address 跳转到函数的位置。在调用一段子程序之前，先把子程序的参数按照顺序（从右到左）放到 stack 上面。使用和栈顶的 offset 值来决定参数的位置。调用完毕使用 ret 来返回到 caller 的代码中。</p><p>因为 eip 和其它寄存器不一样，不能通过 mov 来修改。所以 call 和 ret 被专门用来修改 eip 的值：</p><pre class="gist"><code>; 'call gcd' is equivalent to
+push eip
+jump gcd
+
+; 'ret' is equivalent to
+pop eip
+</code></pre><p> 注意 stack 是不可缺少的一个中间介质。</p><p>在这里的寄存器机器上，所有指令都通过 goto 来跳转，这里的子程序简单很多，因为假定参数已经保存在了相应的寄存器里面。在子程序调用之前，把子程序调用之后应该返回的位置放在 continue 里面（assign 可以把 label 放到寄存器里面）。在子程序结束的时候，使用 <span class="vlong v">(goto (reg continue))</span> 跳转回 caller 调用的位置。为什么现代的机器不使用这么简单的方式来调用和返回子程序呢？</p><p>如果有多层调用，sub1 调用 sub2，或者递归的函数调用自己，就不能简单地使用一个 continue 寄存器来保存返回的位置，前面保存的位置会被覆盖掉。</p><p>在 5.1.4 里面，stack 被引入了我们的机器中，push 和 pop 被用 save 和 restore 来代替。register 和 stack 都存在的机器，嘿！这不就是我们现在使用的机器的原型吗？想想我们怎么走到这里来的？register 用来保存一般变量的值，stack 因为子程序的需要被引入。见下一节。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

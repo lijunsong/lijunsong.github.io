@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 5.8.  The following register-machine code is ambiguous, because the label here is defined more than once:</p><pre class="gist"><code>start
+  (goto (label here))
+here
+  (assign a (const 3))
+  (goto (label there))
+here
+  (assign a (const 4))
+  (goto (label there))
+there
+</code></pre><p> With the simulator as written, what will the contents of register a be when control reaches there? Modify the extract-labels procedure so that the assembler will signal an error if the same label name is used to indicate two different locations.</p></div><p> 根据之前的分析， <span class="vsymbol v">extract-labels</span> 将会返回 labels 和 instructions 的 list。</p><p><span class="vsymbol v">lookup-labels</span> 使用 <span class="vsymbol v">assoc</span> 来获取某个 labels 的对应。 <span class="vsymbol v">assoc</span> 的实现只找第一个符合条件的值，所以这里的 a 中将保存 3。</p><p>新的 <span class="vsymbol v">extract-labels</span> 如下：</p><pre class="gist sicp-code"><code>(load "machine-assemble-module.scm")
+
+(define (extract-labels text receive)
+  (if (null? text)
+      (receive '() '())
+      (extract-labels
+       (cdr text)
+       (lambda (labels insts)
+         (let ((next-inst (car text)))
+           (cond ((and (symbol? next-inst) (assoc next-inst labels))
+                  (error 'extract-labels "Duplicate labels: " next-inst))
+                 ((symbol? next-inst)
+                  (receive
+                      (cons (make-label-entry next-inst insts) labels)
+                      insts))
+                 (else 
+                  (receive
+                      labels
+                      (cons (make-instruction next-inst) insts)))))))))
+(let ((text
+       '(start
+         (goto (label here))
+         here
+         (assign a (const 3))
+         (goto (label there))
+         here
+         (assign a (const 4))
+         (goto (label there))
+         there)))
+  (assert/exn
+   (extract-labels text (lambda (labels insts) labels))
+   "Duplicate"))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

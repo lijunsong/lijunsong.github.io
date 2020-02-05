@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.4.  Here is an alternative procedural representation of pairs. For this representation, verify that (car (cons x y)) yields x for any objects x and y.</p><pre class="gist"><code>(define (cons x y)
+  (lambda (m) (m x y)))
+
+(define (car z)
+  (z (lambda (p q) p)))
+</code></pre><p> What is the corresponding definition of cdr? (Hint: To verify that this works, make use of the substitution model of section 1.1.5.)</p></div><p>  这个练习使用 lambda 来表示数据。</p><p>这个练习是课本中 cons 表示方法的另一种形式</p><pre class="gist"><code>(define (cons x y)
+  (define (dispatch m)
+    (cond ((= m 0) x)
+          ((= m 1) y)
+          (else (error "Argument not 0 or 1 -- CONS" m))))
+  dispatch)
+
+(define (car z) (z 0))
+
+(define (cdr z) (z 1))
+
+</code></pre><p> 现在可以再写为：</p><pre class="gist sicp-code"><code>(define (new-cons x y)
+  (lambda (m) (m x y)))
+
+(define (new-car z)
+  (z (lambda (x y) x)))
+
+;; the corresponding definition of cdr:
+(define (new-cdr z)
+  (z (lambda (x y) y)))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(asserteq? (new-car (new-cons 'a 'b)) 'a)
+(asserteq? (new-cdr (new-cons 'a 'b)) 'b)</code></pre><p>注意，这并不是说，现在使用的 scheme 系统中的 <span class="vsymbol v">cons</span> <span class="vsymbol v">car</span> <span class="vsymbol v">cdr</span> 可以用这样的形式来替代。这也是我们为什么将其名字前缀了 <em>new</em>。</p><p>因为我们只是更改了部分与数据的表现形式相关的操作而已，比如 <span class="vsymbol v">pair?</span>、 <span class="vsymbol v">procedure?</span> 这些谓词我们依然没有更改。倘若我们将这个程序的 <span class="vsymbol v">load</span> 写在 <span class="vsymbol v">cons</span> 的定义之后，<span class="vsymbol v">load</span> 将会出现错误</p><pre class="gist"><code>1 ]=&gt;
+;Loading "../testframe.scm"...
+;The object (assert-equal eq? e1 e2) is not applicable.
+
+</code></pre><p> 这里的练习仅仅只是表示一种可能性而已。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

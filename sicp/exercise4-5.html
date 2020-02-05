@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.5.  Scheme allows an additional syntax for cond clauses, (&lt;test&gt; =&gt; &lt;recipient&gt;). If &lt;test&gt; evaluates to a true value, then &lt;recipient&gt; is evaluated. Its value must be a procedure of one argument; this procedure is then invoked on the value of the &lt;test&gt;, and the result is returned as the value of the cond expression. For example</p><pre class="gist"><code>(cond ((assoc 'b '((a 1) (b 2))) =&gt; cadr)
+      (else false))
+</code></pre><p> returns 2. Modify the handling of cond so that it supports this extended syntax.</p></div><p> </p><h3 class="section" id="secsec9f6d7ebc8c6bfb661bcda9dbc18e4440">分析</h3><p>我们将在这个练习中支持 <span class="vsymbol v">cond</span> 的新语法。与之前 <span class="vsymbol v">or</span> 的练习一样，我们需要 lambda 语句来保证我们放到判断语句位置的语句只执行了一次。</p><p>例如下面的过程：</p><pre class="gist"><code>(define x 2)
+(define y 3)
+(define (predict-set?)
+  (set! y (+ y 1))
+  y)
+(cond ((= x 1) (+ x 1))
+      ((predict-set?) =&gt; inc)
+      (else 10))
+</code></pre><p> 也就是说我们需要把上面的语法在转变成为 if 语句的时候，变为：</p><pre class="gist"><code>(if (= x 1)
+    (+ x 1)
+    ((lambda (v)
+       (if v
+           (inc v)
+           10))
+     (predict-set?)))
+</code></pre><p> 如果我们还是延续老的思路，转换成下面这样的形式就出错了，<span class="vsymbol v">predict-set?</span> 运行了两次， y 被 set 了两次：</p><pre class="gist"><code>(if (= x 1)
+    (+ x 1)
+    (if (predict-set?)
+        (inc (predict-set?))
+        10))
+</code></pre><p> </p><h3 class="section" id="secsec98cfd1732bb5350b218606dab75e1b81">eval-new-cond 包</h3><pre class="gist sicp-code"><code>(load "3-data-directed-eval.scm")
+(load "../testframe.scm")
+
+;;; cond
+(define (install-eval-new-cond)
+
+  (define (eval-cond exp env)
+    (eval (expand-clauses exp) env))
+
+  (define (cond-else-clause? clause)
+    (eq? (cond-predicate clause) 'else))
+
+  (define (cond-arrow-clause? clause)
+    (and (= 3 (length clause)) (eq? (cadr clause) '=&gt;)))
+
+  ; selector
+  (define (cond-predicate clause) (car clause))
+  (define (cond-actions clause) (cdr clause))
+  (define (cond-arrow-action clause)
+    (caddr clause))
+
+  (define (sequence-&gt;exp seq)
+    ((get 'export-1 sequence-tag) seq))
+
+  (define (make-if tst thn els)
+    ((get 'constructor if-tag) tst thn els))
+
+  (define (make-lambda p b)
+    ((get 'constructor lambda-tag) p b))
+
+  ;; modified expand
+  ;; supports the extended syntax
+  (define (expand-clauses clauses)
+    (if (null? clauses)
+        'false                          ; no else clause
+        (let ((first (car clauses))
+              (rest (cdr clauses)))
+          (cond ((and (cond-else-clause? first) (null? rest))
+                 (sequence-&gt;exp (cond-actions first)))
+                ((cond-else-clause? first)
+                 (error "ELSE clause isn't last -- COND-&gt;IF"
+                         clauses))
+                ((cond-arrow-clause? first)
+                 (list
+                  (make-lambda (list 'v)
+                               (list (make-if 'v
+                                              (list (cond-arrow-action first) 'v)
+                                              (expand-clauses rest))))
+                  (cond-predicate first)))
+                (else
+                 (make-if (cond-predicate first)
+                          (sequence-&gt;exp (cond-actions first))
+                          (expand-clauses rest))                 
+                 )))))
+  (put 'eval cond-tag eval-cond))
+;;; cond end
+
+</code></pre><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><p>下面的测试使用了习题中的示例。同时也使用上面分析中提到的带有 side-effect 的代码来进行测试。</p><pre class="gist sicp-code"><code>
+(let ((test-env (setup-environment)))
+  (begin
+    (install-eval-new-cond)
+    (eval '(define (assoc key lst)
+             (cond ((null? lst) false)
+                   ((eq? key (car (car lst)))
+                    (car lst))
+                   (else (assoc key (cdr lst))))) test-env)
+    (asserteq? (eval '(assoc 'b '()) test-env) false)
+    (asserteq? (eval '(assoc 'b '((a 1) (c 1))) test-env) false)
+    (assertequal? (eval '(assoc 'b '((a 1) (b 2) (c 1))) test-env) '(b 2))    
+    (assert= (eval '(cond ((assoc 'b '((a 1) (b 2))) =&gt; (lambda (x) (car (cdr x))))
+                          (else false))
+                     test-env)
+             2)
+    (assert= (eval '(cond ((assoc 'b '((a 1) (c 2))) =&gt; (lambda (x) (car (cdr x))))
+                          (else 3))
+                     test-env)
+             3)
+
+    (eval '(define x 2) test-env)
+    (eval '(define y 3) test-env)
+    (eval '(define (inc x) (+ x 1)) test-env)
+    (eval '(define (predict-set?)
+             (set! y (+ y 1))
+             y) test-env)
+    (assert= (eval '(cond ((= x 1) (+ x 1))
+                          ((predict-set?) =&gt; inc)
+                          (else 10)) test-env)
+             5)
+
+    ))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

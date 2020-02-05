@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.27.  Suppose we type in the following definitions to the lazy evaluator:</p><pre class="gist"><code>(define count 0)
+(define (id x)
+  (set! count (+ count 1))
+  x)
+</code></pre><p> Give the missing values in the following sequence of interactions, and explain your answers.38</p><pre class="gist"><code>(define w (id (id 10)))
+;;; L-Eval input:
+count
+;;; L-Eval value:
+&lt;response&gt;
+;;; L-Eval input:
+w
+;;; L-Eval value:
+&lt;response&gt;
+;;; L-Eval input:
+count
+;;; L-Eval value:
+&lt;response&gt;
+
+</code></pre></div><p> </p><h3 class="section" id="secsec0480ea9fa2e628e43625e3ea903da8fb">输入与输出</h3><p>下面是解释器中的输入与输出：</p><pre class="gist"><code>;;; L-Eval input:
+(define count 0)
+
+;;; L-Eval value:
+ok
+
+;;; L-Eval input:
+(define (id x)
+  (set! count (+ count 1))
+  x)
+
+;;; L-Eval value:
+ok
+
+;;; L-Eval input:
+(define w (id (id 10)))
+
+;;; L-Eval value:
+ok
+
+;;; L-Eval input:
+count
+
+;;; L-Eval value:
+1
+
+;;; L-Eval input:
+w
+
+;;; L-Eval value:
+10
+
+;;; L-Eval input:
+count
+
+;;; L-Eval value:
+2
+
+;;; L-Eval input:
+
+</code></pre><p> </p><h3 class="section" id="secsec9f6d7ebc8c6bfb661bcda9dbc18e4440">分析</h3><p>因为所有的参数都会变成 trunks，所以</p><pre class="gist"><code>(id (id 10))
+</code></pre><p> 将会变成</p><pre class="gist"><code>(set! count (+ count 1))
+(trunks (id 10) &lt;env&gt;)
+</code></pre><p> w 即被绑定到 <span class="vlong v">(trunks (id 10) &lt;env&gt;)</span> 上了，这个时候因为有 <span class="vlong v">(id 10)</span> 没有运行而 count 只是 1。再对 w 求值的时候， <span class="vlong v">(trunks (id 10) &lt;env&gt;)</span> 被求值，w 被绑定到 10，而 count 增加了 1。得到结果 count 为 2。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

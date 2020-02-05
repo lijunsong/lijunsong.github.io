@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Zeromq Socket Can Manage Many Connections</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Zeromq Socket Can Manage Many Connections</h1>
+          <div class="date">2021-01-27</div>
+          <div class="tags">ØMQ</div>
+        </div>
+
+
+        <div class="content">
+          <div></div><p>At the end of Chapter 1, the ZeroMQ guide mentions that</p><div class="blockquote"><blockquote>Traditional network programming is built on the general assumption that one socket talks to one connection, one peer. There are multicast protocols, but these are exotic. When we assume “one socket = one connection”, we scale our architectures in certain ways. We create threads of logic where each thread work with one socket, one peer. We place intelligence and state in these threads.</blockquote></div><p>When I first read this paragraph, it’s a bit unclear why using ZeroMQ a paradigm shift. After exploring a bit more code, I find this is actually straightward. For instance, we can use this pattern to receive data from multiple endpoints.</p><pre class="gist"><code>use context = new Context()
+use receiver = Context.pull context
+connect receiver "tcp://*:5555"
+connect receiver "tcp://*:5556"
+connect receiver "tcp://*:5557"
+connect receiver "tcp://*:5558"
+
+let msg = receiver |&gt; recv |&gt; decode
+...</code></pre><p>The last <span class="vlong v">receiver |&gt; recv |&gt; decode</span> would block wait on one of the push endpoints. It works like <span class="vsymbol v">golang</span>‘s <em>fan-in channel</em>. Think of pulling data from multiple weather stations, and you wait for the first piece of data coming from one of the stations. I don’t need to deal with many sockets, just one socket rules them all. This definitely simplifies tons of code.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

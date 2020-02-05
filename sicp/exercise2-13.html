@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.13.  Show that under the assumption of small percentage tolerances there is a simple formula for the approximate percentage tolerance of the product of two intervals in terms of the tolerances of the factors. You may simplify the problem by assuming that all numbers are positive.</p><p>   After considerable work, Alyssa P. Hacker delivers her finished system. Several years later, after she has forgotten all about it, she gets a frenzied call from an irate user, Lem E. Tweakit. It seems that Lem has noticed that the formula for parallel resistors can be written in two algebraically equivalent ways:</p><p><mathjax class="$$">$$\frac{R_1R_2}{R_1+R_2}
+$$</mathjax> and</p><p><mathjax class="$$">$$\frac{1}{1/R_1 + 1/R_2}
+
+$$</mathjax> He has written the following two programs, each of which computes the parallel-resistors formula differently:</p><pre class="gist"><code>(define (par1 r1 r2)
+  (div-interval (mul-interval r1 r2)
+                (add-interval r1 r2)))
+(define (par2 r1 r2)
+  (let ((one (make-interval 1 1)))
+    (div-interval one
+                  (add-interval (div-interval one r1)
+                                (div-interval one r2)))))
+</code></pre><p> Lem complains that Alyssa’s program gives different answers for the two ways of computing. This is a serious complaint.</p></div><p> 练习 2.13 问的实际是数值分析问题中，乘数与被乘数的误差与最后乘积的误差的关系。没有学过数值分析没有关系，我们可以试着通过自己的实验来得到最后的这个公式。</p><p>借用<a href="/sicp/exercise2-12.html">练习 2.12</a>，我们可以非常方便地输入输出百分比。这个百分比就是误差。我们使用 <span class="vsymbol v">make-center-percent</span> 来定义三组带误差的值，然后使用 <span class="vsymbol v">mul-interval</span> 得到两个的乘积，最后使用选择函数 <span class="vsymbol v">percent</span> 来得到这个结果的误差到底是多少。</p><pre class="gist sicp-code"><code>(load "12-make-center-percent.scm")
+
+;; test 1
+(define i1 (make-center-percent 6.8 0.1))
+(define i2 (make-center-percent 4.7 0.05))
+
+
+;; get the percent of the multiplication of the two intervals
+
+(percent (mul-interval i1 i2))
+;Value: .1492537313432837
+
+;; test 2
+(define i3 (make-center-percent 1023 0.04))
+(define i4 (make-center-percent 10   0.04))
+(percent (mul-interval i3 i4))
+;Value: .07987220447284339
+
+;; test 3
+(define i5 (make-center-percent 1 2/1000))
+(define i6 (make-center-percent 1 2/1000))
+(percent (mul-interval i5 i6))
+;Value: 1000/250001</code></pre><p>我们可以看到</p><pre class="gist"><code>======  =======  ===========
+0.1     0.05     0.14925
+0.4     0.4      0.07987
+2/1000  2/1000   1000/250001
+======  =======  ===========</code></pre><p>可以看到出是<em>和</em>的关系。</p><p>有了这个关系，我们就可以进入 SICP 下面一个部分–使用不同公式来计算并联电阻值的讨论。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

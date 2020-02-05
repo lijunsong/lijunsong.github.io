@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>到了 2.4.3 节，我们将 real-part，imag-part，magnitude，angle 中判断参数类型的部分给彻底去掉了，取而代之的，是先提取这个打了标签的数据中的标签，然后使用这个标签去查表得到对应的过程。</p><p>每个写自己模块的人都需要负责把数据结构与对应过程给写到表中（使用 put 来完成“A 结构-&gt;X 过程”的映射），之后需要的时候，直接对应表去查找 A 结构应该使用哪个过程。</p><p>而之前的系统（2.4.2章中提到的系统）没有整理数据结构与对应过程的映射，每个数据的处理是在 real-part 等过程中，通过写 if 判断来完成这个映射的。</p><p>实际的编程工作一点都没有减少。这两个设计都需要：</p><ol><li>写构造函数来表示数据，比如 <span class="vsymbol v">make-from-mag-ang</span></li><li>写处理这个结构的过程，比如 <span class="vsymbol v">real-part</span></li><li>写对于这种数据的表示应该映射到哪一个过程上</li></ol><p>真正的区别即在第 3 点上：</p><ol><li>对于之前的系统，使用 cond 在 <span class="vsymbol v">real-part</span> 等过程中映射</li><li>对于现在的系统，使用指定的过程来映射，提高模块的能力</li></ol><p>所以，<span class="vlong v">data-directed programming</span> 不如叫做 <span class="vlong v">type-directed programming</span> 算了。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

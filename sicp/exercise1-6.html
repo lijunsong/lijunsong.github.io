@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.6.  Alyssa P. Hacker doesn’t see why if needs to be provided as a special form. ‘‘Why can’t I just define it as an ordinary procedure in terms of cond?‘’ she asks. Alyssa’s friend Eva Lu Ator claims this can indeed be done, and she defines a new version of if:</p><pre class="gist"><code>(define (new-if predicate then-clause else-clause)
+  (cond (predicate then-clause)
+        (else else-clause)))
+</code></pre><p> Eva demonstrates the program for Alyssa:</p><pre class="gist"><code>(new-if (= 2 3) 0 5)
+5
+
+(new-if (= 1 1) 0 5)
+0
+</code></pre><p> Delighted, Alyssa uses new-if to rewrite the square-root program:</p><pre class="gist"><code>(define (sqrt-iter guess x)
+  (new-if (good-enough? guess x)
+          guess
+          (sqrt-iter (improve guess x)
+                     x)))
+</code></pre><p> What happens when Alyssa attempts to use this to compute square roots? Explain.</p></div><p> 我们的语言 scheme 使用的是 <span class="vlong v">applicative-order evaluation</span>，也就是对于一个过程，我们要把过程的所有参数全部计算完毕之后，将计算的结果传递到过程中。</p><p>对于 <span class="vlong v">(if test then else)</span> 中 <span class="vsymbol v">if</span> 这个“过程”而言，我们当然不能将 <span class="vsymbol v">if</span> 的所有参数全部计算出来再传递给 <span class="vsymbol v">if</span> 去判断，然后再决定返回 <span class="vsymbol v">then</span> 的值还是 <span class="vsymbol v">else</span> 的值。我们需要的是，先计算 <span class="vsymbol v">test</span>，<span class="vsymbol v">then</span> 和 <span class="vsymbol v">else</span> 部分都不执行，然后再去选择执行后续的操作。</p><p>这就是 <span class="vsymbol v">if</span> 作为一个特殊过程，和例子中的 <span class="vsymbol v">new-if</span> 的区别。</p><p><span class="vsymbol v">new-if</span> 写到了 <span class="vsymbol v">sqrt-iter</span> 中后，每次碰到 <span class="vsymbol v">new-if</span> 都不是先去计算 <span class="vsymbol v">goog-enough?</span> 然后决定要不要返回 <span class="vsymbol v">guess</span>，它会一直去调用作为 <span class="vsymbol v">new-if</span> 参数的 <span class="vsymbol v">sqrt-iter</span>，进入死循环。（事实上，scheme 的参数的执行顺序是从右到左，<span class="vsymbol v">goog-enough?</span> 是完全没有执行。）</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

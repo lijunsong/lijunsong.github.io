@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><mathjax class="$">$\phi = (1 + \sqrt 5)/2$</mathjax>. Hint{Let  <mathjax class="$">$\psi = (1 - \sqrt 5)/2$</mathjax>. Use induction and the definition of the Fibonacci numbers (see section 1.2.2) to prove that <mathjax class="$">$Fib(n) = (\phi^n - \psi^n)/\sqrt 5$</mathjax> .}</div><p> 使用归纳法来证明 <mathjax class="$">$Fib(n) = (\phi^n - \psi^n)/\sqrt 5$</mathjax> ，其中 <mathjax class="$">$\phi = \frac{1 + \sqrt{5}}{2}$</mathjax> , <mathjax class="$">$\psi = \frac{1-\sqrt{5}}{2}$</mathjax> 。</p><p>当 n = 0 时，</p><p><mathjax class="$$">$$Fib(0) = (\phi^0 - \psi^0)/\sqrt{5}= 0
+$$</mathjax> 公式成立。当 n = 1 时，</p><p><mathjax class="$$">$$Fib(0) = (\phi^1 - \psi^1)/\sqrt{5}= 1
+$$</mathjax> 公式成立。我们假设 n = k 时，如下公式成立</p><p><mathjax class="$$">$$Fib(k) = (\phi^k - \psi^k)/\sqrt{5}
+$$</mathjax> 则可以知道：</p><p><mathjax class="$$">$$Fib(k+1) = (\phi^{k+1} - \psi^{k+1})/\sqrt{5}
+Fib(k+2) = (\phi^{k+2} - \psi^{k+2})/\sqrt{5}
+$$</mathjax> 我们只需要证出 <mathjax class="$">$Fib(k+2)=Fib(k+1)+Fib(k)$</mathjax> 那么我们的假设就成立。</p><p>证明过程如下：</p><div class="left-margin todo" style="color: red;">fix this formula</div><p><mathjax class="$$">$$
+Fib(k)+Fib(k+1) &amp; =\frac{\phi^k-\psi^k}{\sqrt{5}} + \frac{\phi^{k+1}-\psi^{k+1}}{\sqrt{5}} \\
+                &amp; =\frac{1}{\sqrt{5}}(\phi^k-\psi^k+\frac{1+\sqrt{5}}{2}\phi^k-\frac{1-\sqrt{5}}{2}\psi^k) \\
+
+                &amp; =\frac{1}{\sqrt{5}}(\frac{3+\sqrt{5}}{2}\phi^k-\frac{3-\sqrt{5}}{2}\psi^k) \\
+                &amp; =\frac{1}{\sqrt{5}}(\phi^2\phi^k + \psi^2\psi^k) \\
+                &amp; = Fib(k+2) \\
+$$</mathjax> 所以假设成立</p><p><mathjax class="$$">$$Fib(n) = \frac{(\phi^n-\psi^n)}{\sqrt{5}}
+$$</mathjax> 又因为</p><p><mathjax class="$$">$$\frac{\psi^n}{\sqrt{5}} &lt; 1
+$$</mathjax> 所以 Fib(n) 是最接近 <mathjax class="$">$\frac{\phi^n}{\sqrt{5}}$</mathjax> 的整数。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

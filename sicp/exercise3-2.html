@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.2.  In software-testing applications, it is useful to be able to count the number of times a given procedure is called during the course of a computation. Write a procedure make-monitored that takes as input a procedure, f, that itself takes one input. The result returned by make-monitored is a third procedure, say mf, that keeps track of the number of times it has been called by maintaining an internal counter. If the input to mf is the special symbol how-many-calls?, then mf returns the value of the counter. If the input is the special symbol reset-count, then mf resets the counter to zero. For any other input, mf returns the result of calling f on that input and increments the counter. For instance, we could make a monitored version of the sqrt procedure:</p><pre class="gist"><code>(define s (make-monitored sqrt))
+
+(s 100)
+10
+
+(s 'how-many-calls?)
+1
+</code></pre></div><p> 过程的参数可以当做过程的内部变量。除此之外如果还需要内部变量，则需要使用 let 配合 lambda 来定义一个过程。</p><p>在本题中， ``make-monitored`` 接受一个过程 f 作为参数，返回另外一个过程。这个返回的过程将接受</p><ul><li><code>'how-many-calls?</code> ，返回 f 调用了多少次；</li><li><code>'reset-count</code> ， f 调用次数清零；</li><li>f 的参数，返回 <span class="vlong v">(f arg)</span>；</li></ul><pre class="gist sicp-code"><code>(define make-monitored
+  (let ((how-many 0))
+    (lambda (f)
+      (lambda (arg)
+        (cond ((eq? arg 'how-many-calls?)
+               how-many)
+              ((eq? arg 'reset-count)
+               (set! how-many 0))
+              (else
+               (begin
+                 (set! how-many (+ 1 how-many))
+                 (f arg))))))))
+
+(define s (make-monitored sqrt))
+</code></pre><p>结果为：</p><pre class="gist"><code>1 ]=&gt; (s 100)
+
+;Value: 10
+
+1 ]=&gt; (s 'how-many-calls?)
+
+;Value: 1
+
+1 ]=&gt; (s 1024)
+
+;Value: 32
+
+1 ]=&gt; (s 'how-many-calls?)
+
+;Value: 2
+
+1 ]=&gt; (s 'reset-count)
+
+;Value: 2
+
+1 ]=&gt; (s 'how-many-calls?)
+
+;Value: 0</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

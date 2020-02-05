@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Let expressions are derived expressions, because</p><pre class="gist"><code>(let ((&lt;var1&gt; &lt;exp1&gt;) ... (&lt;varn&gt; &lt;expn&gt;))
+  &lt;body&gt;)
+</code></pre><p> is equivalent to</p><pre class="gist"><code>((lambda (&lt;var1&gt; ... &lt;varn&gt;)
+   &lt;body&gt;)
+ &lt;exp1&gt;
+
+ &lt;expn&gt;)
+</code></pre><p> Implement a syntactic transformation let-&gt;combination that reduces evaluating let expressions to evaluating combinations of the type shown above, and add the appropriate clause to eval to handle let expressions.</p></div><p> let 表达式使用下面的转换就可以变成 lambda，作为 derived expression 加入到解释器中。</p><p>值得注意的是，lambda 的 body 部分是可以使用多语句的。所以我们的 make-let 的 body 部分必须使用一个 list 来表示语句。</p><pre class="gist sicp-code"><code>(define (install-eval-let)
+  ;; import make-lambda
+  (define (make-lambda p b)
+    ((get 'constructor lambda-tag) p b))
+
+  ;; export constructor
+  ;; NOTE: let's body passed in should be a sequence,
+  ;; which means it should be a list!
+  (define (make-let vars vals body)
+    (append (list 'let
+                  (map (lambda (x y) (list x y)) vars vals))
+            body))
+  (define (let-bindings exp)
+    (car exp))
+  (define (let-body exp)
+    (cdr exp))
+
+  (define (let-vars bindings)
+    (map (lambda (x) (car x)) bindings))
+  (define (let-vals bindings)
+    (map (lambda (x) (cadr x)) bindings))
+
+  (define (let-&gt;combination exp)
+    (cons (make-lambda (let-vars (let-bindings exp))
+                       (let-body exp))
+          (let-vals (let-bindings exp))))
+
+  (define (eval-let exp env)
+    (eval (let-&gt;combination exp) env))
+
+  (put 'eval 'let eval-let)
+  (put 'constructor 'let make-let))
+</code></pre><p>我们的测试用例需要确保 let 只是创造了 lambda 表达式而非去改变 environment：</p><pre class="gist sicp-code"><code>; test the transformation
+
+(let ((test-env (setup-environment)))
+  (begin
+    (install-eval-let)
+    (assert= (eval '(let ((x 1) (y 1))
+                      (+ x y)) test-env)
+             2)
+    (assert= (eval '(let ((x 1))
+                         (let ((x 2))
+                           (+ x 2))) test-env)
+             4)
+    (assert= (eval '(let ((x 1))
+                      (let ((x 2))
+                        (set! x 3))
+                      x) test-env)
+             1)
+    ))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

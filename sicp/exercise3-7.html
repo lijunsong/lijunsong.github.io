@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.7.  Consider the bank account objects created by make-account, with the password modification described in exercise 3.3. Suppose that our banking system requires the ability to make joint accounts. Define a procedure make-joint that accomplishes this. Make-joint should take three arguments. The first is a password-protected account. The second argument must match the password with which the account was defined in order for the make-joint operation to proceed. The third argument is a new password. Make-joint is to create an additional access to the original account using the new password. For example, if peter-acc is a bank account with password open-sesame, then</p><pre class="gist"><code>(define paul-acc
+  (make-joint peter-acc 'open-sesame 'rosebud))
+</code></pre><p> will allow one to make transactions on peter-acc using the name paul-acc and the password rosebud. You may wish to modify your solution to exercise 3.3 to accommodate this new feature.</p></div><p> 本题要在 <a href="/sicp/exercise3-3.html">练习 3-3</a> 的基础上，增加一个可以外部访问 balance 的途径，访问的操作和 dispatch 一模一样。</p><p>我们发现其实新添加的关联账户的操作实际就是返回另外一个 dispatch，这样在 dispatch 中就可以访问内部的 balance 的值了。这里不能使用 <span class="vlong v">(make-account balance new-password)</span> 重新新建一个账户，那样的话只是暂时的两个账户的 balance 的值相等而已。</p><p>最简单地我们可以使用下面这样的方法来，只需要修改 dispatch 的密码对比的地方即可。</p><pre class="gist sicp-code"><code>  (define (joint new-password)
+    (define (dispatch pwd m)
+      (cond ((not (eq? pwd new-password)) password-error)
+            ((eq? m 'withdraw) withdraw)
+            ((eq? m 'deposit) deposit)
+            ((eq? m 'joint) joint)
+            ((eq? m 'print-balance) print-balance)
+            (else (error "Unknown request -- MAKE-ACCOUNT"
+                         m))))
+    dispatch)
+</code></pre><p>但这样的代码很丑陋，如果为账户添加了一个功能，我们将要修改两个地方。我们应该把密码匹配的过程和之后的过程给分离开，将整个过程再进行分层处理。</p><pre class="gist sicp-code"><code>
+(define (make-account balance password)
+  (define (withdraw amount)
+    (if (&gt;= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+
+  (define (password-error dummy) "Incorrect password")
+
+
+  (define (joint new-password)
+    (receiver new-password))
+
+  (define (dispatch m)
+    (cond ((eq? m 'withdraw) withdraw)
+          ((eq? m 'deposit) deposit)
+          ((eq? m 'joint) joint)
+          ((eq? m 'print-balance) print-balance)
+          (else (error "Unknown request -- MAKE-ACCOUNT"
+                       m))))
+
+  (define (receiver pwd)
+    (lambda (input-pwd m)
+      (cond ((not (eq? input-pwd pwd)) password-error)
+            (else
+             (dispatch m)))))
+
+  (receiver password))
+
+(define (make-joint account its-password new-password)
+  ((account its-password 'joint) new-password))
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

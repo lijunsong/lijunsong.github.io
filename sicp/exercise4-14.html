@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.14.  Eva Lu Ator and Louis Reasoner are each experimenting with the metacircular evaluator. Eva types in the definition of map, and runs some test programs that use it. They work fine. Louis, in contrast, has installed the system version of map as a primitive for the metacircular evaluator. When he tries it, things go terribly wrong. Explain why Louis’s map fails even though Eva’s works.</div><p> 我们当然不能把 map 这样添加到 environment 中</p><p>(define primitive-procedures   (list (list ‘car car)         (list ‘cdr cdr)         (list ‘cons cons)         (list ‘null? null?)         (list ‘eq? eq?)         (list ‘map map)))</p><p>因为我们的 eval 的底层的表示与宿主语言 scheme 的表示并不是一样的。</p><p>当我们使用</p><pre class="gist"><code>(eval '(map (lambda (x) (+ x 1)) '(1 2 3 4)) the-global-environment)</code></pre><p>的时候， eval 将</p><ol><li>发现这是一个过程调用</li><li>发现这是一个基本过程(<span class="vlong v">primitive procedure</span>)调用，将使用 <span class="vsymbol v">apply</span> 中的 <span class="vsymbol v">apply-in-undering-scheme</span> 过程来求值</li><li><p>对参数进行求值</p><ol><li><span class="vlong v">(lambda (x) (+ x 1))</span> 将变为 <code>'(procedure (x) (+ x 1) &lt;procedure env&gt;)</code></li><li><code>'(1 2 3 4)</code> 即 <code>'(1 2 3 4)</code></li></ol></li><li>将参数与过程的形式参数（formal parameter）进行绑定，创造出一个 <span class="vsymbol v">environment</span>。即会把  <code>'(1 2 3 4)</code> 绑定到 <span class="vsymbol v">map</span> 的第二个参数上，准备提供给代表一个过程的第一个参数使用；把 <code>'(procedure (x) (+ x 1) &lt;procedure env&gt;)</code> 绑定到第一个参数上。</li><li>使用宿主语言的 <span class="vsymbol v">apply</span> 过程来求值，即</li><pre class="gist"><code>(apply map '((procedure (x) ((+ x 1)) &lt;procedure env&gt;) (1 2 3 4)))
+</code></pre></ol><p>  看到这里的时候，我们就发现了，如果直接使用宿主语言的 <span class="vsymbol v">map</span>，那我们的 <span class="vsymbol v">eval</span> 得到的对象将被传递给那个 <span class="vsymbol v">map</span>。因为宿主语言过程的表示形式和我们使用的不一样，导致了出错。</p><pre class="gist"><code>;The object (procedure (x) ((+ x 1)) (((false true car cdr cons null? eq? map = +) #f #t (primitive #[compiled-procedure 2 ("list" #x1) #x3 #x4d2a2]) (primitive #[compiled-procedure 3 ("list" #x2) #x3 #x4d29b]) (primitive #[compiled-procedure 4 ("list" #x3) #x3 #x4d295]) (primitive #[compiled-procedure 5 ("list" #x5) #x3 #x4d286]) (primitive #[compiled-procedure 6 ("global" #x14) #x3 #x480ab]) (primitive #[compiled-procedure 9 ("list" #x6f) #x7 #x4caef]) (primitive #[arity-dispatched-procedure 7]) (primitive #[arity-dispatched-procedure 8])))) is not applicable.
+;To continue, call RESTART with an option number:
+; (RESTART 2) =&gt; Specify a procedure to use in its place.
+; (RESTART 1) =&gt; Return to read-eval-print level 1.
+</code></pre><p> 所以，我们只能把 <span class="vsymbol v">map</span> 当做一个 compound procedure 来定义，而不能把它定义为 primitive procedure。当 map 是一个 compound procedure 的时候，我们就能让 map 识别出 <span class="vlong v">(procedure (x) ....)</span> 是一个 procedure。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

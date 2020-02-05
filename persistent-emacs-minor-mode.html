@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Make Your Emacs Minor Mode Persistent Across Major Mode Changes</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Make Your Emacs Minor Mode Persistent Across Major Mode Changes</h1>
+          <div class="date">2016-06-14</div>
+          <div class="tags">ElispEmacs</div>
+        </div>
+        <div class="excerpt"><p>Sometimes you want to create a minor mode that sticks across
+        various major-mode changes in a buffer, and you don't want it to be
+        global minor mode (after all, why should your minor mode globally
+        affect other modes). Emacs already provides symbol properties for
+        situations like this.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>Pollen publish is a powerful tool for publishing. It can preprocess any file with the racket language, so it gets rid of the ugly “template language” that other publishing tools have while retaining the simplicity.</p><p>Pollen preprocessor can proprecess any files ending <span class="vsymbol v">.p</span> and <span class="vsymbol v">.pp</span>. For example, pollen will preprocess <span class="vsymbol v">my-file.css.pp</span> to generate <span class="vsymbol v">my-file.css</span> file, and <span class="vsymbol v">template.html</span> for <span class="vsymbol v">template.html.p</span>. And in these files, you can always prefix symbol <span class="vsymbol v">◊</span> to call racket functions, or pollen tag functions, to preprocess text.</p><p>It would be useful to provide editing assistance via a minor mode in these files. To make an emacs minor mode for pollen preprocess files, it means to turn on the minor mode for any files that ends with <span class="vsymbol v">.p</span> and <span class="vsymbol v">.pp</span>.</p><p>It sounds like the minor mode needs to be global minor mode, but why should the pollen minor mode affect other unrelated buffers? Let’s not abuse global minor mode, and we can do better anyway, though the implementation is not that straightforward in Emacs.</p><p>So the challenge of creating an emacs minor mode for pollen preprocessor is to provide additional editing assistance, adding new keybindings for example, to <em>all</em> other emacs modes that preprocess files are original assocaited with.</p><p>To recap, let’s see what Emacs provides us for switching modes.</p><ul><li><p>Emacs provides <span class="vsymbol v">auto-mode-alist</span> for calling a major mode function based on file suffix.</p><pre class="gist"><code>(add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))</code></pre><p>will turn on pollen-mode if file ends with <span class="vsymbol v">.pm</span></p></li><li>It can fall through the file suffix check if no match is found. That is, if we do nothing on file <span class="vsymbol v">.pp</span>, openning file <span class="vsymbol v">my-file.css.pp</span> will match the major mode for <span class="vsymbol v">css</span> suffix.</li><li><p>It can also fall through the file suffix check if <span class="vsymbol v">auto-mode-alist</span> has the form</p><pre class="gist"><code>(add-to-list 'auto-mode-alist '("\\.pp$" pollen-mode t))</code></pre><p>In this example, <span class="vsymbol v">pollen-mode</span> will be called, but another major mode will be called after.</p></li><li>To associate a minor mode with a major mode, emacs provides <span class="vsymbol v">add-hook</span> function.</li></ul><p>During switching major modes, emacs will “tear down” what previous major mode has set up. So it does not work if we call pollen minor mode in pollen major mode and let emacs fall through to the other major mode. How to make it stick?</p><p>Emacs manual says little about this. You have to read the lines to get it right, especially if you just get started. Here is an example to show how to do it.</p><pre class="gist"><code>(defun pollen-minor-mode-on ()
+  (pollen-minor-mode 1))
+
+(put 'pollen-minor-mode-on 'permanent-local-hook t)
+
+(add-hook 'after-change-major-mode-hook 'pollen-minor-mode-on t t)</code></pre><p>To see it in a glance,</p><ol><li>Define your own minor mode (read <span class="vsymbol v">define-minor-mode</span>).</li><li>Add <span class="vsymbol v">permanent-local-hook</span> symbol property to your function that turns on your minor mode.</li><li>Hook your function to <span class="vsymbol v">after-change-major-mode-hook</span>, so that the function is called every time major mode get changed.</li></ol><p><span class="vsymbol v">add-hook</span> is tricky, because the hook will be cleaned if you don’t pass the last argument. To fully understand how it actually works. You need to know symbol properties and buffer local variables before reading Emacs Manual.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

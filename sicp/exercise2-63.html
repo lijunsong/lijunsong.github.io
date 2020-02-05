@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.63.  Each of the following two procedures converts a binary tree to a list.</p><pre class="gist"><code>(define (tree-&gt;list-1 tree)
+  (if (null? tree)
+      '()
+      (append (tree-&gt;list-1 (left-branch tree))
+              (cons (entry tree)
+                    (tree-&gt;list-1 (right-branch tree))))))
+(define (tree-&gt;list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list (left-branch tree)
+                      (cons (entry tree)
+                            (copy-to-list (right-branch tree)
+                                          result-list)))))
+  (copy-to-list tree '()))</code></pre><p>   a. Do the two procedures produce the same result for every tree? If not, how do the results differ? What lists do the two procedures produce for the trees in figure 2.16?</p><p>   b. Do the two procedures have the same order of growth in the number of steps required to convert a balanced tree with n elements to a list? If not, which one grows more slowly?</p></div><p> </p><h3 class="section" id="secsec00e5534e2c140aafc5b36b3e469c5da7">树的表示</h3><p>这个练习要把下面的几棵树使用代码表示出来。</p><pre class="gist"><code>trees:
+
+        7                  3                            5
+       / \                / \                          / \
+      /   \              /   \                        /   \
+     /     \            /     \                      /     \
+    3       9          1       7                    3       9
+   / \       \                / \                  /       / \
+  /   \       \              /   \                /       /   \
+ /     \       \            /     \              /       /     \
+1       5       11         5       9            1       7      11
+                                    \
+                                     \
+                                      \
+                                      11</code></pre><p>下面是三个树的表示</p><pre class="gist sicp-code"><code>(load "set-as-binary-tree.scm")
+
+(define tree1 (make-tree 7
+                         (make-tree 3
+                                    (make-tree 1 '() '())
+                                    (make-tree 5 '() '()))
+                         (make-tree 9
+                                    '()
+                                    (make-tree 11 '() '()))))
+
+(define tree2 (make-tree 3
+                         (make-tree 1 '() '())
+                         (make-tree 7
+                                    (make-tree 5 '() '())
+                                    (make-tree 9
+                                               '()
+                                               (make-tree 11 '() '())))))
+
+(define tree3 (make-tree 5
+                         (make-tree 3
+                                    (make-tree 1 '() '())
+                                    '())
+                         (make-tree 9
+                                    (make-tree 7 '() '())
+                                    (make-tree 11 '() '()))))</code></pre><p>注意，每一个点都必须是一个 tree 结构。这也是为什么一个简单的叶子节点也必须使用 <span class="vlong v">(make-tree entry ‘() ‘())</span> 来表示的原因</p><h3 class="section" id="secsecfc61f1dd681f73e784f83a5e45789185">两个过程产生的结果</h3><p>对这些树，使用 tree-&gt;list 的结果：</p><pre class="gist"><code>1 ]=&gt; (tree-&gt;list-1 tree1)
+
+;Value 2: (1 3 5 7 9 11)
+
+1 ]=&gt; (tree-&gt;list-1 tree2)
+
+;Value 3: (1 3 5 7 9 11)
+
+1 ]=&gt; (tree-&gt;list-1 tree3)
+
+;Value 4: (1 3 5 7 9 11)
+
+1 ]=&gt; (tree-&gt;list-2 tree1)
+
+;Value 5: (1 3 5 7 9 11)
+
+1 ]=&gt; (tree-&gt;list-2 tree2)
+
+;Value 6: (1 3 5 7 9 11)
+
+1 ]=&gt; (tree-&gt;list-2 tree3)
+
+;Value 7: (1 3 5 7 9 11)
+
+</code></pre><p> 两个结果一样，但从递归的角度，第一种方法更明了。</p><p>第二种方法采用迭代式递归，<span class="vsymbol v">result-list</span> 位置存放了每一次迭代产生的结果，但这个位置看似只对 <span class="vsymbol v">entry</span> 和 <span class="vsymbol v">right-branch</span> 进行了操作，需要细细分析才能知道最后的结果会是什么。</p><h3 class="section" id="secsec30ac76a527e65997f7b70324f32ead24">两种方法的比较</h3><p>两个都是 O(n)</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

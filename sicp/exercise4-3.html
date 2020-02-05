@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.3.  Rewrite eval so that the dispatch is done in data-directed style. Compare this with the data-directed differentiation procedure of exercise 2.73. (You may use the car of a compound expression as the type of the expression, as is appropriate for the syntax implemented in this section.) .</div><p> 使用 data-directed，我们可以看到模块化的可加性在解释器这里非常优雅地被展现出来了。但有一个问题目前也是比较难以解决的。</p><h3 class="section" id="secseccf969957b1c7b32e8ee76e2078256402">eval</h3><p>首先对于 eval 本身来说，我们对于 <span class="vsymbol v">self-evaluating?</span> 和 <span class="vsymbol v">variable?</span> 是没有办法放到表中的，所以只能单独写到 eval 里面。另外一个是 application 的判断的问题，见 `问题`_ 。</p><pre class="gist sicp-code"><code>(define (eval exp env)
+  (cond ((self-evaluating? exp) exp)
+        ((variable? exp) (lookup-variable-value exp env))
+        (else
+         (let ((eval-action (get 'eval (type-of-expression exp))))
+           (cond (eval-action (eval-action (datum-of-expression exp) env))
+                 ((pair? exp)
+                  ((get 'eval application-tag) exp env)) ; hopefully this will not conflict 
+                 (else (error "Unknown expression type -- EVAL" exp)))))))
+
+
+(define (type-of-expression exp) (car exp))
+(define (datum-of-expression exp) (cdr exp))
+</code></pre><h3 class="section" id="secsecbb71286431cb6b4a6278a7eb0c480ea8">quote</h3><p><span class="vsymbol v">quote</span> 模块的主要过程是 <span class="vsymbol v">eval-quote</span>。</p><pre class="gist sicp-code"><code>(define (install-eval-quote)
+  ;; procedure helper
+  (define (text-of-quotation exp) (car exp))
+
+  ;; main handler
+  (define (eval-quote exp env)
+    (text-of-quotation exp))
+  ;; install
+  (put 'eval quote-tag eval-quote))</code></pre><h3 class="section" id="secsec2b4f29dec73332e870938aa215dd89b7">assignment</h3><p>assignment 模块的主要过程是 eval-assignment。</p><p>到目前为止 assignment 模块中还缺少一个 set-variable-value! 的过程。</p><pre class="gist sicp-code"><code>(define (install-eval-assignment)
+  ;; procedure helper
+  (define (assignment-variable exp) (car exp))
+  (define (assignment-value exp) (cadr exp))
+  ;; lack set-variable-value!
+
+  ;; main handler
+  (define (eval-assignment exp env)
+    (set-variable-value! (assignment-variable exp)
+                         (eval (assignment-value exp) env)
+                         env)
+    'ok)
+  (put 'eval assignment-tag eval-assignment))</code></pre><h3 class="section" id="secsec621d5258dded2bc36f7b039cad5cc132">definition</h3><p>definition 的主要过程是 eval-definition。这在里，我们的过程 definition-value 中需要用到 make-lambda 过程，这个过程是在 install-eval-lambda 模块中的，这就需要我们在 install-eval-lambda 包中将这个过程导出。</p><pre class="gist sicp-code"><code>(define (install-eval-definition)
+  ;; procedure helper
+
+  (define (definition-variable exp)
+    (if (symbol? (car exp))
+        (car exp)
+        (caar exp)))
+  (define (definition-value exp)
+    (if (symbol? (car exp))
+        (cadr exp)
+        (make-lambda (cdar exp)   ; formal parameters
+                     (cdr exp)))) ; body
+  (define (make-lambda parameter body)
+    ((get 'constructor lambda-tag) parameter body))
+  ;; main handler
+  (define (eval-definition exp env)
+    (define-variable! (definition-variable exp)
+                      (eval (definition-value exp) env)
+                      env)
+    'ok)
+  (put 'eval definition-tag eval-definition))</code></pre><h3 class="section" id="secsec3046accbe8345d472fe8439fa2ee1f3c">if</h3><p>if 的主要过程是 eval-if</p><pre class="gist sicp-code"><code>(define (install-eval-if)
+  ;; procedure helper
+  (define (if-predicate exp) (car exp))
+  (define (if-consequent exp) (cadr exp))
+  (define (if-alternative exp)
+    (if (not (null? (cddr exp)))
+        (caddr exp)
+        'false))
+  (define (make-if predicate consequent alternative)
+    (list 'if predicate consequent alternative))
+
+  ;; main handler
+  (define (eval-if exp env)
+    (if (true? (eval (if-predicate exp) env))
+        (eval (if-consequent exp) env)
+        (eval (if-alternative exp) env)))
+
+  (put 'eval if-tag eval-if)
+  (put 'constructor if-tag make-if))</code></pre><h3 class="section" id="secsec4a98133fc9f3ad18071526c9379ff0f3">lambda</h3><p>lambda 包中需要导出 make-lambda 过程。我们这里选择使用一个新的行叫 constructor，将 make-lambda 放到列 lambda 中。</p><pre class="gist sicp-code"><code>(define (install-eval-lambda)
+  (define (lambda-parameters exp) (car exp))
+  (define (lambda-body exp) (cdr exp))
+  (define (make-lambda parameters body)
+    (cons lambda-tag (cons parameters body)))
+
+  (define (eval-lambda exp env)
+    (make-procedure (lambda-parameters exp)
+                    (lambda-body exp)
+                    env))
+  ;;
+  (put 'eval lambda-tag eval-lambda)
+  (put 'constructor lambda-tag make-lambda))</code></pre><h3 class="section" id="secsecc8ca06331d6b190daa3fcc7cd86bcf42">sequence</h3><p>sequence 中同样需要导出 <span class="vsymbol v">sequence-&gt;exp</span>，这个过程会被 cond 用到。这里我们暂时使用一个叫 type-convert 的行，begin 列存放 <span class="vsymbol v">sequence-&gt;exp</span> 过程。</p><pre class="gist sicp-code"><code>(define (install-eval-sequence)
+  (define (last-exp? seq) (null? (cdr seq)))
+  (define (first-exp seq) (car seq))
+  (define (rest-exps seq) (cdr seq))
+  (define (sequence-&gt;exp seq)
+    (cond ((null? seq) seq)
+          ((last-exp? seq) (first-exp seq))
+          (else (make-begin seq))))
+  (define (make-begin seq) (cons 'begin seq))
+
+  ;; main handler
+  (define (eval-sequences exps env)
+    (cond ((last-exp? exps) (eval (first-exp exps) env))
+          (else (eval (first-exp exps) env)
+                (eval-sequences (rest-exps exps) env))))
+
+  (put 'eval sequence-tag eval-sequences)
+  (put 'constructor sequence-tag make-begin)
+  (put 'export-1 sequence-tag sequence-&gt;exp))
+</code></pre><h3 class="section" id="secseccc6887f58bd98035852cf37c7a948f81">cond</h3><p>cond 需要使用到 <span class="vsymbol v">sequence-&gt;exp</span>。当然，我们也可以自己来写一个 <span class="vsymbol v">sequence-&gt;exp</span> 的过程。</p><pre class="gist sicp-code"><code>(define (install-eval-cond)
+
+  (define (eval-cond exp env)
+    (eval (expand-clauses exp) env))
+
+  (define (cond-else-clause? clause)
+    (eq? (cond-predicate clause) 'else))
+  (define (cond-predicate clause) (car clause))
+  (define (cond-actions clause) (cdr clause))
+
+  (define (sequence-&gt;exp seq)
+    ((get 'export-1 sequence-tag) seq))
+
+  (define (make-if tst thn els)
+    ((get 'constructor if-tag) tst thn els))
+
+  (define (expand-clauses clauses)
+    (if (null? clauses)
+        'false                          ; no else clause
+        (let ((first (car clauses))
+              (rest (cdr clauses)))
+          (if (cond-else-clause? first)
+              (if (null? rest)
+                  (sequence-&gt;exp (cond-actions first))
+                  (error "ELSE clause isn't last -- COND-&gt;IF"
+                         clauses))
+              (make-if (cond-predicate first)
+                       (sequence-&gt;exp (cond-actions first))
+                       (expand-clauses rest))))))
+  (put 'eval cond-tag eval-cond))</code></pre><h3 class="section" id="secsec697b8047c49f907a27365476f4129f3d">application</h3><p>application 几乎是不可以判断的。它只能是所有的判断结束之后，剩下的那个操作。</p><p>这里注意的是，我们选取了一个叫 application 的列名来存储 application 的解释过程。</p><p>我们也许会担心，如果我们要解释的过程里面，恰好过程的名字为 application 怎么办？比如</p><pre class="gist"><code>(eval
+   '(begin (define (application x) (+ x 1))
+           (application 1))
+   env)
+</code></pre><p> 当解释到 <span class="vlong v">(application 1)</span> 的时候，我们的解释器在</p><pre class="gist"><code>(let ((eval-action (get 'eval (type-of-expression exp))))
+  (cond (eval-action (eval-action exp env))
+        (...)))
+</code></pre><p> 这一步，相当于运行了 <span class="vlong v">(get ‘eval ‘application)</span>，一样，eval-action 将被赋值为 eval-application 这一过程。</p><p>但这并不影响继续解释执行下去，因为我们的 <span class="vlong v">(eval-action exp env)</span> 与 <span class="vlong v">((get ‘eval ‘application) exp env)</span> 是等同的。</p><pre class="gist sicp-code"><code>(define (install-eval-application)
+  (define (operator exp) (car exp))
+  (define (operands exp) (cdr exp))
+  (define (no-operands? ops) (null? ops))
+  (define (first-operand ops) (car ops))
+  (define (rest-operands ops) (cdr ops))
+
+  (define (list-of-values exps env)
+    (if (no-operands? exps)
+        '()
+        (cons (eval (first-operand exps) env)
+              (list-of-values (rest-operands exps) env))))
+
+  (define (eval-application exp env)
+    (apply1 (eval (operator exp) env)
+            (list-of-values (operands exp) env)))
+
+  (put 'eval application-tag eval-application))</code></pre><h3 class="section" id="secseca80070242e69fb5b87211456b89ee7ab">问题</h3><p>模块化的程序，比如这个 data-directed 风格的解释器，是比较难以做到模块之间互通有无的。比如我们的 cond 模块需要用到 sequence 模块中的 sequence-&gt;exp 过程，就必须在 sequence 模块中，将 sequence 保存到一个位置才行，但这一个需求就将浪费掉一整行的空间。</p><p>application 判断的问题也是比较麻烦的。我们将 application 的操作放到了一列名字叫 ‘%%application 的列中。这个名字必须不能是要解释的代码中的一个过程的名称，否则解释器即将会去运行 <span class="vlong v">(eval-application (datum-of-expression exp) env)</span>，这个语句将会去掉第一个元素–这里即去掉了过程的名称，只把参数传递给了 eval-application。</p><p>当然我们也可以做到解释时参数传递的统一。</p><pre class="gist"><code>(define (eval exp env)
+  (cond ((self-evaluating? exp) exp)
+        ((variable? exp) (lookup-variable-value exp env))
+        (else
+         (let ((eval-action (get 'eval (type-of-expression exp))))
+           (cond (eval-action (eval-action exp env))
+                 ((pair? exp)
+                  ((get 'eval application-tag) exp env)) ; hopefully this will not conflict
+                 (else (error "Unknown expression type -- EVAL" exp)))))))
+</code></pre><p> 这样就可以为随意为 application 列取名字了–cond 都是将整个 exp 传递到相应的过程中的。</p><p>但这样做，比如想要导出 eval-sequence 给 apply 过程使用的时候， eval-sequence 所处理的表达式是带有 begin 的表达式，于是我们需要手动给 apply 中加上 make-begin（也需要导出）。这样不如让 eval 来去掉各表达式的明显的标示符。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

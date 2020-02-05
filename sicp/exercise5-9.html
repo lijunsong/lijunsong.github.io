@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.9.  The treatment of machine operations above permits them to operate on labels as well as on constants and the contents of registers. Modify the expression-processing procedures to enforce the condition that operations can be used only with registers and constants.</div><p> <span class="vsymbol v">make-operation-exp</span> 的问题在于，它无法检查在 <span class="vsymbol v">assemble</span> 的阶段检查出 <span class="vlong v">(test (op =) (label label1) (const 1))</span> 的错误来。</p><p>我们可以这样来改进</p><pre class="gist sicp-code"><code>(load "machine-stack-module.scm")
+(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+
+(define (make-operation-exp exp machine labels operations)
+  (let ((op (lookup-prim (operation-exp-op exp) operations))
+        (aprocs
+         (map (lambda (e)
+                (cond ((label-exp? e)
+                       (error 'make-operation-exp "Bad expression type " e))
+                      (else
+                       (make-primitive-exp e machine labels))))
+              (operation-exp-operands exp))))
+    ; apply the op to all operands
+    (lambda ()
+      (apply op (map (lambda (p) (p)) aprocs)))))
+
+
+(load "../testframe.scm")
+(assert/exn
+  (make-machine '(n) (list (list '- -))
+   '((assign n (op -) (label after-expt) (const 1))
+     after-expt
+     expt-done))
+  "Bad expression")</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

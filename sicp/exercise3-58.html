@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.58.  Give an interpretation of the stream computed by the following procedure:</p><pre class="gist"><code>(define (expand num den radix)
+  (cons-stream
+   (quotient (* num radix) den)
+   (expand (remainder (* num radix) den) den radix)))
+</code></pre><p> (Quotient is a primitive that returns the integer quotient of two integers.) What are the successive elements produced by (expand 1 7 10) ? What is produced by (expand 3 8 10) ?</p></div><p>  只要 radix 的地方为 10，这个 expand 所得到的序列就是 <span class="vlong v">num * radix / den</span> 的带小数的商–<span class="vsymbol v">stream-car</span> 是商小数点之前的部分，之后的 <span class="vsymbol v">stream-cdr</span> 是小数点之后的部分。</p><pre class="gist sicp-code"><code>(load "stream.scm")
+
+(define (expand num den radix)
+  (cons-stream
+   (quotient (* num radix) den)
+   (expand (remainder (* num radix) den) den radix)))
+
+
+;;; tests begin
+(load "../testframe.scm")
+
+; 10.0 / 7 = 1.4285714285714286
+(let ((get10/7 (expand 1 7 10)))
+  (assert= (stream-car get10/7) 1)
+  (assert= (stream-ref get10/7 1) 4)
+  (assert= (stream-ref get10/7 2) 2)
+  (assert= (stream-ref get10/7 6) 1))
+
+; 30.0 / 8 = 3.75
+(let ((get30/8 (expand 3 8 10)))
+  (assert= (stream-ref get30/8 0) 3)
+  (assert= (stream-ref get30/8 1) 7)
+  (assert= (stream-ref get30/8 2) 5)
+  (assert= (stream-ref get30/8 3) 0))
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.2.  Consider the problem of representing line segments in a plane. Each segment is represented as a pair of points: a starting point and an ending point. Define a constructor make-segment and selectors start-segment and end-segment that define the representation of segments in terms of points. Furthermore, a point can be represented as a pair of numbers: the x coordinate and the y coordinate. Accordingly, specify a constructor make-point and selectors x-point and y-point that define this representation. Finally, using your selectors and constructors, define a procedure midpoint-segment that takes a line segment as argument and returns its midpoint (the point whose coordinates are the average of the coordinates of the endpoints). To try your procedures, you’ll need a way to print points:</p><pre class="gist"><code>(define (print-point p)
+  (newline)
+  (display "(")
+  (display (x-point p))
+  (display ",")
+  (display (y-point p))
+  (display ")"))
+
+
+</code></pre></div><p>  定义过程 <span class="vsymbol v">midpoint-segment</span> 所需要的选择函数和构造函数：</p><pre class="gist sicp-code"><code>;;; point
+(define (make-point x y)
+  (cons x y))
+(define (x-point point)
+  (car point))
+(define (y-point point)
+  (cdr point))
+
+;;; segment
+(define (make-segment start end)
+  (cons start end))
+
+(define (start-segment segment)
+  (car segment))
+
+(define (end-segment segment)
+  (cdr segment))
+
+
+;;; operation on segment
+(define (print-point p)
+  (newline)
+  (display "(")
+  (display (x-point p))
+  (display ",")
+  (display (y-point p))
+  (display ")"))
+
+(define (midpoint-segment segment)
+  (make-point (/ (+ (x-point (start-segment segment))
+                    (x-point (end-segment segment)))
+                 2)
+              (/ (+ (y-point (start-segment segment))
+                    (y-point (end-segment segment)))
+                 2)))
+</code></pre><p>测试：</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+;;; the midpoint of points (1, 3) and (4, 5) is (5/2, 4)
+(assert-output-equal
+ "\n(5/2,4)"
+ (print-point (midpoint-segment (make-segment (make-point 1 3) (make-point 4 5)))))
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

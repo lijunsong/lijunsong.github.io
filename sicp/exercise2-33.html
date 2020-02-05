@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.33.  Fill in the missing expressions to complete the following definitions of some basic list-manipulation operations as accumulations:</p><pre class="gist"><code>(define (map p sequence)
+  (accumulate (lambda (x y) &lt;??&gt;) nil sequence))
+(define (append seq1 seq2)
+  (accumulate cons &lt;??&gt; &lt;??&gt;))
+(define (length sequence)
+  (accumulate &lt;??&gt; 0 sequence))
+</code></pre></div><p> 从这里练习开始，后面很大一部分练习都需要用到 <span class="vsymbol v">accumulate</span>，所以这个练习的目的是熟悉 <span class="vsymbol v">accumulate</span> 的功能。</p><pre class="gist"><code>(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+</code></pre><p> <span class="vsymbol v">accumulate</span> 中的 <span class="vsymbol v">op</span> 是一个有两个参数的过程。使用 <span class="vsymbol v">accumulate</span> 的思路如下：对 <span class="vsymbol v">sequence</span> 中的元素 <em>由后往前</em> 依次使用 op （首次使用时，是 <span class="vsymbol v">initial</span> 与 <span class="vsymbol v">sequence</span> 的最后一个元素作为输入），得到的结果与前一个 <span class="vsymbol v">sequence</span> 的元素又作为 <span class="vsymbol v">op</span> 的输入，一直到 <span class="vsymbol v">sequence</span> 的第一个元素为止。</p><pre class="gist sicp-code"><code>(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (new-map p sequence)
+  (accumulate (lambda (x y)
+                (cons (p x) y))
+              '()
+              sequence))
+
+(define (new-append seq1 seq2)
+  (accumulate cons seq2 seq1))
+
+(define (new-length sequence)
+  (accumulate (lambda (x y)
+                (1+ y))
+              0 sequence))
+
+</code></pre><p>而测试则可以使用 scheme 的内建过程来进行结果的验证</p><pre class="gist sicp-code"><code>
+(load "../testframe.scm")
+
+(assertequal? (new-map (lambda (x) (+ x 1))
+                       '(1 2 3 4 5))
+              (map (lambda (x) (+ x 1))
+                   '(1 2 3 4 5)))
+
+(assertequal? (new-append '(1 2 3 4) '(5 6 7))
+              (append '(1 2 3 4) '(5 6 7)))
+
+(assertequal? (new-length '(1 2 (3 4)))
+              (length '(1 2 (3 4))))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

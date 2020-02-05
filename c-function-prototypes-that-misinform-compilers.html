@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>C Function Prototypes That Misinform Compilers</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">C Function Prototypes That Misinform Compilers</h1>
+          <div class="date">2017-01-30</div>
+          <div class="tags">C</div>
+        </div>
+        <div class="excerpt"><p>When writing C programs, I used to declare function prototypes without fully specifying their parameters. This is a bad engineering practice. Writting a code generator helps me realize how bad it could be from the perspective of compilers. Here are my notes on how a compiler may generate bizarre code from this practice.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>It is not uncommon to see function prototypes are declared without fully specified parameters.</p><p>In header file, Instead of writing</p><pre class="gist"><code>void *Arena_alloc (T arena, long nbytes, const char *file, int line);</code></pre><p>You can write</p><pre class="gist"><code>void *Arena_alloc();</code></pre><p>I used to do that, omitting prototype parameters in header files and forward declared functions. The reason? Keeping function prototypes updated felt dragging things down when function signatures were consistently changing during development.</p><p>I know this is a bad practice in engineering. But I never think about it from compiler’s perspective. “It’s going to be fine, as long as the compiler can compile it without warnings.”</p><p>Recently I wrote a code generator for my FL compiler. I realized that this kind of code could confuse the compiler to generate bizarre code.</p><h3 class="section" id="secsec659f7993d26bad1fb06b1c2a2da2ce12">Function Prototype Declaration</h3><p>C language allows to declare a function that’s not defined in current compilation unit. The declared function is called a function prototype.</p><p>From compiler’s point of view, function names are identifiers and identifiers are symbols. Symbols are resolved during linking time. Therefore, if <span class="vsymbol v">foo</span> calls <span class="vsymbol v">bar</span> which is defined in another file, C language allows you to declare <span class="vsymbol v">bar</span> before its use in <span class="vsymbol v">foo</span>:</p><pre class="gist"><code>void bar(int);
+int foo(int a) {
+    ...
+    bar(a);
+    ...
+}</code></pre><p>All looks good except ... C language also allows you to declare <span class="vsymbol v">bar</span> with an empty parameter list.</p><pre class="gist"><code>void bar();
+int foo(int a) {
+    bar(a);
+}</code></pre><h3 class="section" id="secsec83d27286f82984ef988d21f34f56ff08">Declaration with No Parameter Specified</h3><p>Empty parameter doesn’t mean that <span class="vsymbol v">bar</span> takes zero parameters, but <span class="vsymbol v">bar</span> takes unknown number of parameters. So in last example, the compiler will keep silence when <span class="vsymbol v">foo</span> calls <span class="vsymbol v">bar</span> with one parameter. Conceivably <span class="vsymbol v">foo</span> can also call <span class="vsymbol v">bar</span> with any number of parameters, even zero.</p><p>Isn’t it arity mismatch? Yes it is. And our compiler happily accepts it.</p><h3 class="section" id="secsecbee2061678e91b0171879cc1f658ded2">What’s the semantics, then?</h3><p>What happens when arity mismatch occurs? To understand that, we need to understand how call stacks are generated by compiler. I made a small sample code to illustrate the semantics.</p><p>Code <span class="vsymbol v">lib.c</span> contains two functions</p><pre class="gist"><code>// lib.c
+int arg1(int a) {
+        return a;
+}
+
+int arg2(int a, int b) {
+        return a + b;
+}</code></pre><p>However, <span class="vsymbol v">lib.h</span> declares the two functions without specifying their parameters, as below</p><pre class="gist"><code>// lib.h
+int arg1();
+int arg2();</code></pre><p>Now <span class="vsymbol v">main.c</span> includes header <span class="vsymbol v">lib.h</span> and call <span class="vsymbol v">arg1</span> and <span class="vsymbol v">arg2</span> with mismatched arity.</p><pre class="gist"><code>// main.c
+#include "lib.h"
+#include &lt;stdio.h&gt;
+
+int main()
+{
+        int x = arg1(1, 2);
+        int y = arg2(3);
+        printf("x = %d, y = %d\n", x, y);
+}</code></pre><p>The above sample code can be compiled simply using</p><pre class="gist"><code>clang lib.c main.c</code></pre><p>Run the program, we see</p><pre class="gist"><code>$ ./a.out
+x = 1, y = 5</code></pre><p>(The above code runs on MacOS.)</p><p>It’s not only compiles without warnings, but also runs fine! Let’s understand where the answer comes from.</p><h3 class="section" id="secsec8cc8048129b9ac3e98209136123a3867">It’s All About Stack Frames</h3><p>Understanding how stack frames are reserved and removed is the key to understand the result. I’ve written <a href="/tiger-compiler-i386-backend.html">Tiger Compiler Notes: I386 Backend</a> on how compiler generates stack frames.</p><p>Specifically, <span class="vlong v">arg1(1, 2)</span> will generate stack frames below</p><pre class="gist"><code>high
+ |                     +---+
+ |   ADR|...|&lt;-EBP     |...|
+ |      +---+          +---+
+ |      | 2 |          | 2 |
+ |      +---+          +---+
+ |      | 1 |&lt;-ESP     | 1 |
+ |      +---+          +---+
+ |                     |EIP|
+ |                     +---+
+ |                     |ADR| &lt;-ESP,EBP
+ |                     +---+
+ V
+low</code></pre><p>The left one shows the stack before calling <span class="vsymbol v">arg1</span>. The right one shows the stack when <span class="vsymbol v">arg1</span> runs. To access the first argument in <span class="vsymbol v">arg1</span>, compiler will generate code <span class="vsymbol v">EBP+8</span>, which has value 1, in our code.</p><p>When <span class="vsymbol v">arg1</span> returns, the call stack is popped without erasing the content, so 2 and 1 are still there. The immediate call <span class="vsymbol v">arg2(3)</span> will place 3 at ESP and thus the stack becomes</p><pre class="gist"><code>high
+ |                     +---+
+ |   ADR|...|&lt;-EBP     |...|
+ |      +---+          +---+
+ |      | 2 |          | 2 |
+ |      +---+          +---+
+ |      | 3 |&lt;-ESP     | 3 |
+ |      +---+          +---+
+ |                     |EIP|
+ |                     +---+
+ |                     |ADR| &lt;-ESP,EBP
+ |                     +---+
+ V
+low</code></pre><p>The left one shows the stack before calling <span class="vsymbol v">arg2</span>. The right one shows the stack when <span class="vsymbol v">arg2</span> runs. Even if <span class="vsymbol v">arg2</span> has never called with two arguments, it uses whatever being left on the stack as its second argument. The first argument is 3, and the second is 2. The answer? 5!</p><h3 class="section" id="secsec78c61ed397e9459dd98c2025dec1e673">Function Prototypes that misinform compilers</h3><p>So what do I learn? Function prototypes without full specifications misinform the compiler! Even if the compiler generates running code, the code could be barely correct. It also push more responsibilities to the code writer to maintain a correct semantics of the code. In sum, just don’t do it.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

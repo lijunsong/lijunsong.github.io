@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Tiger Compiler Notes: Lexer and Parser</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Tiger Compiler Notes: Lexer and Parser</h1>
+          <div class="date">2016-01-04</div>
+          <div class="tags">compiler</div>
+        </div>
+        <div class="excerpt"><p>Some notes on OCamllex and OCamlyacc.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>I use ocamllex and ocamlyacc as the parser generator. They are doing fine jobs, although people recommend Menhir a lot. It turns out that there are just a few error patterns that I need to know before working with ocamlyacc effectively. Here is a summary of debugging the lexer and parser.</p><h3 class="section" id="secsecf72b7006a49ae749f9f899ad6fe80efd">Empty token</h3><pre class="gist"><code>Fatal error: exception Failure("lexing: empty token")</code></pre><p>means that some token in the program does not match any of the regular expressions in our lexer.</p><p>I don’t have good solution for this. One simple solution is to print out matched tokens as the lexer goes. It shall be also easy to catch this exception and print out the lexbuf when errors occur. Simply printing information works just fine for debugging the lexer.</p><p> </p><h3 class="section" id="secsec0d1c647603597f0ce5ce0c06623be75b">pares_error exception</h3><p>parse_error exception seems useless: it only takes a string in its construct; there is no position information in it. How can we provide a better error message with it?</p><p>To provide better error message, we need to access the lexbuf for the current position and current reading symbol. Remember the lexbuf we pass to the parser and lexer? We need to catch errors there.</p><p>Let’s see the implementation in tiger compiler. What you need to do is</p><pre class="gist"><code>(** [row col token] indicates where the error happens. *)
+exception ParseError of int * int * string
+
+(** [parse_string lexbuf] parses the given lexbuf and returns
+    tiger abstarct syntax.  @raise ParseError when parser
+    fails. *)
+let parse_lexbuf lexbuf : S.exp =
+  try
+    prog tokenize lexbuf
+  with
+  | Parsing.Parse_error -&gt;
+     let pos = lexbuf.Lexing.lex_start_p in
+     let row = pos.Lexing.pos_lnum in
+     let col = pos.Lexing.pos_cnum - pos.Lexing.pos_bol in
+     raise (ParseError(row, col, Lexing.lexeme lexbuf))
+  | Failure msg -&gt; failwith msg</code></pre><p><code>prog</code> is yacc generated entry point of our parser, and <code>tokenize</code> is the lexer. If parsing raises <code>Parse_error</code> at any point, we catch it and extract useful position and content information from <code>lexbuf</code>.</p><p>It’s useful to propagate Failure exception of other runtime errors.</p><h3 class="section" id="secsec1bd0ac0c550440eb491de75518616b40">Debug the parser</h3><p>I find the following methods pretty productive during debugging ocamlyacc.</p><p>The first is to turn on parser trace when parsing a program</p><pre class="gist"><code>export OCAMLRUNPARAM='p'</code></pre><p>After turning this on, parsing</p><p><code>let var x := 12 in x</code></p><p>will output parsing information:</p><pre class="gist"><code>State 0: shift to state 1
+State 1: read token LET
+State 1: shift to state 9
+State 9: read token VAR
+State 9: shift to state 24
+State 24: read token Id(x)
+State 24: shift to state 61
+State 61: read token COLON
+State 61: shift to state 83
+State 83: read token EQ
+Discarding state 83
+Discarding state 61
+Discarding state 24
+Discarding state 9
+Discarding state 1
+No more states to discard</code></pre><p>But what are these states? Flag <code>-v</code> comes to help. This flag should be passed to ocamlyacc. I use <code>ocamlbuild</code>, so in my makefile, I do <code>ocamlbuild -yaccflag -v main.byte</code>, and read all the transition states in <code>_build/frontend/parser.output</code>.</p><h3 class="section" id="secsec007bd311dbd590df19d1d09f1c88fd1e">ocamlyacc grammar</h3><h4 class="subsection" id="subsecsubsecb078b87c0cad6bcb12622c9e0818b3bd">how is unary precedence normally solved</h4><p>If you don’t specify the precedence of the unary operators in your language, you’ll normally get something like this:</p><pre class="gist"><code>shift/reduce conflict
+expr : MINUS expr .
+expr : expr . AND expr</code></pre><p>To solve this, declare another symbol <code>UMINUS</code> which has the highest precedence.</p><pre class="gist"><code>%left MINUS
+...
+%nonassoc UMINUS</code></pre><p>Then overwrite the unary rule using <code>%prec</code>.</p><pre class="gist"><code>expr:
+ | MINUS expr %prec UMINUS { ... }
+</code></pre><p>By the way, there are limited resources about ocamlyacc. You won’t get many if you google <code>ocamlyacc</code>. But <code>ocamlyacc</code> is essentially the same as <code>yacc</code>, except for the different syntax. Reading yacc (or bison) manual definitely helps.</p><h4 class="subsection" id="subsecsubseca71eb7933865a9d111d9a7cd6e3aca21">non-terminal may cause shift/reduce conflict</h4><p>The symptom here is even if you have already specified <code>%left</code> for binary operators, ocamlyacc still complains about shift/reduce problem for the following rules:</p><pre class="gist"><code>expr:
+ | expr op expr
+
+op:
+ | PLUS { ... }
+ | MINUS { ... }</code></pre><p>op is used to match the PLUS, MIINUS, etc. You’ll get lots of conflict</p><pre class="gist"><code>65: shift/reduce conflict (shift 33, reduce 7) on PLUS
+65: shift/reduce conflict (shift 34, reduce 7) on MINUS
+65: shift/reduce conflict (shift 35, reduce 7) on TIMES
+65: shift/reduce conflict (shift 36, reduce 7) on DIV
+65: shift/reduce conflict (shift 37, reduce 7) on EQ
+65: shift/reduce conflict (shift 38, reduce 7) on NEQ
+65: shift/reduce conflict (shift 39, reduce 7) on LT
+65: shift/reduce conflict (shift 40, reduce 7) on GT
+65: shift/reduce conflict (shift 41, reduce 7) on LE
+65: shift/reduce conflict (shift 42, reduce 7) on GE
+state 65
+        expr : expr . op expr  (7)
+        expr : expr op expr .  (7)
+state 33
+        op : PLUS .
+state 34
+        op : MINUS .</code></pre><p>If you write directly <code>expr PLUS expr</code>, there should be no problem. The shift/reduce problem here is about shift the <code>PLUS</code> (to state 33), or reduce <code>expr op expr .</code>, but here <code>op</code> is another non-terminal, and the precedence of a rule is given by the last token occurring on the right-hand side of that rule. Instead of write <code>op</code>, you can write</p><pre class="gist"><code>expr:
+  | op { ... }
+
+op:
+  | expr PLUS expr { ... }
+  | expr MINUS expr { ... }</code></pre><h4 class="subsection" id="subsecsubsec898894831793b60473d8f7aa3dfba03a">Understanding the precedence of a rule</h4><p>Tiger does not have an end mark to its while loop, so it is pretty easy to get a shift/reduce conflict. Take this example which has a relational operation inside the body of a while.</p><pre class="gist"><code>95: shift/reduce conflict (shift 34, reduce 16) on PLUS
+        expr : WHILE expr DO expr .  (16)
+        op : expr . AND expr  (19)</code></pre><p>In this example, we want an <code>expr</code> taking as long as it wants, so we want <code>AND</code> to shift. There are two methods to solve this problem. The easiest one is to add an <code>END</code> as part of the syntax of <code>while</code>. Or we let <code>expr</code> have higher precedence. The precedence of a rule is the last token occurring on the right-hand side of that rule, so it depends on <code>DO</code>. Therefore, defining <code>%right</code> for <code>DO</code> will solve the problem.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

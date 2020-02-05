@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.28.  Write a procedure fringe that takes as argument a tree (represented as a list) and returns a list whose elements are all the leaves of the tree arranged in left-to-right order. For example,</p><pre class="gist"><code>(define x (list (list 1 2) (list 3 4)))
+
+(fringe x)
+(1 2 3 4)
+
+(fringe (list x x))
+(1 2 3 4 1 2 3 4)
+</code></pre></div><p> fringe 也需要深度递归。深度递归的思路参见 <a href="/sicp/exercise2-27.html">练习 2.27</a> 。</p><pre class="gist sicp-code"><code>;; using append can always keep current lst as a list of atom
+(define (fringe lst)
+  (cond ((null? lst) '())
+        ((pair? (car lst))
+         (append (fringe (car lst))
+                 (fringe (cdr lst))))
+        (else
+         (append (list (car lst))
+                 (fringe (cdr lst))))))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(let ((x '((1 2) (3)))
+      (y '(1 (2 3)))
+      (z '((1 2) 3)))
+  (assertequal? (fringe x)
+                '(1 2 3))
+  (assertequal? (fringe y)
+                '(1 2 3))
+  (assertequal? (fringe z)
+                '(1 2 3)))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

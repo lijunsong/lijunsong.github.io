@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.9.  In section 1.2.1 we used the substitution model to analyze two procedures for computing factorials, a recursive version</p><pre class="gist"><code>(define (factorial n)
+  (if (= n 1)
+      1
+      (* n (factorial (- n 1)))))
+</code></pre><p> and an iterative version</p><pre class="gist"><code>(define (factorial n)
+  (fact-iter 1 1 n))
+(define (fact-iter product counter max-count)
+  (if (&gt; counter max-count)
+      product
+      (fact-iter (* counter product)
+                 (+ counter 1)
+                 max-count)))
+</code></pre><p> Show the environment structures created by evaluating (factorial 6) using each version of the factorial procedure.</p></div><p> </p><h3 class="section" id="secsecfd764491e4874250edf1b79486924998">递归版本的 environment</h3><pre class="gist"><code>+-------------------------------------------------------------------------------+
+|                                                                               |
+|  factorial:----+                                                              |
+|                |                                                              |
++----------------+--------------------------------------------------------------+
+                 |       ^      ^      ^      ^      ^      ^
+                 |    E1 |  E2  |   E3 |   E4 |   E5 |  E6  |
+                 |     +-+-+  +-+-+  +-+-+  +-+-+  +-+-+  +-+-+
+                 |     |n:6|  |n:5|  |n:4|  |n:3|  |n:2|  |n:1|
+                 v     +---+  +---+  +---+  +---+  +---+  +---+
+     parameter: n
+          body: (if (= n 1)
+                    1
+                    (* n (factorial (- n 1))))</code></pre><h3 class="section" id="secsec57a9b2da60a2801e01841b43026e0a92">迭代版本的 environment</h3><p>首先是定义后的全局环境</p><pre class="gist"><code>results of defining  factorial and fact-iter in global environment
+
+    +---------------------------------------+
+    |  fact-iter: -----------+              |
+    |  factorial: ---+       |              |
+    |                |       |              |
+    +----------------+-------+--------------+
+                     |       |
+                     |       |
+                     |       v
+                     | Parameter: product counter max-count
+                     |     body: (if (&gt; counter max-count)..)
+                     |
+                     |
+                     v
+            Parameter: n
+                 body: (fact-iter 1 1n)</code></pre><p>在这个环境中，调用 (factorial 6)</p><pre class="gist"><code>+-----------------------------------------------------------------------------------------------------------------------+
+| factorial: ...                                                                                                        |
+| fact-iter: ...                                                                                                        |
++-----------------------------------------------------------------------------------------------------------------------+
+     ^           ^                ^               ^               ^               ^              ^               ^
+     |           |                |               |               |               |              |               |
+ E1  |           |                |               |               |               |              |               |
+   +-+-+   +-----+------+   +-----+------+  +-----+------+  +-----+------+  +-----+------+ +-----+------+  +-----+------+
+   |n:6|   |product:1   |   |product:1   |  |product:2   |  |product:6   |  |product:24  | |product:120 |  |product:720 |
+   +---+   |counter:1   |   |counter:2   |  |counter:3   |  |counter:4   |  |counter:5   | |counter:6   |  |counter:1   |
+           |max-count: 6|   |max-count: 6|  |max-count: 6|  |max-count: 6|  |max-count: 6| |max-count: 6|  |max-count: 6|
+           +------------+   +------------+  +------------+  +------------+  +------------+ +------------+  +------------+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

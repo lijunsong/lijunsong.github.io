@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.15.  Add *instruction counting* to the register machine simulation. That is, have the machine model keep track of the number of instructions executed. Extend the machine model’s interface to accept a new message that prints the value of the instruction count and resets the count to zero.</div><p> 增加的 <span class="vlong v">instruction counting</span> 如下。只需要在 execute 中 instruction 执行之前对 counting 增加就可以。</p><pre class="gist sicp-code"><code>(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+(load "machine-new-stack-module.scm")
+
+(define (make-machine regs ops controller-text)
+  (let ((machine (make-new-machine)))
+    (for-each (lambda (name)
+                ((machine 'allocate-register) name))
+              regs)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    machine))
+
+(define (make-new-machine)
+  (let ((stack (make-stack))
+        (flag (make-register))
+        (pc (make-register))
+        (the-instruction-sequence '())
+        (inst-count 0))
+    (let ((regs (list (cons 'pc pc)
+                      (cons 'flag flag))) ; assoc of name-&gt;register-object
+          (the-ops
+           (list (list 'initialize-stack
+                       (lambda () (stack 'initialize))))))
+      (define (allocate-register name)
+        (if (assoc name regs)
+            (error 'machine "register exists: " name)
+            (set! regs (cons (cons name (make-register)) regs)))
+        'register-allocated)
+      (define (lookup-register name)
+        (let ((r (assoc name regs)))
+          (if r
+              (cdr r)
+              (error 'machine "Unknown register: " name))))
+      (define (execute)
+        (let ((insts (get-contents pc)))
+          (if (null? insts)
+              'done
+              (begin
+                (set! inst-count (+ 1 inst-count))
+                ((instruction-execution-proc (car insts)))
+                (execute)))))
+      (define (reset)
+        (set! inst-count 0))
+
+      (define (print-inst-count)
+        (newline)
+        (display (list 'instructions '= inst-count)))
+
+      (define (dispatch msg)
+        (cond ((eq? msg 'allocate-register) allocate-register)
+              ((eq? msg 'lookup-register) lookup-register)
+              ((eq? msg 'install-operations)
+               (lambda (ops) (set! the-ops (append the-ops ops))))
+              ((eq? msg 'stack) stack)
+              ((eq? msg 'operations) the-ops)
+              ((eq? msg 'install-instruction-sequence)
+               (lambda (seq) (set! the-instruction-sequence seq)))
+              ((eq? msg 'start)
+               (set-contents! pc the-instruction-sequence)
+               (execute))
+              ((eq? msg 'reset) (reset))
+              ((eq? msg 'print-inst-count) (print-inst-count))
+              (else
+               (error 'machine "Unknown message: " msg))))
+      dispatch)))
+</code></pre><p>进行下面的测试</p><pre class="gist sicp-code"><code>(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+(load "machine-new-stack-module.scm")
+
+(define (make-machine regs ops controller-text)
+  (let ((machine (make-new-machine)))
+    (for-each (lambda (name)
+                ((machine 'allocate-register) name))
+              regs)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    machine))
+
+(define (make-new-machine)
+  (let ((stack (make-stack))
+        (flag (make-register))
+        (pc (make-register))
+        (the-instruction-sequence '())
+        (inst-count 0))
+    (let ((regs (list (cons 'pc pc)
+                      (cons 'flag flag))) ; assoc of name-&gt;register-object
+          (the-ops
+           (list (list 'initialize-stack
+                       (lambda () (stack 'initialize))))))
+      (define (allocate-register name)
+        (if (assoc name regs)
+            (error 'machine "register exists: " name)
+            (set! regs (cons (cons name (make-register)) regs)))
+        'register-allocated)
+      (define (lookup-register name)
+        (let ((r (assoc name regs)))
+          (if r
+              (cdr r)
+              (error 'machine "Unknown register: " name))))
+      (define (execute)
+        (let ((insts (get-contents pc)))
+          (if (null? insts)
+              'done
+              (begin
+                (set! inst-count (+ 1 inst-count))
+                ((instruction-execution-proc (car insts)))
+                (execute)))))
+      (define (reset)
+        (set! inst-count 0))
+
+      (define (print-inst-count)
+        (newline)
+        (display (list 'instructions '= inst-count)))
+
+      (define (dispatch msg)
+        (cond ((eq? msg 'allocate-register) allocate-register)
+              ((eq? msg 'lookup-register) lookup-register)
+              ((eq? msg 'install-operations)
+               (lambda (ops) (set! the-ops (append the-ops ops))))
+              ((eq? msg 'stack) stack)
+              ((eq? msg 'operations) the-ops)
+              ((eq? msg 'install-instruction-sequence)
+               (lambda (seq) (set! the-instruction-sequence seq)))
+              ((eq? msg 'start)
+               (set-contents! pc the-instruction-sequence)
+               (execute))
+              ((eq? msg 'reset) (reset))
+              ((eq? msg 'print-inst-count) (print-inst-count))
+              (else
+               (error 'machine "Unknown message: " msg))))
+      dispatch)))
+</code></pre><p>输出</p><pre class="gist"><code>(instructions = 16)
+(instructions = 27)
+(instructions = 38)
+(instructions = 49)
+(instructions = 60)
+(instructions = 71)
+;... done
+;Unspecified return value
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

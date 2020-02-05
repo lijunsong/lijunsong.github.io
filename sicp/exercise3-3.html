@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.3.  Modify the make-account procedure so that it creates password-protected accounts. That is, make-account should take a symbol as an additional argument, as in</p><pre class="gist"><code>(define acc (make-account 100 'secret-password))
+</code></pre><p> The resulting account object should process a request only if it is accompanied by the password with which the account was created, and should otherwise return a complaint:</p><pre class="gist"><code>((acc 'secret-password 'withdraw) 40)
+60
+
+((acc 'some-other-password 'deposit) 50)
+"Incorrect password"
+
+</code></pre></div><p>  添加密码机制需要</p><ol><li>另外定义一个过程 <span class="vsymbol v">password-error</span></li><li>修改 <span class="vsymbol v">make-account</span> 和 <span class="vsymbol v">dispatch</span> 的接口</li><li><span class="vsymbol v">dispatch</span> 需要首先判断密码是否正确</li></ol><pre class="gist sicp-code"><code>(define (make-account balance password)
+  (define (withdraw amount)
+    (if (&gt;= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (define (password-error dummy) "Incorrect password")
+  (define (dispatch pwd m)
+    (cond ((not (eq? pwd password)) password-error)
+          ((eq? m 'withdraw) withdraw)
+          ((eq? m 'deposit) deposit)
+          (else (error "Unknown request -- MAKE-ACCOUNT"
+                       m))))
+  dispatch)
+
+;;; tests begin
+(load "../testframe.scm")
+
+(let ((acc (make-account 100 'pwd)))
+  (assert= ((acc 'pwd 'deposit) 100) 200)
+  (assert= ((acc 'pwd 'withdraw) 200) 0)
+  (assertequal? ((acc 'pwd 'withdraw) 100) "Insufficient funds")
+  (assertequal? ((acc 'pwd1 'deposit) 100) "Incorrect password")
+  (assert= ((acc 'pwd 'deposit) 100) 100))</code></pre><p>需要注意的是 <span class="vsymbol v">password-error</span> 过程需要一个参数占位，以便下面这样的调用不会出错：</p><pre class="gist"><code>((acc 'some-other-password 'deposit) 50)
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

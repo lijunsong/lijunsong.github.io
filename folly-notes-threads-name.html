@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: Thread Name</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: Thread Name</h1>
+          <div class="date">2019-09-22</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p>On Linux, we can give each thread a name so debugging
+        multi-thread program is easier. <span class="vsymbol v">pthread_setname_np</span> is the call to
+        name a thread. It's as easy as that. In this post, however, I want to
+        write more details about the implementation.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>In <span class="vsymbol v">folly/system/ThreadName.h</span>, we have the following functions for setting thread names:</p><pre class="gist"><code>bool canSetCurrentThreadName();
+
+bool canSetOtherThreadName();
+
+bool setThreadName(std::thread::id tid, StringPiece name);
+
+bool setThreadName(pthread_t pid, StringPiece name);
+
+bool setThreadName(StringPiece name);</code></pre><p>Let’s run something really simple</p><pre class="gist"><code>#include &lt;folly/init/Init.h&gt;
+#include &lt;folly/system/ThreadName.h&gt;
+#include &lt;glog/logging.h&gt;
+
+int main(int argc, char **argv) {
+  folly::init(&amp;argc, &amp;argv);
+
+  auto thr = std::thread([]() {
+    folly::setThreadName("newThread");
+    LOG(INFO) &lt;&lt; "new thread exits";
+  });
+  auto name = folly::getThreadName(thr.get_id());
+  LOG(INFO) &lt;&lt; "Main waiting on "
+            &lt;&lt; (name.hasValue() ? name.value() : " the other thread");
+  thr.join();
+}</code></pre><p>The main thread pulls <span class="vsymbol v">thr</span>‘s name, which is racy. When the <span class="vsymbol v">setThreadName</span> is not called, what is the default thread name?</p><pre class="gist"><code>~ $ ./a.out -logtostderr
+I0922 16:50:37.111975   957 thread.cc:11] new thread exits
+I0922 16:50:37.111953   956 thread.cc:14] Main waiting on a.out
+~ $ ./a.out -logtostderr
+I0922 16:50:37.515489   958 thread.cc:14] Main waiting on newThread
+I0922 16:50:37.515491   959 thread.cc:11] new thread exits</code></pre><p>It looks like the default thread name is the program name. Actually if we take a look at <span class="vsymbol v">pthread_setname_np(3)</span>, the manual says</p><div class="blockquote"><blockquote>By default, all the threads created using pthread_create() inherit the program name.</blockquote></div><p>That looks simple. Let’s poke around to see how they’re implemented.</p><h3 class="section" id="secsec3c87fc8964825a175c44004941209eed">Implementation</h3><pre class="gist"><code>static constexpr size_t kMaxThreadNameLength = 16;
+
+bool setThreadName(std::thread::id tid, StringPiece name) {
+  name = name.subpiece(0, kMaxThreadNameLength - 1);
+  char buf[kMaxThreadNameLength] = {};
+  std::memcpy(buf, name.data(), name.size());
+  auto id = stdTidToPthreadId(tid);
+  return 0 == pthread_setname_np(id, buf);
+}</code></pre><p>The other two <span class="vsymbol v">setThreadName</span> eventually calls the above function.</p><p>In <span class="vsymbol v">pthread_setname_np(3)</span>, the manual says the length of name is restricted to 16 chars, including the null byte (‘\0’). That’s why this implementation creates an array of 16 bytes.</p><p>The confusing part here is the conversion between <span class="vsymbol v">pthread_t</span>, <span class="vsymbol v">pid_t</span> and <span class="vsymbol v">std::thread::id</span>.</p><div class="right-margin"><p>If your Linux distribution is different, the header file location might be different, try to find it using</p><pre class="gist"><code>~ $ find /usr/include -name 'pthreadtypes.h'
+/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</code></pre></div><p>If we take a look at the header file on our local Linux machine, the definition is</p><pre class="gist"><code>typedef unsigned long int pthread_t;</code></pre><p>And the <span class="vsymbol v">std::thread::id</span> is in <span class="vsymbol v">/usr/include/c++/7/thread</span></p><pre class="gist"><code>/// thread
+  class thread
+  {
+    typedef __gthread_t			native_handle_type;
+    class id
+    {
+      native_handle_type	_M_thread;
+      ...
+    };
+
+  private:
+    id				_M_id;
+  ...
+}</code></pre><p>where the <span class="vsymbol v">__gthread_t</span> is defined in <span class="vsymbol v">/usr/include/x86_64-linux-gnu/c++/7/bits/</span>. For POSIX, it’s an alias of <span class="vsymbol v">pthread_t</span>. So on POSIX compiliant system, <span class="vsymbol v">std::thread::id</span> is <span class="vsymbol v">pthread_t</span>.</p><p>As a library, how does folly guarantee the <span class="vsymbol v">memcpy</span> copies the same type on all platform? In <span class="vsymbol v">stdTidToPthreadId</span>, it has compile-time checks:</p><pre class="gist"><code>#if FOLLY_HAVE_PTHREAD &amp;&amp; !_WIN32
+pthread_t stdTidToPthreadId(std::thread::id tid) {
+  static_assert(
+      std::is_same&lt;pthread_t, std::thread::native_handle_type&gt;::value,
+      "This assumes that the native handle type is pthread_t");
+  static_assert(
+      sizeof(std::thread::native_handle_type) == sizeof(std::thread::id),
+      "This assumes std::thread::id is a thin wrapper around "
+      "std::thread::native_handle_type, but that doesn't appear to be true.");
+  ...
+}
+...</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

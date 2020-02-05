@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: Libevent Concept and Usage</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: Libevent Concept and Usage</h1>
+          <div class="date">2019-06-09</div>
+          <div class="tags">c++</div>
+        </div>
+
+
+        <div class="content">
+          <p>libevent is a library for async programming. It provides cross-platform supporting structure for event-driven programming.</p><p>The libevent library is one of the foundation of folly async programming. Knowing how libevent works is a prerequisite of learning folly async.</p><h3 class="section" id="secsecd8102702fa85cadcb83679a5504871c3">libevent in a nutshell</h3><div class="right-margin"><url-link>beej.us</url-link> is a great introduction to event-driven network programming.</div><p>Linux provides syscall <span class="vsymbol v">select</span>, <span class="vsymbol v">poll</span> (and <span class="vsymbol v">epoll</span>) for watching file descriptor changes, including ready to read, ready to write, error happening, etc.  Libevent provides a nice abstraction layer on top of those syscalls so that applications can cleanly subscribe file descriptor changes.</p><p>In libevent, you</p><ol><li>create an <span class="vsymbol v">event_base</span></li><li>wrap file descriptor <span class="vsymbol v">fd</span> and a callback function into <span class="vsymbol v">event</span>, and add <span class="vsymbol v">event</span> to the <span class="vsymbol v">event_base</span></li><li>wrap more <span class="vsymbol v">fd</span>s and corresponding callback functions into <span class="vsymbol v">event</span>, and add all those <span class="vsymbol v">event</span> to the <span class="vsymbol v">event_base</span></li><li>pick one thread to start looping on the <span class="vsymbol v">event_base</span> to watch changes, and execute callbacks</li></ol><p>The benefit?</p><ul><li>You have clean code–all <span class="vsymbol v">event</span>s and callbacks are nicely wrapped</li><li>You have clear threading model–only one thread accesses one <span class="vsymbol v">event_base</span> at any given time. Because of this, <span class="vsymbol v">folly::Future</span> can schedule a callback in a chained callback list on different threads</li></ul><p>For example, to react on input, instead of blocking read on file descriptor 0, create an eventbase ({1}), wrap event of <em>stdin</em> and callback in <span class="vsymbol v">event</span> ({2}), and finally choose the main thread to spin on callback execution ({3}).</p><pre class="gist"><code>#include &lt;event2/event.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+
+void read_ready(evutil_socket_t fd, short what, void *arg) {
+  char buf[15];
+  size_t len;
+
+  printf("\n&gt;");
+  while ((len = read(fd, buf, 15)) != -1) {
+    buf[len] = '\0';
+    printf("Read '%s', size is %ld\n&gt;", buf, len);
+  }
+}
+
+int main() {
+  struct event_base *base = event_base_new();  // {1}
+
+  fcntl(0, F_SETFL, O_NONBLOCK);
+  // NOTE: what if EV_PERSIST is absent
+  struct event *e = event_new(base, 0, EV_READ | EV_PERSIST, read_ready, NULL); // {2}
+  event_add(e, NULL); // NOTE: Must call event_add
+
+  event_base_dispatch(base);  // {3}
+  printf("Exit!\n");
+}</code></pre><p>Running the program</p><pre class="gist"><code>$ gcc libevent-simple.c -g -levent &amp;&amp; ./a.out
+&gt;abcd
+Read 'abcd', size is 4
+&gt;zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+Read 'zzzzzzzzzzzzzzz', size is 15
+Read 'zzzzzzzzzzzzzzz', size is 15</code></pre><h3 class="section" id="secsec50cab5a647c432feb9392ee8b1aeb598">folly::EventBase</h3><p><span class="vsymbol v">folly::EventBase</span> is a wrapper of <span class="vsymbol v">event_base</span> in previous example. What about <span class="vsymbol v">event</span>? Folly also provides <span class="vsymbol v">EventHandler</span> to wrap a function, and during registeration, EventHandler select what events to register.</p><p>If we convert the previous example to use <span class="vsymbol v">folly::EventBase</span>, it’s now pretty simple</p><pre class="gist"><code>#include &lt;unistd.h&gt;
+#include &lt;iostream&gt;
+#include &lt;folly/io/async/EventBase.h&gt;
+#include &lt;folly/io/async/EventHandler.h&gt;
+
+class ReadReady : public folly::EventHandler {
+ public:
+  using EventHandler::EventHandler;
+
+  void handlerReady(uint16_t events) noexcept override {
+    char buf[15];
+    size_t len;
+    std::cout &lt;&lt; "\n";
+    while ((len = read(0, buf, sizeof(buf))) != -1) {
+      buf[len] = '\0';
+      std::cout &lt;&lt; "Read '" &lt;&lt; buf &lt;&lt; "', size is " &lt;&lt; len &lt;&lt; "\n";
+    }
+  }
+};
+
+int main() {
+  folly::EventBase base;
+
+  ReadReady handler(&amp;base, folly::NetworkSocket::fromFd(0));
+  handler.registerHandler(folly::EventHandler::READ | folly::EventHandler::PERSIST);
+
+  base.loopForever();
+}
+</code></pre><p>To compile, run</p><pre class="gist"><code>g++ -std=c++17 libevent-folly-simple.c /usr/local/lib/libfolly.a /usr/lib/x86_64-linux-gnu/libiberty.a  -lgtest  -lglog  -lgflags -lpthread -ldl -ldouble-conversion -levent</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

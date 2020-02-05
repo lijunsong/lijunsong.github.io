@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Tiger Compiler Notes: I386 Backend</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Tiger Compiler Notes: I386 Backend</h1>
+          <div class="date">2017-01-23</div>
+          <div class="tags">compiler</div>
+        </div>
+        <div class="excerpt"><p>Notes on I386 architecture and code generation.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>One goal of the tiger compiler is to learn how compiler generates assembly code from its IR. Before working on i386 backend, I’ve made tiger compiler to generate code for Sparc. Generating Sparc code is straightforward: I spent roughly one week to study the architecture before writing the code. I386 is way complicated (measured by the time I’ve spent on architecture manuals), so the compiler’s i386 backend deserves another blog post.</p><p>In this post, I’ll briefly walk through how gcc generates assembly code for i386 architecture, and then name a few subtle problems that I’ve encountered when I wrote the backend, and what I’ve learned along the way.</p><h3 class="section" id="secsec0f0f2709d3de77f36a0679d8d7847ed1">Study How GCC Generates Code</h3><p>The most interesting part is probably generating code for function body, so let’s first look at how gcc does these things:</p><ul><li>Preserve previous stack information</li><li>Reserve a new stack frame</li><li>Refer parameters in the function body</li><li>Pop current stack frame</li></ul><p>Here is a sample code:</p><pre class="gist"><code>int sum3(int a, int b, int c)
+{
+        return a + b + c;
+}
+
+int main()
+{
+        sum3(1, 2, 3);
+}</code></pre><p>Generating assembly with <code>gcc -m32 -O0 -S test.c</code>:</p><pre class="gist"><code>sum3:
+.LFB0:
+        pushl   %ebp
+        movl    %esp, %ebp
+        subl    $16, %esp
+        movl    8(%ebp), %edx
+        movl    12(%ebp), %eax
+        addl    %eax, %edx
+        movl    16(%ebp), %eax
+        addl    %edx, %eax
+        movl    %eax, -4(%ebp)
+        movl    -4(%ebp), %eax
+        leave
+        ret
+main:
+.LFB1:
+        pushl	%ebp
+        movl	%esp, %ebp
+        pushl	$3
+        pushl	$2
+        pushl	$1
+        call	sum3
+        addl	$12, %esp
+        movl	$0, %eax
+        leave
+        ret</code></pre><h4 class="subsection" id="subsecsubsec42fcbb196d87f31689b3c05010a3dcec">How is stacks information preserved</h4><p>The actual control transfer occurs on <code>call sum3</code>. Before the call, <code>%ebp</code> points to some address <code>ADDR</code> that defines the beginning of current stack frame.</p><pre class="gist"><code>+---------+
+ADDR |  ...    |  &lt;--- EBP
+     +---------+
+     |    3    |
+     +---------+
+     |    2    |
+     +---------+
+     |    1    |  &lt;--- ESP
+     +---------+</code></pre><p>Because <code>call sum3</code> is equivalent to</p><pre class="gist"><code>push eip
+jump sum3</code></pre><p>Following instructions in sum3, we have the following traces</p><pre class="gist"><code>high                call sum3       pushl %ebp      movl %esp, %ebp     subl $16, %esp
+ |      +---+          +---+           +---+           +---+               +---+
+ |   ADR|...|&lt;-EBP     |...|&lt;-EBP      |...|&lt;-EBP      |...|               |...|
+ |      +---+          +---+           +---+           +---+               +---+
+ |      | 3 |          | 3 |           | 3 |           | 3 |               | 3 | EBP+16
+ |      +---+          +---+           +---+           +---+               +---+-
+ |      | 2 |          | 2 |           | 2 |           | 2 |               | 2 | EBP+12
+ |      +---+          +---+           +---+-          +---+               +---+
+ |      | 1 |&lt;-ESP     | 1 |           | 1 |           | 1 |               | 1 | EBP+8
+ |      +---+          +---+           +---+           +---+               +---+-
+ |                     |EIP|&lt;-ESP      |EIP|           |EIP|               |EIP| EBP+4
+ |                     +---+           +---+           +---+               +---+
+ |                                     |ADR|&lt;-ESP      |ADR|&lt;-ESP,EBP      |ADR|&lt;-EBP
+ |                                     +---+           +---+               +---+
+ |                                                                         |   | EBP-4
+ |                                                                         +---+
+ |                                                                         |   | EBP-8
+ |                                                                         +---+
+ |                                                                         |   | EBP-12
+ v                                                                         +---+
+low                                                                        |   |&lt;-ESP
+                                                                           +---+</code></pre><p>Notice that</p><ul><li>Function arguments reside in previous stack frame</li><li>Previous EBP is pushed on the stack, pointed by current EBP</li><li>Function local variables are between EBP and ESP</li></ul><p>At this point, it is pretty clear that <code>movl 8(%ebp), %edx</code> is to move 1 to <code>%edx</code>, and <code>movl 12(%ebp), %eax</code> is to move 2 to <code>edx</code>. What about <code>movl -4(%ebp), %eax</code>? That’s to move the final result of <code>a+b+c</code> from a local variable (generated by the compiler) into EAX.</p><h4 class="subsection" id="subsecsubsece3a581b5dc39ee62a0303844eb8aa1e1">Pop the Stack Frame</h4><p>After the computation, we’re about to return to previous location:</p><pre class="gist"><code>leave
+ret</code></pre><p><code>leave</code> instruction is to release the stack space used as local variables in a procedure, so it can be effectively interpreted as</p><pre class="gist"><code>movl %ebp, %esp
+popl %ebp</code></pre><p>After the <code>leave</code> instruction, the stack state reverts back to the same state as <code>call sum3</code>, and then <code>ret</code> is equivalent to <code>popl %eip</code>, which unwinds the stack state to what it was before the <code>call sum3</code>, which has 3 arguments on the stack. To remove those arguments, it adds 12 to <code>%esp</code>: <code>addl $12,
+%esp</code>.</p><h4 class="subsection" id="subsecsubsecd61da15d104fcc99b94725fbc60bc78a">Summary</h4><p>So you can tell the calling process is just like playing a game with stack pointers (EBP and ESP):</p><ol><li>Caller pushes arguments onto its own frame: 3 arguments are pushed in our code</li><li>Compiler generates code to reserves spaces for local variables in new frame: reserve 16 bytes in our code</li><li>Because caller pushes arguments, its caller’s responsibility to remove these arguments: add 12 to ESP in our code</li></ol><p>Compiler has God’s view of all local variables and arguments, so it knows how to refer to function arguments in previous stack frame.</p><p>Comparing with the SPARC architecture, the i386 style that to pass everything on stack looks slow.</p><h3 class="section" id="secsec7d12c3cc177ab723d25a204e8a6f8897">Stack Alignment on macOS</h3><p>What we’ve been talking in previous section is still not complete, but it’s sufficient for me to roll my own code generator at this stage. Now it’s pretty easy to roll your own code generator. Just pick up one calling convention and implement it faithfully.</p><p>In this section, I want to point out one subtle bug that takes me several hours to figure out.</p><p>Take the following assembly code as an example. The code is generated by the following program:</p><pre class="gist"><code>print("hello")</code></pre><p><code>_tigermain</code> is the entry point of the program, <code>_L3</code> is the function body, <code>_exit2</code> is the epilogue. Function <code>_print</code> is provided by the runtime that is linked into the final binary.</p><pre class="gist"><code>.global _tigermain
+_tigermain:
+    push %ebp
+    movl %esp, %ebp
+_L3:
+    subl $32, %esp
+    leal _str1, %eax
+    movl %eax, -4(%ebp)
+    mov -4(%ebp), %eax
+    pushl %eax
+    call _print
+    xor %eax, %eax
+    add $4, %esp
+    addl $32, %esp
+    jmp _exit2
+_exit2:
+    popl %ebp
+    retl
+.data
+.globl _str1
+_str1:
+    .long 5
+    .ascii "hello"</code></pre><p>Notice it preserves 32 bytes on the stack, and before calling <code>_print</code>, it pushes one argument on the stack, and restores ESP by adding 4 bytes afterwards. Then it adds 32 bytes to ESP and restores ESP.</p><p>All looks good. However, the same program works on Linux but doesn’t run on macOS. When I compile and run it on macOS, the following error occurs:</p><pre class="gist"><code>* thread #1: tid = 0x33d7ba, 0x960342f0 libdyld.dylib`misaligned_stack_error_, queue = 'com.apple.main-thread', stop reason = EXC_BAD_ACCESS (code=EXC_I386_GPFLT)
+    frame #0: 0x960342f0 libdyld.dylib`misaligned_stack_error_
+libdyld.dylib`misaligned_stack_error_:
+-&gt;  0x960342f0 &lt;+0&gt;:  movdqa %xmm0, 0x10(%esp)
+    0x960342f6 &lt;+6&gt;:  movdqa %xmm1, 0x20(%esp)
+    0x960342fc &lt;+12&gt;: movdqa %xmm2, 0x30(%esp)
+    0x96034302 &lt;+18&gt;: movdqa %xmm3, 0x40(%esp)</code></pre><p>Uhh, misaligned stack error?</p><p>Let’s see what assembly code LLVM would generate from similar functions?</p><pre class="gist"><code>extern void bar(int, int);
+void foo(int x, int y) {
+      bar(x, y);
+}</code></pre><pre class="gist"><code>.section    __TEXT,__text,regular,pure_instructions
+  .macosx_version_min 10, 11
+  .globl  _foo
+  .align  4, 0x90
+_foo:                                   ## @foo
+## BB#0:
+  pushl   %ebp
+  movl    %esp, %ebp
+  subl    $24, %esp
+  movl    12(%ebp), %eax
+  movl    8(%ebp), %ecx
+  movl    %ecx, -4(%ebp)
+  movl    %eax, -8(%ebp)
+  movl    -4(%ebp), %eax
+  movl    -8(%ebp), %ecx
+  movl    %eax, (%esp)
+  movl    %ecx, 4(%esp)
+  calll   _bar
+  addl    $24, %esp
+  popl    %ebp
+  retl</code></pre><p>Looks similar. No? It took me a while to see the difference. If you’re not familiar with the 16-bytes align rule, the only difference you may see here is probably using <code>movl</code> to push arguments, and subtract 24 from <code>esp</code>. Uh, why 24? and it seems using pushl would also do the same work. At least that’s what I was thinking.</p><p>Of courses there are reasons for using movl.</p><p>As I mentioned, function call requires stack 16-byte aligned, upon the entry of a function, before <code>pushl %ebp</code>, <code>%eip</code> has been pushed (by <code>call</code> instruction), so <code>%esp</code> is always <code>0xbffff...c</code> (28 aligned). Then we push <code>%ebp</code>, <code>%esp</code> is always <code>0xbffff...8</code> (24 aligned). then subtract 24 from esp, we get 32-bytes aligned, and thus 16-bytes aligned, stack.</p><p>Because the frame starts out with esp aligned, so it can never use <code>pushl</code> to push arguments for callee.</p><h4 class="subsection" id="subsecsubsec28afb5d2e6de36006bd098439bd47623">How can we decide ahead of time the size of the stack?</h4><p>Say we have function foo calls bar which takes 10 integer arguments. Previously, we just need to use <code>pushl</code> to these arguments on the stack and ESP would increase as needed.  Now as we can’t use <code>pushl</code> to automatically increase stack (to prevent unaligned ebp and esp), we have to decide how large the stack would be when entering function foo.</p><p>The size of stack was previously decided by the number of local variables (and spills). Now we have to consider all the call sites. An easy way to do is to just scan through all the call sites and reserve the maximum stack. So if a caller calls three functions like this</p><pre class="gist"><code>bar2(1, 2);
+bar3(1, 2, 3);
+bar4(1, 2, 3, 4);</code></pre><p>esp needs to reserve 16 bytes for 4 int arguments, which is the minimum size. Actually when you compile the program you’ll see</p><pre class="gist"><code>pushl   %esi
+subl    $52, %esp
+movl    $1, %eax
+movl    $2, %ecx
+movl    $1, (%esp)
+movl    $2, 4(%esp)
+movl    %eax, -8(%ebp)          ## 4-byte Spill
+movl    %ecx, -12(%ebp)         ## 4-byte Spill
+calll   _bar2
+movl    $1, %eax
+movl    $2, %ecx
+movl    $3, %edx
+movl    $1, (%esp)
+movl    $2, 4(%esp)
+movl    $3, 8(%esp)
+movl    %eax, -16(%ebp)         ## 4-byte Spill
+movl    %ecx, -20(%ebp)         ## 4-byte Spill
+movl    %edx, -24(%ebp)         ## 4-byte Spill
+calll   _bar3
+movl    $1, %eax
+movl    $2, %ecx
+movl    $3, %edx
+movl    $4, %esi
+movl    $1, (%esp)
+movl    $2, 4(%esp)
+movl    $3, 8(%esp)
+movl    $4, 12(%esp)
+movl    %eax, -28(%ebp)         ## 4-byte Spill
+movl    %ecx, -32(%ebp)         ## 4-byte Spill
+movl    %edx, -36(%ebp)         ## 4-byte Spill
+movl    %esi, -40(%ebp)         ## 4-byte Spill</code></pre><p>9 spills, each taking 4 bytes, 36 bytes in total. The largest number of arguments is from <code>bar4</code>, each argument taking 4 bytes, 16 bytes in total. Thus total 52 bytes ((9+4)x4) are reserved on stack. Again stack is aligned because eip, ebp, esi has been pushed and the stack size sums up to 16x4 bytes, which is 16-byte aligned.</p><p>By the way, another thing you probably have seen now is that the caller doesn’t remove arguments from the stack for the callee, well, simply because we don’t do <code>push</code> anymore and <code>%esp</code> won’t change. We’re saving instructions!</p><h3 class="section" id="secsecd61da15d104fcc99b94725fbc60bc78a">Summary</h3><p>Writing a native code generation is a rewarding project! By understanding how stack is manipulated by the architecture, I could do some <a href="/c-function-prototypes-that-misinform-compilers.html">bizarre things</a> using the C compiler.</p><p>To actually make tiger language a real functional language, I need to make the language to pass a function as a value. But before that, I need a garbage collector to manage the memory. This would be a long journey, but it would be definitely a fun journey!</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

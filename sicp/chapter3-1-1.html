@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <p>这一节主要说如何创建局部状态变量。</p><p>创建局部状态变量有两种方法。一种是使用 let 与 lambda 来搭配定义一个过程：</p><pre class="gist"><code>(define new-withdraw
+  (let ((balance 100))
+    (lambda (amount)
+      (if (&gt;= balance amount)
+          (begin (set! balance (- balance amount))
+                 balance)
+          "Insufficient funds"))))
+</code></pre><p> 另一种，是使用过程的参数来作为局部状态变量。</p><pre class="gist"><code>(define (make-withdraw balance)
+  (lambda (amount)
+    (if (&gt;= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds")))
+</code></pre><p> 这两种方法的共同点，都是需要返回一个 lambda 式。</p><p>从编程语言的角度来说，这个 lambda 式其实是创建了一个闭包 (closure)。这个闭包包括 lambda 式子，lambda 的参数，以及一份当前环境 (environment)中的变量与函数信息的拷贝。当 <span class="vlong v">(lambda (amount) ... )</span> 创建的时候，balance 已经被放到了当前的 environment 里面。所以上面两个例子中的 balance 能够作为局部的状态变量存在而不影响其他变量。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

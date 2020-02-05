@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.57.  Extend the differentiation program to handle sums and products of arbitrary numbers of (two or more) terms. Then the last example above could be expressed as</p><pre class="gist"><code>(deriv '(* x y (+ x 3)) 'x)
+</code></pre><p> Try to do this by changing only the representation for sums and products, without changing the deriv procedure at all. For example, the addend of a sum would be the first term, and the augend would be the sum of the rest of the terms.</p></div><p>  因为我们已经有了基本的对 sum 和 product 的处理，所以新的 sum 和 product 可以转为化之前的 sum 和 product 的重复使用：</p><pre class="gist"><code>(new-sum 1 2 3) ;=&gt; (old-sum 1 (old-sum 2 3))
+</code></pre><p> 这样做可以不必修改 <span class="vsymbol v">deriv</span>。</p><p>所以，我们只需要修改 <span class="vsymbol v">augend</span> 和 <span class="vsymbol v">multiplicand</span>，当取被加数和被乘数的时候，我们主动为其加上 <span class="vsymbol v">+</span> 和 <span class="vsymbol v">*</span> 就可以让 <span class="vsymbol v">deriv</span> 像以前一样处理加法和乘法。</p><pre class="gist sicp-code"><code>(load "differentiation.scm")
+
+(define (augend s)
+  (if (&gt; (length s) 3)
+      (cons '+ (cddr s))
+      (caddr s)))
+
+(define (multiplicand m)
+  (if (&gt; (length m) 3)
+      (cons '* (cddr m))
+      (caddr m)))
+
+
+;;; tests begin
+(load "../testframe.scm")
+
+;; regression tests
+(assert= (deriv '(+ x 3) 'x) 1)
+
+(asserteq? (deriv '(* x y) 'x) 'y)
+
+(assertequal? (deriv '(* (* x y) (+ x 3)) 'x)
+              '(+ (* x y) (* y (+ x 3))))
+
+;; new tests
+(assertequal? (deriv '(* x y (+ x 3)) 'x)
+              '(+ (* x y) (* y (+ x 3))))
+
+(assertequal? (deriv '(+ x (* x 1) x x x) 'x) 5)
+
+;(assertequal? (deriv '(* x x x x) 'x)
+;              (deriv '(* x (* x (* x x))) 'x))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

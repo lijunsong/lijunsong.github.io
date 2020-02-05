@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.7.  Let* is similar to let, except that the bindings of the let variables are performed sequentially from left to right, and each binding is made in an environment in which all of the preceding bindings are visible. For example</p><pre class="gist"><code>(let* ((x 3)
+       (y (+ x 2))
+       (z (+ x y 5)))
+  (* x z))
+</code></pre><p> returns 39. Explain how a let* expression can be rewritten as a set of nested let expressions, and write a procedure let*-&gt;nested-lets that performs this transformation. If we have already implemented let (exercise 4.6) and we want to extend the evaluator to handle let*, is it sufficient to add a clause to eval whose action is</p><pre class="gist"><code>(eval (let*-&gt;nested-lets exp) env)
+</code></pre><p> or must we explicitly expand let* in terms of non-derived expressions?</p></div><p> <span class="vsymbol v">let*</span> 表达式即 let 表达式的组合。</p><pre class="gist"><code>(let* ((x 3)
+       (y (+ x 2))
+       (z (+ x y 5)))
+  (* x z))
+</code></pre><p> 可以转化为</p><pre class="gist"><code>(let ((x 3))
+  (let ((y (+ x 2)))
+    (let ((z (+ x y 5)))
+      (* x z))))
+</code></pre><p> 我们的 <span class="vsymbol v">let*</span> 包如下：</p><pre class="gist sicp-code"><code>(load "6-let.scm")
+
+
+(define (install-eval-let*)
+  ;;import let
+  (install-eval-let)
+  (define (make-let vars vals body)
+    ((get 'constructor 'let) vars vals body))
+
+  (define (let*-body exp)
+    (cdr exp))
+
+  (define (let*-bindings exp)
+    (car exp))
+
+  (define (let*-vars bindings)
+    (map (lambda (x) (car x)) bindings))
+  (define (let*-vals bindings)
+    (map (lambda (x) (cadr x)) bindings))
+
+  (define (let*-&gt;nested-lets exp)
+    (define (combine bindings body)
+      (if (null? bindings)
+          body
+          (list ;; here we use list to construct let's body.
+           (make-let (let*-vars (list (car bindings)))
+                     (let*-vals (list (car bindings)))
+                     (combine (cdr bindings) body)))))
+    (car (combine (let*-bindings exp)
+                  (let*-body exp))))
+
+  (define (eval-let* exp env)
+    (eval (let*-&gt;nested-lets exp) env))
+
+  (put 'eval 'let* eval-let*))
+
+;;; tests begin
+(let ((test-env (setup-environment)))
+  (install-eval-let)
+  (install-eval-let*)
+  (assert= (eval '(let* ((x 3)
+                         (y (+ x 2))
+                         (z (+ x y 5)))
+                    (+ x z)) test-env)
+           16)
+  (eval '(define (f) (lambda (x) x)) test-env)
+  (assert= (eval '(let* ((x 3)
+                         (y (+ x 3)))
+                    ((f) y) ;; this this a single statment!
+                    )
+                 test-env)
+           6)
+  (eval '(define (f2) (lambda () 3)) test-env)
+  (assert= (eval '(let* ((x 3)
+                         (y (+ x 3)))
+                    ((f2)) ;; this this a single statment!
+                    ((f) y)
+                    (+ ((f) y) ((f2)))
+                    )
+                 test-env)
+           9)
+
+  )
+
+
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

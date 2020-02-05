@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 5.11.  When we introduced save and restore in section 5.1.4, we didn’t specify what would happen if you tried to restore a register that was not the last one saved, as in the sequence</p><pre class="gist"><code>(save y)
+(save x)
+(restore y)</code></pre><p>   There are several reasonable possibilities for the meaning of restore:</p><p>   a.  (restore y) puts into y the last value saved on the stack, regardless of what register that value came from. This is the way our simulator behaves. Show how to take advantage of this behavior to eliminate one instruction from the Fibonacci machine of section 5.1.4 (figure 5.12).</p><p>   b.  (restore y) puts into y the last value saved on the stack, but only if that value was saved from y; otherwise, it signals an error. Modify the simulator to behave this way. You will have to change save to put the register name on the stack along with the value.</p><p>   c.  (restore y) puts into y the last value saved from y regardless of what other registers were saved after y and not restored. Modify the simulator to behave this way. You will have to associate a separate stack with each register. You should make the initialize-stack operation initialize all the register stacks.</p></div><p> </p><h3 class="section" id="secsec69b69f32a18e49125a171cad9390a347">a</h3><p>我们再看看这段代码</p><pre class="gist"><code>(controller
+   (assign continue (label fib-done))
+ fib-loop
+   (test (op &lt;) (reg n) (const 2))
+   (branch (label immediate-answer))
+   ;; set up to compute Fib(n - 1)
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)                           ; save old value of n
+   (assign n (op -) (reg n) (const 1)); clobber n to n - 1
+   (goto (label fib-loop))            ; perform recursive call
+ afterfib-n-1                         ; upon return, val contains Fib(n - 1)
+   (restore n)
+   (restore continue)
+   ;; set up to compute Fib(n - 2)
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)                         ; save Fib(n - 1)
+   (goto (label fib-loop))
+ afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+   (assign n (reg val))               ; n now contains Fib(n - 2)
+   (restore val)                      ; val now contains Fib(n - 1)
+   (restore continue)
+   (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+           (op +) (reg val) (reg n))
+   (goto (reg continue))              ; return to caller, answer is in val
+ immediate-answer
+   (assign val (reg n))               ; base case:  Fib(n) = n
+   (goto (reg continue))
+ fib-done)
+</code></pre><p> 在计算完 <span class="vlong v">(fib (- n 2))</span> 的时候，val 存了计算的结果，并且我们开始做 <span class="vlong v">(+ (fib (- n 1)) (fib (- n 2)))</span>，看看 afterfib-n-2 是怎么做的？</p><pre class="gist"><code>afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+  (assign n (reg val))               ; n now contains Fib(n - 2)
+  (restore val)                      ; val now contains Fib(n - 1)
+  (restore continue)
+  (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+          (op +) (reg val) (reg n))
+
+</code></pre><p> 把 <span class="vsymbol v">fib(n-2)</span> 的返回值从 <span class="vsymbol v">val</span> 复制给 <span class="vsymbol v">n</span>，然后获取 <span class="vsymbol v">Fib(n-1)</span> 的值给 <span class="vsymbol v">val</span>，然后两个相加作为当前的返回值。我们没有必要这样交换，直接改为</p><pre class="gist"><code>afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+  (restore n)                        ; val now contains Fib(n - 2), restore Fib(n-1) into n
+  (restore continue)
+  (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+          (op +) (reg val) (reg n))</code></pre><p> </p><pre class="gist sicp-code"><code>(define test-controller 
+  '((assign continue (label fib-done))
+ fib-loop
+   (test (op &lt;) (reg n) (const 2))
+   (branch (label immediate-answer))
+   ;; set up to compute Fib(n - 1)
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)                           ; save old value of n
+   (assign n (op -) (reg n) (const 1)); clobber n to n - 1
+   (goto (label fib-loop))            ; perform recursive call
+ afterfib-n-1                         ; upon return, val contains Fib(n - 1)
+   (restore n)
+   (restore continue)
+   ;; set up to compute Fib(n - 2)
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)                         ; save Fib(n - 1)
+   (goto (label fib-loop))
+ afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+   (restore n)
+   (restore continue)
+   (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+           (op +) (reg val) (reg n))
+   (goto (reg continue))              ; return to caller, answer is in val
+ immediate-answer
+   (assign val (reg n))               ; base case:  Fib(n) = n
+   (goto (reg continue))
+ fib-done))
+
+(define test-machine
+  (make-machine
+   '(n continue val)
+   (list (list '&lt; &lt;)
+         (list '- -)
+         (list '+ +))
+   test-controller))
+
+(define (fib n)
+    (if (&lt; n 2)
+        n
+        (+ (fib (- n 1)) (fib (- n 2)))))
+
+(set-register-contents! test-machine 'n 10)
+(start test-machine)
+(assert= (get-register-contents test-machine 'val)
+         (fib 10))</code></pre><h3 class="section" id="secsec8915ef39360951b128bd425336580bf3">b</h3><p>我们只需要修改 assemble 模块的 <span class="vlong v">(save &lt;register-name&gt;)</span> 和 <span class="vlong v">(store &lt;register-name&gt;)</span> ，在 push 时加入 register name， pop 之后判断当前的 register name 是否和 push 时候一致就可以。</p><p>测试用例我们使用 a 问修改过的 Fib。</p><pre class="gist sicp-code"><code>(load "machine-stack-module.scm")
+(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+
+; (save &lt;register-name&gt;) needs to save contents as well as register
+; name on the stack.
+
+(define (make-register-info name contents)
+  (cons name contents))
+(define (get-register-info-name info)
+  (car info))
+(define (get-register-info-contents info)
+  (cdr info))
+
+(define (make-save inst machine stack pc)
+  (let* ((name (stack-inst-reg-name inst))
+         (reg (get-register machine name)))
+    (lambda ()
+      (let ((reg-info (make-register-info name (get-contents reg))))
+        (push stack reg-info)
+        (advance-pc pc)))))
+
+(define (make-restore inst machine stack pc)
+  (let* ((name (stack-inst-reg-name inst))
+         (reg (get-register machine name)))
+    (lambda ()
+      (let* ((reg-info (pop stack))
+             (name-on-stack (get-register-info-name reg-info)))
+        (cond ((not (eq? name-on-stack name))
+               (error 'make-restore
+                      "Invalid restore argument-- STORE " name))
+              (else
+               (set-contents! reg (get-register-info-contents reg-info))
+               (advance-pc pc)))))))
+
+
+;; test b
+(define test-controller
+  '((assign continue (label fib-done))
+ fib-loop
+   (test (op &lt;) (reg n) (const 2))
+   (branch (label immediate-answer))
+   ;; set up to compute Fib(n - 1)
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)                           ; save old value of n
+   (assign n (op -) (reg n) (const 1)); clobber n to n - 1
+   (goto (label fib-loop))            ; perform recursive call
+ afterfib-n-1                         ; upon return, val contains Fib(n - 1)
+   (restore n)
+   (restore continue)
+   ;; set up to compute Fib(n - 2)
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)                         ; save Fib(n - 1)
+   (goto (label fib-loop))
+ afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+   (restore n)                        ;; Invalid argument!
+   (restore continue)
+   (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+           (op +) (reg val) (reg n))
+   (goto (reg continue))              ; return to caller, answer is in val
+ immediate-answer
+   (assign val (reg n))               ; base case:  Fib(n) = n
+   (goto (reg continue))
+ fib-done))
+
+(define test-machine
+  (make-machine
+   '(n continue val)
+   (list (list '&lt; &lt;)
+         (list '- -)
+         (list '+ +))
+   test-controller))
+
+(set-register-contents! test-machine 'n 10)
+(assert/exn (start test-machine) "Invalid")</code></pre><h3 class="section" id="secsec19e68eb8c6097ca8299828d1058d3df8">c</h3><p>我们需要修改的是 machine module 和 assemble module 中的 <span class="vsymbol v">save</span> <span class="vsymbol v">restore</span> 。</p><p>在每一个 machine 被分配的时候，我们需要为每一个 register 分配相应的 stack。然后初始化每一个 stack。</p><pre class="gist sicp-code"><code>(define (make-new-machine regs)
+                                        ; associate stack for each regs
+  (let ((stacks (map (lambda (reg) (cons reg (make-stack))) regs))
+        (flag (make-register))
+        (pc (make-register))
+        (the-instruction-sequence '()))
+    (let ((regs (list (cons 'pc pc)
+                      (cons 'flag flag)))
+                                        ;
+          (the-ops
+           (list (list 'initialize-stack
+                       (lambda () 
+                         (map (lambda (stk) (stk 'initialize)) stacks))))))
+      ; Part1 ends
+      (define (allocate-register name)
+        (if (assoc name regs)
+            (error 'machine "register exists: " name)
+            (set! regs (cons (cons name (make-register)) regs)))
+        'register-allocated)
+      (define (lookup-register name)
+        (let ((r (assoc name regs)))
+          (if r
+              (cdr r)
+              (error 'machine "Unknown register: " name))))
+      (define (execute)
+        (let ((insts (get-contents pc)))
+          (if (null? insts)
+              'done
+              (begin
+                ((instruction-execution-proc (car insts)))
+                (execute)))))
+      (define (dispatch msg)
+        (cond ((eq? msg 'allocate-register) allocate-register)
+              ((eq? msg 'lookup-register) lookup-register)
+              ((eq? msg 'install-operations)
+               (lambda (ops) (set! the-ops (append the-ops ops))))
+              ((eq? msg 'stack) stacks)
+              ((eq? msg 'operations) the-ops)
+              ((eq? msg 'install-instruction-sequence)
+               (lambda (seq) (set! the-instruction-sequence seq)))
+              ((eq? msg 'start)
+               (set-contents! pc the-instruction-sequence)
+               (execute))
+              (else
+               (error 'machine "Unknown message: " msg))))
+      dispatch)))
+
+
+; Part2
+(define (make-machine regs ops controller-text)
+  (let ((machine (make-new-machine regs)))  ; pass regs for stack init
+    (for-each (lambda (name)
+                ((machine 'allocate-register) name))
+              regs)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    machine))
+; Part2 ends
+
+; Part3
+;; change machine-assemble-module.scm
+(define (make-save inst machine stack pc)
+  (let* ((name (stack-inst-reg-name inst))
+         (reg (get-register machine name)))
+    (lambda ()
+      (let* ((stk (assoc name stack))) ; no need to have run time checking
+        (begin
+          (push (cdr stk) (get-contents reg))
+          (advance-pc pc))))))
+
+(define (make-restore inst machine stack pc)
+  (let* ((name (stack-inst-reg-name inst))
+         (reg (get-register machine name)))
+    (lambda ()
+      (let ((stk (assoc name stack)))
+        (set-contents! reg (pop (cdr stk)))
+        (advance-pc pc)))))
+; Part3 ends
+
+;; tests begin
+(define test-controller
+  '((save x)
+    (save y)
+    (save z)
+    (assign x (const -1))
+    (assign y (const -1))
+    (assign z (const -1))
+
+    (restore y)    
+    (restore x)
+    (restore z)))
+
+(define test-machine
+  (make-machine
+   '(x y z)
+   (list (list))
+   test-controller))
+
+(set-register-contents! test-machine 'x 1)
+(set-register-contents! test-machine 'y 2)
+(set-register-contents! test-machine 'z 3)
+(start test-machine)
+(assert= (get-register-contents test-machine 'x) 1)
+(assert= (get-register-contents test-machine 'y) 2)
+(assert= (get-register-contents test-machine 'z) 3)
+</code></pre><p>因为我们修改了 <span class="vsymbol v">make-new-machine</span> 的接口，所以我们需要更改 <span class="vsymbol v">make-machine</span> （注意我们把以前的 <span class="vsymbol v">stack</span> 变成了一个 associate list–<span class="vsymbol v">stacks</span> ）</p><pre class="gist sicp-code"><code>(define (make-machine regs ops controller-text)
+  (let ((machine (make-new-machine regs)))  ; pass regs for stack init
+    (for-each (lambda (name)
+                ((machine 'allocate-register) name))
+              regs)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    machine))</code></pre><p>现在我们模块之间传递的就是 <span class="vsymbol v">stacks</span> ，记录着哪个 register 对应于哪个 stack。</p><p>然后修改 <span class="vsymbol v">save</span> 和 <span class="vsymbol v">restore</span> 。push 和 pop 之前需要找到 register 对应的 stack。</p><pre class="gist sicp-code"><code>;; change machine-assemble-module.scm
+(define (make-save inst machine stack pc)
+  (let* ((name (stack-inst-reg-name inst))
+         (reg (get-register machine name)))
+    (lambda ()
+      (let* ((stk (assoc name stack))) ; no need to have run time checking
+        (begin
+          (push (cdr stk) (get-contents reg))
+          (advance-pc pc))))))
+
+(define (make-restore inst machine stack pc)
+  (let* ((name (stack-inst-reg-name inst))
+         (reg (get-register machine name)))
+    (lambda ()
+      (let ((stk (assoc name stack)))
+        (set-contents! reg (pop (cdr stk)))
+        (advance-pc pc)))))</code></pre><p>完成。最后是测试。</p><pre class="gist sicp-code"><code>(define test-controller
+  '((save x)
+    (save y)
+    (save z)
+    (assign x (const -1))
+    (assign y (const -1))
+    (assign z (const -1))
+
+    (restore y)    
+    (restore x)
+    (restore z)))
+
+(define test-machine
+  (make-machine
+   '(x y z)
+   (list (list))
+   test-controller))
+
+(set-register-contents! test-machine 'x 1)
+(set-register-contents! test-machine 'y 2)
+(set-register-contents! test-machine 'z 3)
+(start test-machine)
+(assert= (get-register-contents test-machine 'x) 1)
+(assert= (get-register-contents test-machine 'y) 2)
+(assert= (get-register-contents test-machine 'z) 3)
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

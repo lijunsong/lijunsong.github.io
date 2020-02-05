@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.91.  A univariate polynomial can be divided by another one to produce a polynomial quotient and a polynomial remainder. For example,</p><p><mathjax class="$$">$$
+\frac{x^5-1}{x^2-1} = x^3 + x, remainder x - 1
+$$</mathjax> Division can be performed via long division. That is, divide the highest-order term of the dividend by the highest-order term of the divisor. The result is the first term of the quotient. Next, multiply the result by the divisor, subtract that from the dividend, and produce the rest of the answer by recursively dividing the difference by the divisor. Stop when the order of the divisor exceeds the order of the dividend and declare the dividend to be the remainder. Also, if the dividend ever becomes zero, return zero as both quotient and remainder.</p><p>   We can design a div-poly procedure on the model of add-poly and mul-poly. The procedure checks to see if the two polys have the same variable. If so, div-poly strips off the variable and passes the problem to div-terms, which performs the division operation on term lists. Div-poly finally reattaches the variable to the result supplied by div-terms. It is convenient to design div-terms to compute both the quotient and the remainder of a division. Div-terms can take two term lists as arguments and return a list of the quotient term list and the remainder term list.</p><p>   Complete the following definition of div-terms by filling in the missing expressions. Use this to implement div-poly, which takes two polys as arguments and returns a list of the quotient and remainder polys.</p><pre class="gist"><code>(define (div-terms L1 L2)
+  (if (empty-termlist? L1)
+      (list (the-empty-termlist) (the-empty-termlist))
+      (let ((t1 (first-term L1))
+            (t2 (first-term L2)))
+        (if (&gt; (order t2) (order t1))
+            (list (the-empty-termlist) L1)
+            (let ((new-c (div (coeff t1) (coeff t2)))
+                  (new-o (- (order t1) (order t2))))
+              (let ((rest-of-result
+                     &lt;compute rest of result recursively&gt;
+                     ))
+                &lt;form complete result&gt;
+                ))))))
+
+</code></pre></div><p> 多项式的除法的具体步骤已经在文中描述清楚了。每一次 <span class="vsymbol v">div-terms</span> 都可以得到一个 <span class="vsymbol v">new-coeff</span>（即 <span class="vsymbol v">new-c</span>） 与 <span class="vsymbol v">new-order</span>（即 <span class="vsymbol v">new-o</span>），然后求 <span class="vsymbol v">rest-of-result</span>。当得到 <span class="vsymbol v">rest-of-result</span> 之后，再把 <span class="vsymbol v">new-c</span> 与 <span class="vsymbol v">new-o</span> 组成 <span class="vsymbol v">term</span> 之后与 <span class="vsymbol v">rest-of-result</span> 拼接起来。</p><p>我们最后的结果将是一个 list–list 的 car 是整除的部分；list 的 cadr 是余数部分。</p><pre class="gist sicp-code"><code>  (define (div-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+        (let ((result  (div-terms (term-list p1)
+                                  (term-list p2))))
+          (list
+           (make-poly (variable p1) (car result))
+           (make-poly (variable p1) (cadr result))))
+        (error "Polys not in same var -- DIV-POLY"
+               (list p1 p2))))</code></pre><p>在实现 div-terms 的时候，我们需要借助 <a href="/sicp/exercise2-88.html">练习 2.88</a> 实现的 sub-terms：</p><pre class="gist sicp-code"><code>  (define (div-terms L1 L2)
+    (if (empty-termlist? L1)
+        (list (the-empty-termlist) (the-empty-termlist))
+        (let ((t1 (first-term L1))
+              (t2 (first-term L2)))
+          (if (&gt; (order t2) (order t1))
+              (list (the-empty-termlist) L1)
+              (let ((new-c (div (coeff t1) (coeff t2)))
+                    (new-o (- (order t1) (order t2))))
+                (let ((rest-of-result
+                       (div-terms
+                        (sub-terms L1
+                                   (mul-terms (list (make-term new-o new-c))
+                                              L2))
+                        L2)))
+                  (let ((q (car rest-of-result))
+                        (r (cadr rest-of-result)))
+                     (list (cons (make-term new-o new-c) q)
+                           r))
+
+                  ))))))
+
+  ;; end div-terms
+
+  ;; representation of terms and term lists
+  (define (adjoin-term term term-list)
+    (if (=zero? (coeff term))
+        term-list
+        (cons term term-list)))
+  (define (the-empty-termlist) '())
+  (define (first-term term-list) (car term-list))
+  (define (rest-terms term-list) (cdr term-list))
+  (define (empty-termlist? term-list) (null? term-list))
+  (define (make-term order coeff) (list order coeff))
+  (define (order term) (car term))
+  (define (coeff term) (cadr term))
+
+
+  (define (neg-term L)
+    (make-term (order L) (neg (coeff L))))
+  (define (neg-terms L)
+    (if (null? L)
+        '()
+        (cons (neg-term (first-term L))
+              (neg-terms (rest-terms L)))))
+
+
+  (define (zero-polynomial? p)
+    (define (zero-terms? ts)
+      (cond ((empty-termlist? ts) true)
+            ((=zero? (coeff (first-term ts)))
+             (zero-terms? (rest-terms ts)))
+            (else false)))
+    (zero-terms? (term-list p)))
+
+  ;; interface to rest of the system
+  (define (tag p) (attach-tag 'polynomial p))
+  (put 'add '(polynomial polynomial) 
+       (lambda (p1 p2) (tag (add-poly p1 p2))))
+  (put 'mul '(polynomial polynomial) 
+       (lambda (p1 p2) (tag (mul-poly p1 p2))))
+  (put 'sub '(polynomial polynomial)
+       (lambda (p1 p2) (tag (sub-poly p1 p2))))
+  (put 'make 'polynomial
+       (lambda (var terms) (tag (make-poly var terms))))
+  (put '=zero? '(polynomial)
+       (lambda (x) (zero-polynomial? x)))
+
+  ; 3.
+  (put 'div '(polynomial polynomial)
+       (lambda (p1 p2)
+         (let ((result (div-poly p1 p2)))
+           (list (tag (car result))
+                 (tag (cadr result))))))
+
+  ; end 3.
+  'done)
+
+(install-polynomial-package)
+
+;;; tests begin
+(load "../testframe.scm")
+
+(assertequal? (div (make-polynomial 'x '((5 1) (0 -1)))
+                   (make-polynomial 'x '((2 1) (0 -1))))
+              (list (make-polynomial 'x '((3 1) (1 1)))
+                    (make-polynomial 'x '((1 1) (0 -1)))))
+</code></pre><p>然后把写好的过程使用 put 放入全局的表格中：</p><pre class="gist sicp-code"><code>  (put 'div '(polynomial polynomial)
+       (lambda (p1 p2)
+         (let ((result (div-poly p1 p2)))
+           (list (tag (car result))
+                 (tag (cadr result))))))
+</code></pre><p>最后是测试</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(assertequal? (div (make-polynomial 'x '((5 1) (0 -1)))
+                   (make-polynomial 'x '((2 1) (0 -1))))
+              (list (make-polynomial 'x '((3 1) (1 1)))
+                    (make-polynomial 'x '((1 1) (0 -1)))))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: Executors</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: Executors</h1>
+          <div class="date">2019-09-24</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p><em>Executor</em> is an important concept in folly that bridges many
+        constructs. In this post, we explore what an <em>Executor</em> is, and many
+        derivatives that extend the Executor family.</p></div>
+        <div class="excerpt-separator"></div>
+        <div class="toc">
+          <div class="toc-title">Table Of Contents</div>
+          <ul><li><a href="#concept">Executor, the Concept</a></li><li><a href="#secsec34873cac2a4c3b9d63aa836e5e5dda51">Keep Alive</a></li><li><a href="#secsec27c86cf17169d96f8fc489a3591c4d7f">Executors</a><ul><li><a href="#subsecsubsec78af847216f1211e14fe1d356b95c4d2">InlineExecutor</a><ul><li><a href="#subsubsecsubsubsec2fde15d659543d36a3396b535a2984b1">QueuedImmediateExecutor</a></li></ul></li><li><a href="#subsecsubsec5fe1015d6323dd768ff8eeb1d246edef">ScheduledExecutor</a></li><li><a href="#subsecsubsec83e4760e9ddf39d3774db9ef227efc40">DrivableExecutor</a></li><li><a href="#subsecsubsec495dfabc33c33c5bfa03c6d59d832862">SequencedExecutor</a></li><li><a href="#subsecsubseca612b5573edbfc787155c3dc2706b16b">DefaultKeepAliveExecutor</a></li><li><a href="#subsecsubsec238df33e0ceab34f9a2986d8762611ad">IOExecutor</a></li><li><a href="#subsecsubsecf74ac1104b9321094efa92e2c53b0b77">Other Executors</a></li></ul></li></ul>
+        </div>
+        <div class="content">
+          <h3 class="section" id="concept">Executor, the Concept</h3><p>What is an <span class="vsymbol v">Executor</span>? It’s code is as simple as</p><pre class="gist"><code>class Executor {
+ public:
+  virtual ~Executor() {}
+
+  /// Enqueue a function to executed by this executor. This and all
+  /// variants must be threadsafe.
+  virtual void add(Func) = 0;
+};</code></pre><p>This definition explains what an executor is: it’s an interface that states <span class="vsymbol v">add</span> can submit some work.</p><p>When does the work get executed? Who is going to execute the work? When we add the work, would <span class="vsymbol v">add</span> block? It all depends on the implementation of the implementer. The only constraint is that <span class="vsymbol v">add</span> must be thread-safe.</p><p>The real code also has a concept of priority:</p><pre class="gist"><code>class Executor {
+ public:
+  virtual ~Executor() {}
+
+  /// Enqueue a function to executed by this executor. This and all
+  /// variants must be threadsafe.
+  virtual void add(Func) = 0;
+
+  /// Enqueue a function with a given priority, where 0 is the medium priority
+  /// This is up to the implementation to enforce
+  virtual void addWithPriority(Func, int8_t priority) {
+    throw std::runtime_error(
+      "addWithPriority() is not implemented for this Executor");
+  }
+
+  virtual uint8_t getNumPriorities() const {
+    return 1;
+  }</code></pre><p>And a concept of safe pointers (more on that next).</p><p>Is that it? Yes!</p><p>That’s an executor? Yes, that is an executor that involves heavily in <span class="vsymbol v">EventBase</span> and <span class="vsymbol v">Future</span>!</p><h3 class="section" id="secsec34873cac2a4c3b9d63aa836e5e5dda51">Keep Alive</h3><p>When we want different threads to send tasks to one executor, the executor needs to be shared between threads. Later we’ll see that some executors are heavily relies on libevent, which pins on single thread, and thus we need some new memory share model that’s more clear about the ownership of an executor.</p><ul><li><span class="vsymbol v">unique_ptr</span> doesn’t share at all, which isn’t what we want</li><li><span class="vsymbol v">shared_ptr</span> shares but all owners are equally treated, so the last owner destroys the memory</li></ul><p>What we want is something similar to <span class="vsymbol v">shared_ptr</span>, but the thread who creates <span class="vsymbol v">Executor</span> always owns the memory, and when the owner wants to destroy the memory, it <em>blocks and waits</em> for other copies to be destroyed.</p><p><margin-right>You may ask, what’s wrong with <span class="vsymbol v">shared_ptr</span>? In short, because the semantics of <span class="vsymbol v">shared_ptr</span> are hard to reason about.</margin-right></p><p><em>KeepAlive</em> for rescue!</p><pre class="gist"><code>#include &lt;folly/futures/Future.h&gt;
+#include &lt;folly/executors/IOThreadPoolExecutor.h&gt;
+#include &lt;folly/init/Init.h&gt;
+#include &lt;glog/logging.h&gt;
+
+int main(int argc, char *argv[]) {
+  folly::init(&amp;argc, &amp;argv);
+
+  auto executor = std::make_unique&lt;folly::IOThreadPoolExecutor&gt;(4);
+
+  auto f = folly::futures::sleep(std::chrono::milliseconds{2000})
+    .via(executor.get())
+    .thenValue([ka = folly::getKeepAliveToken(executor.get())](folly::Unit) { return 42; })
+    .semi();
+
+  LOG(INFO) &lt;&lt; "Start to reset";
+  executor.reset();
+  LOG(INFO) &lt;&lt; "Finished reset";
+
+  LOG(INFO) &lt;&lt; std::move(f).get();
+}</code></pre><p>Run the program:</p><pre class="gist"><code>I0928 16:44:14 2458 executor.cc:16] Start to reset
+I0928 16:44:16 2458 executor.cc:18] Finished reset
+I0928 16:44:16 2458 executor.cc:19] 42</code></pre><p>The <span class="vsymbol v">executor.reset()</span> blocks waiting for 2s until all <span class="vsymbol v">KeepAlive</span> instances are destroyed.</p><p>If this is a <span class="vsymbol v">shared_ptr</span> of <span class="vsymbol v">Executor</span>, <span class="vsymbol v">reset</span> returns immediately, and the memory will be destroyed in future’s callback.</p><p><span class="vsymbol v">KeepAlive</span> gives you a predicatble ownership, and that’s why <span class="vsymbol v">KeepAlive</span> is always preferred when we use executors. To get this safe pointer, it’s as simple as just calling</p><pre class="gist"><code>folly::getKeepAliveToken(executor)</code></pre><p>Not all executors by default support the mechanism. The folly library offers <span class="vsymbol v">DefaultKeepAliveExecutor</span> for executor implementer to opt in the mechanism.</p><p>Behind the scene, an executor needs to implement two methods to support <span class="vsymbol v">KeepAlive</span> mechanism:</p><pre class="gist"><code>// Acquire a keep alive token. Should return false if keep-alive mechanism
+// is not supported.
+virtual bool keepAliveAcquire();
+
+// Release a keep alive token previously acquired by keepAliveAcquire().
+// Will never be called if keepAliveAcquire() returns false.
+virtual void keepAliveRelease();</code></pre><p>We’ll explain how they support the mechainism when we look at <span class="vsymbol v">DefaultKeepAliveExecutor</span> below.</p><h3 class="section" id="secsec27c86cf17169d96f8fc489a3591c4d7f">Executors</h3><p>Give this API, let’s see what kind of executors folly provides.</p><p>The most important ones are probably <span class="vsymbol v">CPUThreadPoolExecutor</span> and <span class="vsymbol v">IOThreadPoolExecutor</span>. We’ll take multiple steps to get there. As of now, let’s look at other executors derived directly from the <span class="vsymbol v">Executor</span> class, as looking at executor categories gives us broader view of the folly library.</p><p>Most executors in this section are abstract <em>public virtual</em> classes of <span class="vsymbol v">Executor</span>. </p><div class="right-margin">Why is it <em>public virtual</em>? Serving as a base class, it is possible that other library users create a diamond-shape inheritance.</div><h4 class="subsection" id="subsecsubsec78af847216f1211e14fe1d356b95c4d2">InlineExecutor</h4><p>The most straightforward executor is probably <span class="vsymbol v">InlineExecutor</span>, where <span class="vsymbol v">add</span> simply executes the function in the caller thread.</p><pre class="gist"><code>class InlineExecutor : public Executor {
+  void add(Func f) override {
+    f();
+  }
+};</code></pre><p>Simple, right? The drawback is not that obvious: could you write a program using <span class="vsymbol v">InlineExecutor</span> to run a job that indefinitely create its own type of jobs? No, you’ll explode the stack!</p><pre class="gist"><code>#include &lt;folly/executors/InlineExecutor.h&gt;
+#include &lt;folly/init/Init.h&gt;
+#include &lt;glog/logging.h&gt;
+
+void addMoreTasks(folly::Executor &amp;ex) {
+  ex.add([&amp;ex]() {
+    LOG(INFO) &lt;&lt; "Add task";
+    addMoreTasks(ex);
+    LOG(INFO) &lt;&lt; "Exit task";
+  });
+}
+int main(int argc, char *argv[]) {
+  folly::init(&amp;argc, &amp;argv);
+  folly::InlineExecutor executor;
+  addMoreTasks(executor);
+}</code></pre><p><span class="vsymbol v">addMoreTasks</span> adds one task that creates new tasks using <span class="vsymbol v">addMoreTasks</span>. The result is not surprising; it keeps adding more tasks without exiting the old one:</p><pre class="gist"><code>I0929 15:21:06.124312  2783 executor.cc:28] Add task
+I0929 15:21:06.124320  2783 executor.cc:28] Add task
+I0929 15:21:06.124330  2783 executor.cc:28] Add task
+I0929 15:21:06.124341  2783 executor.cc:28] Add task
+I0929 15:21:06.124349  2783 executor.cc:28] Add task
+I0929 15:21:06.124357  2783 executor.cc:28] Add task
+I0929 15:21:06.124366  2783 executor.cc:28] Add task
+....</code></pre><h5 class="subsubsection" id="subsubsecsubsubsec2fde15d659543d36a3396b535a2984b1">QueuedImmediateExecutor</h5><p>If we change the executor to use <span class="vsymbol v">QueuedImmediateExecutor</span>. The result is what we expect it to be:</p><pre class="gist"><code>I0929 15:30:05.002698  2720 executor.cc:28] Add task
+I0929 15:30:05.002703  2720 executor.cc:31] Exit task
+I0929 15:30:05.002708  2720 executor.cc:28] Add task
+I0929 15:30:05.002714  2720 executor.cc:31] Exit task
+I0929 15:30:05.002719  2720 executor.cc:28] Add task
+I0929 15:30:05.002724  2720 executor.cc:31] Exit task
+I0929 15:30:05.002729  2720 executor.cc:28] Add task
+I0929 15:30:05.002735  2720 executor.cc:31] Exit task
+I0929 15:30:05.002740  2720 executor.cc:28] Add task</code></pre><p>What’s the difference? We want to run the task immediately, but if there is a task running, we should queue the task instead of blindly call <span class="vsymbol v">f()</span> as we see in <span class="vsymbol v">InlineExecutor</span>.</p><pre class="gist"><code>auto&amp; q = *q_;
+q.push(std::move(callback));
+if (q.size() == 1) {
+  while (!q.empty()) {
+    q.front()();
+    q.pop();
+  }
+}</code></pre><p>The top of the frame will push to q and exit, and the bottom of the frame will loop the queue to execute each task.</p><p>You might want to protect <span class="vsymbol v">q_</span> with a mutex to make the <span class="vsymbol v">add</span> thread safe. Unfortunately that won’t work; it will cause the mutex locked twice by the same owner and crash the program. The easy solution is to use</p><pre class="gist"><code>folly::ThreadLocal&lt;std::queue&lt;Func&gt;&gt; q_;</code></pre><p>to eliminate the shared memory.</p><h4 class="subsection" id="subsecsubsec5fe1015d6323dd768ff8eeb1d246edef">ScheduledExecutor</h4><p>An abstract class. <span class="vsymbol v">TimekeeperScheduledExecutor</span> derives from it.</p><p>If we want to schedule a task, we have two requirements:</p><ol><li>Schedule a task to run <em>after</em> certain amount of time</li><li>Schedule a task to run <em>at</em> certain time</li></ol><p>The first case can be transformed to the second case.</p><p><span class="vsymbol v">ScheduledExecutor</span> defines two member functions for these two use cases:</p><pre class="gist"><code>void schedule(Func&amp;&amp; a, Duration const&amp; dur);
+void scheduleAt(Func&amp; a, TimePoint const&amp;);</code></pre><p><span class="vsymbol v">schedule</span> is implemented using <span class="vsymbol v">scheduleAt</span>. To subclass this executor requires to implement <span class="vsymbol v">scheduleAt</span>.</p><h4 class="subsection" id="subsecsubsec83e4760e9ddf39d3774db9ef227efc40">DrivableExecutor</h4><p>An abstract class. <span class="vsymbol v">TimedDrivableExecutor</span> derives from it.</p><p>Remember at the beginning of this post, we asked when would the executor run the added tasks? <span class="vsymbol v">DrivableExecutor</span> defines a <span class="vsymbol v">drive</span> interface to trigger the execution. Its subclass <span class="vsymbol v">ManualExecutore</span> makes the behavior concrete.</p><p>When will the interface be used? We’ll see soon when we start to look at <span class="vsymbol v">folly::Future</span>. But as of now, we know that this interface adds another <span class="vsymbol v">Executor</span>‘s category.</p><h4 class="subsection" id="subsecsubsec495dfabc33c33c5bfa03c6d59d832862">SequencedExecutor</h4><p>An abstract class. This class is simply</p><pre class="gist"><code>class SequencedExecutor : public virtual Executor {};</code></pre><p>This class adds an executor category where tasks execution order is the same as submit order.</p><h4 class="subsection" id="subsecsubseca612b5573edbfc787155c3dc2706b16b">DefaultKeepAliveExecutor</h4><p>We’ve mentioned <span class="vsymbol v">KeepAlive</span> above. <span class="vsymbol v">DefaultKeepAliveExecutor</span> is one way folly offers to let an executor opt in the mechanism: any subclasses that inherit from <span class="vsymbol v">DefaultKeepAliveExecutor</span> will get the mechanism for free.</p><p>The current <span class="vsymbol v">DefaultKeepAliveExecutor</span> code has more features than we need to explore the mechanism. So let’s go back to time when this class was first introduced:</p><pre class="gist"><code>class DefaultKeepAliveExecutor : public virtual Executor {
+ public:
+  DefaultKeepAliveExecutor() : Executor() {}
+
+  virtual ~DefaultKeepAliveExecutor() {
+    DCHECK(!keepAlive_);
+  }
+ protected:
+  void joinKeepAlive() {
+    DCHECK(keepAlive_);
+    keepAlive_.reset();
+    keepAliveReleaseBaton_.wait();
+  }
+
+ private:
+  bool keepAliveAcquire() override {
+    auto keepAliveCounter =
+        keepAliveCounter_.fetch_add(1, std::memory_order_relaxed);
+    // We should never increment from 0
+    DCHECK(keepAliveCounter &gt; 0);
+    return true;
+  }
+
+  void keepAliveRelease() override {
+    auto keepAliveCounter = --keepAliveCounter_;
+    DCHECK(keepAliveCounter &gt;= 0);
+
+    if (keepAliveCounter == 0) {
+      keepAliveReleaseBaton_.post();
+    }
+  }
+
+  std::atomic&lt;ssize_t&gt; keepAliveCounter_{1};
+  Baton&lt;&gt; keepAliveReleaseBaton_;
+  KeepAlive keepAlive_{makeKeepAlive()};
+};</code></pre><p>In the same commit, <span class="vsymbol v">~CPUThreadPoolExecutor</span> starts to call <span class="vsymbol v">joinKeepAlive</span>, which calls <span class="vsymbol v">wait</span> on a baton. The wait will be unblocked only when <span class="vsymbol v">keepAliveRelease</span> is called. When is <span class="vsymbol v">keepAliveRelease</span> called? The <span class="vsymbol v">KeepAlive</span> destructor!</p><pre class="gist"><code>class KeepAlive : ... {
+  ~KeepAlive() {
+    reset();
+  }
+  void reset() {
+    if (Executor* executor = get()) {
+      auto const flags = std::exchange(storage_, 0) &amp; kFlagMask;
+      if (!(flags &amp; (kDummyFlag | kAliasFlag))) {
+        executor-&gt;keepAliveRelease();
+      }
+    }
+  }
+};</code></pre><p>Every aquire increments a counter, and every reset decrements the counter. The last reset unblocks the join, which also unblocks the subclass’ destructor. </p><h4 class="subsection" id="subsecsubsec238df33e0ceab34f9a2986d8762611ad">IOExecutor</h4><p>We have seen <span class="vsymbol v">QueuedImmediateExecutor</span> that’s good for running <em>CPU heavy</em> tasks. Here we need one more executor category to run <em>IO heavy</em> tasks.</p><p>What is the difference you may ask? Think about how performing an I/O could block the caller: I/O call traps into the kernel, and then the kernel submits the IO request to hardware controller. The hardware controller interrupts the kernel when the request response is ready, and finally the kernel unblocks the caller.</p><p>We need one kind of executor that performs the I/O tasks in an async way!</p><p>This <span class="vsymbol v">IOExecutor</span> is simple:</p><pre class="gist"><code>class IOExecutor : public virtual folly::Executor {
+ public:
+  ~IOExecutor() override = default;
+  virtual folly::EventBase* getEventBase() = 0;
+};</code></pre><p>Because it doesn’t need any more concrete behaviors other than what <span class="vsymbol v">Executor</span> has provided. The intent of this class is to provide an interface for the subclass to use <span class="vsymbol v">EventBase</span> to handle async I/O.</p><h4 class="subsection" id="subsecsubsecf74ac1104b9321094efa92e2c53b0b77">Other Executors</h4><p>There are a few other executors we won’t cover in this post:</p><ol><li><span class="vsymbol v">SoftRealTimeExecutor</span></li><li><span class="vsymbol v">ExecutorWithPriority</span></li><li><span class="vsymbol v">ThreadedExecutor</span></li></ol><p>We’ve covered enough categories that now we’re comfortable to read other parts of the library that heavily leverage executors. <span class="vsymbol v">EventBase</span> and <span class="vsymbol v">folly::Future</span> are the most important ones that come to my mind.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Why Another Pollen Editor</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Why Another Pollen Editor</h1>
+          <div class="date">2017-02-19</div>
+          <div class="tags">pollen</div>
+        </div>
+
+
+        <div class="content">
+          <p> </p><h3 class="section" id="secsec8c7b5136fd904a5dea27b3247dd727d8">Pollen, Beautiful Pollen</h3><p>Anyone who has walked through the first tutorial of Pollen document will see that Pollen is by far the most advanced yet simplest framework for document processing, a superior to all ad-hoc, ugly markup languages like Markdown, AsciiDoc, RestructuredText, etc.</p><div class="right-margin">Pollen is also a superior to all popular template languages like Jinja in Python, Selmer in Clojure. By the way, templating system in Clojure, especially the concept “filter,” looks ad-hoc, being created by single-minded Python programmers in their halftime.</div><p>Pollen is not easy for beginners, but it is <a href="https://www.infoq.com/presentations/Simple-Made-Easy" class="link-url">simple</a>. Its simplicity lies on the unification of document structure and S expression, and that semantic tags correspond to functions and thus can transform any piece of a document.</p><p>Matthew, the author of Pollen, says in Pollen document that "<a href="http://docs.racket-lang.org/pollen/big-picture.html#%28part._.One_language__multiple_dialects%29" class="link-url">The Pollen language is based on Scribble.</a>" Actually, the idea behind scribble has long been used in a tool called <a href="http://www.texmacs.org/tmweb/home/welcome.en.html" class="link-url">GNU TeXmacs</a>, which has pushed to extreme the idea of mapping complex document elements to <em>S expression</em>.</p><p>Pollen and TeXmacs both are beautiful systems that have elegant, and solid foundations.</p><h3 class="section" id="secsec21d4c64cb2ba669829ca04b5a0c1c133">What’s Wrong Then?</h3><p>While Pollen and TeXmacs share the same root, unlike TeXmacs, which itself is an editor with a special UX to manipulate the underlying data, Pollen as a document processing framework doesn’t provide any editing tool. For the end users, us, editing and debugging pollen source is quite a pain in a normal text editor:</p><ol><li>The normal edit-run-debug process is distributed to different windows: your editor for writing, racket source editor for coding, terminal for rendering server, a browser for debugging and proofreading.</li><li>Pollen gives no warnings to undefined tags in Pollen source. It takes unnecessary long time to trace down rendering errors back to the output file.</li><li>Frequently inserting the default command char in an unconfigured editor is uneasy. Also if you have different command chars for different projects, it is you, not the editor, that need to remember which command char is used in which project, which is awkward.</li><li>Working with different machines means that you need to synchronize your editor dot files. Even though we have tools like <a href="https://www.gnu.org/software/stow/" class="link-url">stow</a>, synchronizing configurations in different environments has all kinds of unexpected problems (take <a href="https://github.com/purcell/emacs.d/issues/318" class="link-url">this emacs configuration issue</a>).</li><li>A missing bracket or brace is hard to catch in some editors.</li><li>Racket runtime error sometimes is tricky to trace down. Bugs in Pollen source are harder to locate.</li><li>Just like coding in other languages, coding in Pollen frequently needs refer to function documents, or at least function signatures. It takes surprisingly long time to locate my tag functions to find out keyword arguments and positional arguments.</li></ol><p>I want to solve these problems.</p><h3 class="section" id="secsecdfe2ab941ae0145da7dae3abc1effff0">Emacs to Rescue? Not This Time</h3><p>My first attempt was <a href="https://github.com/lijunsong/pollen-mode" class="link-url">an Emacs Pollen Mode</a>.</p><p>Using Emacs helps simplify the edit-run-debug cycle: writing, coding, launching rendering server, etc. all can be done in the Pollen mode. <span class="vsymbol v">pollen-company</span> provides auto-completion for tag names, which helps reduce undefined tags. Moreover, Emacs has built-in bracket matching facility, so It’s unlikely to get unbalanced brackets.</p><p>Unfortunately, the facility to preview the rendered content is missing in Emacs, and preview is indispensable in the edit-run-debug cycle. Emacs also has to push all the complexity of auto-completion to external Racket code, which introduces complexity in maintenance.</p><p>The more difficult part is to make sure a consistent user experiences among all users in different environments. Lots of emacs configurations are totally out of the control of mode writers. Want to launch the server? Make sure your Emacs can read your system <span class="vsymbol v">PATH</span>. Can’t get the auto-completion to show tag candidates? You need to first check this and this, and then ...</p><p>Furthermore, as an Emacs user with quite some experience with Elisp, I believe it will take some amount of effort for new users to appreciate the power of Emacs. Most of experienced Pollen users don’t use Emacs now, and I don’t see why they would in the future. Let alone beginners.</p><p>Some of these problems also apply to other editors. Atom, Sublime Text, you name it. No matter how that editor has been made for hacking, as long as it doesn’t understand Racket, it is a gauche solution for long run.</p><h3 class="section" id="secsec370901a1d5b2bc31a0ccb256e3cb5c06">A New Editor?</h3><p>To offer a real editing assistant, the tool must understand everything about Pollen. To understand Pollen, it needs to understand Racket. So the core component of this tool can only be in Racket. If the core component is in Racket, why not just write it all in Racket?</p><p>So here is my second attempt, <a href="https://github.com/lijunsong/pollen-rock" class="link-url">Pollen Rock</a>, a Pollen editor in the browser that can</p><ul><li>Reduce edit-run-debug cycle, with writing, coding, preview, debugging all in a browser window.</li><li>Reduce undesired undefined tags by offering auto-completion for defined tags, and warning for undefined ones.</li><li>Understand everything of a Pollen project.</li><li>Offer consistent cross platform user experience with web technology.</li><li>Help you focus on writing when you write, and coding when you typeset your prose.</li><li>Help you locate references of function document and signatures.</li></ul><p>What makes it more interesting than the Emacs solution?</p><p>Pollen Rock consists of two components: an in-browser editor, let’s call it the front-end, for end users, and a server that speaks JSON and responds to various HTTP requests. As you may have realized, the editor is dispensable; the <em>core</em> is the server.</p><p>With the help of Pollen Rock, all modern, extensible editors can be an alternative of the in-browser front-end, because they all have the ability to talk to Pollen Rock. They can talk to Pollen Rock to find out the correct command char for the opening Pollen source. They can also request rendered source file, or snippet of it, which is going to be an important piece for an editor find out the actual semantics of a tag (in runtime! Yeah!). Sometimes you want to load the Pollen source and evaluate Racket expressions? The server makes that possible too.</p><p>In sum, Pollen Rock gives the power back to developers, and thus editors again.</p><p>Even though I said “the editor is dispensable,” the in-browser editor is still the most convenient way to edit Pollen source across various desktop environments and devices. I sincerely hope Pollen users would find this new editor interesting and convenient to work with. Pollen deserves an editor exclusively made for its own beauty.</p><p>Have a new editor feature in mind? I would be happy to hear from you.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

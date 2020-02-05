@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.34.  Suppose we define the procedure</p><pre class="gist"><code>(define (f g)
+  (g 2))</code></pre><p> Then we have</p><pre class="gist"><code>(f square)
+4
+
+(f (lambda (z) (* z (+ z 1))))
+6</code></pre><p> What happens if we (perversely) ask the interpreter to evaluate the combination (f f)? Explain.</p></div><p> 我们使用代换模型来解释 <span class="vlong v">(f f)</span>：</p><pre class="gist"><code>(f f)
+(f 2)
+(2 2) ;=&gt; 2 is not applicable
+</code></pre><p> 最后 2 将被放到过程调用的过程名的位置。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

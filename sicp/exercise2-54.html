@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.54.  Two lists are said to be equal? if they contain equal elements arranged in the same order. For example,</p><pre class="gist"><code>(equal? '(this is a list) '(this is a list))
+</code></pre><p> is true, but</p><pre class="gist"><code>(equal? '(this is a list) '(this (is a) list))
+</code></pre><p> is false. To be more precise, we can define equal? recursively in terms of the basic eq? equality of symbols by saying that a and b are equal? if they are both symbols and the symbols are eq?, or if they are both lists such that (car a) is equal? to (car b) and (cdr a) is equal? to (cdr b). Using this idea, implement equal? as a procedure.</p></div><p> <span class="vsymbol v">equal?</span> 的比较需要注意两点：</p><ol><li>基本类型</li><li>嵌套表</li></ol><p>在写测试用例的时候也需要注意包含这两点。</p><pre class="gist sicp-code"><code>(define (new-equal? l1 l2)
+  (cond ((and (null? l1) (null? l2)) #t)
+        ((or (null? l1) (null? l2)) #f)
+
+        ((and (symbol? (car l1)) (symbol? (car l2)))
+         (and (eq? (car l1) (car l2))
+              (new-equal? (cdr l1) (cdr l2))))
+
+        ((and (number? (car l1)) (number? (car l2)))
+         (and (= (car l1) (car l2))
+              (new-equal? (cdr l1) (cdr l2))))
+
+        ((and (string? (car l1)) (string? (car l2)))
+         (and (string=? (car l1) (car l2))
+              (new-equal? (cdr l1) (cdr l2))))
+
+        ((and (pair? (car l1)) (pair? (car l2)))
+         (and (new-equal? (car l1) (car l2))
+              (new-equal? (cdr l1) (cdr l2))))
+
+        (else #f)))
+
+;;; tests begin
+(load "../testframe.scm")
+
+;; test basic type
+(let ((lst '(1 2 3 4)))
+  (asserteq? (equal? lst lst)
+             (new-equal? lst lst)))
+
+(let ((lst '(a b c d)))
+  (asserteq? (equal? lst lst)
+             (new-equal? lst lst)))
+
+(let ((lst '("a" "b" "c" "d")))
+  (asserteq? (equal? lst lst)
+             (new-equal? lst lst)))
+
+;; test nested list
+
+(let ((lst '(1 2 3 4 (1 2 3 4 (1 2 3 4)))))
+  (asserteq? (equal? lst lst)
+             (new-equal? lst lst)))
+(let ((lst '(a b c (a b c (a b c)))))
+  (asserteq? (equal? lst lst)
+             (new-equal? lst lst)))
+
+(let ((lst '("a" "b" ("a" "b" ("a" "b")))))
+  (asserteq? (equal? lst lst)
+             (new-equal? lst lst)))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

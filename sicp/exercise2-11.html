@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.11.  In passing, Ben also cryptically comments: ‘‘By testing the signs of the endpoints of the intervals, it is possible to break mul-interval into nine cases, only one of which requires more than two multiplications.‘’ Rewrite this procedure using Ben’s suggestion.</p><p>   After debugging her program, Alyssa shows it to a potential user, who complains that her program solves the wrong problem. He wants a program that can deal with numbers represented as a center value and an additive tolerance; for example, he wants to work with intervals such as 3.5± 0.15 rather than [3.35, 3.65]. Alyssa returns to her desk and fixes this problem by supplying an alternate constructor and alternate selectors:</p><pre class="gist"><code>(define (make-center-width c w)
+  (make-interval (- c w) (+ c w)))
+(define (center i)
+  (/ (+ (lower-bound i) (upper-bound i)) 2))
+(define (width i)
+  (/ (- (upper-bound i) (lower-bound i)) 2))
+</code></pre><p> Unfortunately, most of Alyssa’s users are engineers. Real engineering situations usually involve measurements with only a small uncertainty, measured as the ratio of the width of the interval to the midpoint of the interval. Engineers usually specify percentage tolerances on the parameters of devices, as in the resistor specifications given earlier.</p></div><p> 要将 <span class="vsymbol v">mul-interval</span> 分解为 <span class="vnumber v">9</span> 种情况，首先看 <span class="vsymbol v">interval</span> 可能的情况：</p><ol><li>同为负：<span class="vlong v">(make-interval -2 -1)</span></li><li>同为正：<span class="vlong v">(make-interval 1 2)</span></li><li>一正一负：<span class="vlong v">(make-interval -2 -4)</span></li></ol><p><span class="vnumber v">9</span> 种情况则为以上三种情况的两两搭配。</p><pre class="gist sicp-code"><code>(load "7-interval-selector.scm")
+
+(define (origin-mul-interval x y)
+  (let ((p1 (* (lower-bound x) (lower-bound y)))
+        (p2 (* (lower-bound x) (upper-bound y)))
+        (p3 (* (upper-bound x) (lower-bound y)))
+        (p4 (* (upper-bound x) (upper-bound y))))
+    (make-interval (min p1 p2 p3 p4)
+                   (max p1 p2 p3 p4))))
+
+(define (mul-interval x y)
+  (define (both-pos? z)
+    (and (&gt; (lower-bound z) 0)
+         (&gt; (upper-bound z) 0)))
+  (define (both-neg? z)
+    (and (&lt; (lower-bound z) 0)
+         (&lt; (upper-bound z) 0)))
+  (define (neg-pos? z)
+    (and (&lt; (lower-bound z) 0)
+         (&gt; (upper-bound z) 0)))
+  (let ((lower-x (lower-bound x))
+        (upper-x (upper-bound x))
+        (lower-y (lower-bound y))
+        (upper-y (upper-bound y)))
+    (cond ((and (both-pos? x) (both-pos? y))
+           (make-interval (* lower-x lower-y)
+                          (* upper-x upper-y)))
+
+          ((and (both-pos? x) (both-neg? y))
+           (make-interval (* upper-x lower-y)
+                          (* lower-x upper-y)))
+
+          ((and (both-pos? x) (neg-pos? y))
+           (make-interval (* upper-x upper-y)
+                          (* upper-x lower-y)))
+
+          ((and (both-neg? x) (both-neg? y))
+           (make-interval (* upper-x upper-y)
+                          (* lower-x lower-y)))
+
+          ((and (both-neg? x) (both-pos? y))
+           (make-interval (* lower-x upper-y)
+                          (* upper-x lower-y)))
+
+          ((and (both-neg? x) (neg-pos? y))
+           (make-interval (* lower-x upper-y)
+                          (* lower-x lower-y)))
+
+          ((and (neg-pos? x) (both-pos? y))
+           (make-interval (* lower-x upper-y)
+                          (* upper-x upper-y)))
+
+          ((and (neg-pos? x) (both-neg? y))
+           (make-interval (* lower-x lower-y)
+                          (* upper-x lower-y)))
+
+          ((and (neg-pos? x) (neg-pos? x))
+           ;; oops! needs more than two times multiplication 
+           ;; x = (-2, 4)   |  (-2,  4)
+           ;; y = (-2, 4)   |  (-20, 1)
+           ;; the two different situation requires actually over two times mul.
+           (make-interval (min (* lower-x upper-y)
+                               (* upper-x lower-y))
+                          (max (* upper-x upper-y)
+                               (* lower-x lower-y)))))))
+</code></pre><p><em>TODO：为什么最后一种情况不像题目中说的只需要两次乘法呢?</em></p><p>注意，这一题如果没有思路，就先从测试用例开始写起。一旦开始写“同负 * 同负”就必然会想到这 9 种情况到底是什么了。</p><pre class="gist sicp-code"><code>
+(let ((both-neg (make-interval -2 -1))
+      (both-pos (make-interval  1  2))
+      (neg-pos  (make-interval -2  4))
+      (neg-pos1 (make-interval -20 1)))
+  (define (equal-interval? i1 i2)
+    (and (= (lower-bound i1) (lower-bound i2))
+         (= (upper-bound i1) (upper-bound i2))))
+  (define (testing x y)
+    (assert-equal equal-interval?
+                  (mul-interval x y)
+                  (origin-mul-interval x y)))
+  (begin
+    (testing both-neg both-neg)
+    (testing both-neg both-pos)
+    (testing both-neg neg-pos)
+    (testing both-pos both-neg)
+    (testing both-pos both-pos)
+    (testing both-pos neg-pos)
+    (testing neg-pos both-neg)
+    (testing neg-pos both-pos)
+    (testing neg-pos neg-pos)
+    (testing neg-pos neg-pos1)))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.23.  Extend the evaluator to handle derived expressions such as cond, let, and so on (section 4.1.2). You may <span class="vsymbol v">cheat</span> and assume that the syntax transformers such as <span class="vsymbol v">cond-&gt;if</span> are available as machine operations.</div><p>  我们有了 <span class="vsymbol v">cond-&gt;if</span> 和 <span class="vsymbol v">let-combination</span> ，就可以直接添加到 dispatch 里面</p><p>首先在 <span class="vsymbol v">eval-dispatch</span> 里面增加判断</p><pre class="gist sicp-code"><code>    ;; add cond
+    (test (op cond?) (reg exp))
+    (branch (label ev-cond))
+    ;; add let
+    (test (op let?) (reg exp))
+    (branch (label ev-let))</code></pre><p>然后只需要调用相应的 machine operation 就可以。</p><pre class="gist sicp-code"><code>  ev-cond
+    (assign exp (op cond-&gt;if) (reg exp))
+    (goto (label eval-dispatch))
+  ev-let
+    (assign exp (op let-&gt;combination) (reg exp))
+    (goto (label eval-dispatch))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

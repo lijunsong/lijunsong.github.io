@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.55.  Give simple queries that retrieve the following information from the data base:</p><p>a. all people supervised by Ben Bitdiddle; b. the names and jobs of all people in the accounting division; c. the names and addresses of all people who live in Slumerville.</p></div><p> </p><pre class="gist sicp-code"><code>; a. all people supervised by Ben Bitdiddle;
+(supervisor ?x (Ben Bitdiddle))
+
+; b. the names and jobs of all people in the accounting division;
+(job ?x (accounting . ?y))
+
+; c. the names and addresses of all people who live in Slumerville.
+(address ?x (Slumerville . ?y))</code></pre><p>需要注意的是一个 list 中一个 pattern variable 只能匹配一个元素，如果要匹配多个需要加一个点，像 scheme 中参数传递那样。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

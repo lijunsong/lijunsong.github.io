@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.18.  Define a procedure reverse that takes a list as argument and returns a list of the same elements in reverse order:</p><pre class="gist"><code>(reverse (list 1 4 9 16 25))
+(25 16 9 4 1)
+</code></pre></div><p> </p><pre class="gist sicp-code"><code>(define (reverse lst)
+  (cond ((null? lst) lst)
+        (else
+         (append (reverse (cdr lst)) (list (car lst))))))
+
+(define (new-reverse lst)
+  (define (iter l reversed)
+    (if (null? l)
+        reversed
+        (iter (cdr l)
+              (cons (car l) reversed))))
+  (iter lst '()))
+;;; tests begin
+
+(load "../testframe.scm")
+
+(assertequal? (reverse '(1 2 3 4))
+              '(4 3 2 1))
+
+(assertequal? (new-reverse '(1 2 3 4))
+              '(4 3 2 1))</code></pre><p>另外一种（歪打正着的）方法能够产生 reverse 效果，参看在 <a href="/sicp/exercise2-22.html">练习 2.22</a> 。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

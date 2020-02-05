@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.26.  Ben Bitdiddle and Alyssa P. Hacker disagree over the importance of lazy evaluation for implementing things such as unless. Ben points out that it’s possible to implement unless in applicative order as a special form. Alyssa counters that, if one did that, unless would be merely syntax, not a procedure that could be used in conjunction with higher-order procedures. Fill in the details on both sides of the argument. Show how to implement unless as a derived expression (like cond or let), and give an example of a situation where it might be useful to have unless available as a procedure, rather than as a special form.</div><p>  Ben 的观点是将 <span class="vsymbol v">unless</span> 设计得与 <span class="vsymbol v">if</span>，define 等等关键字一样，成为一个 <span class="vlong v">special form</span>。即在 <span class="vsymbol v">eval</span> 去主动识别 <span class="vsymbol v">unless</span> 语句，与 <span class="vsymbol v">if</span> 和 <span class="vsymbol v">cond</span> 一样。这实际不算是 <span class="vlong v">lazy evaluation</span>，只是一种语法上的替换。</p><p>Alyssa 的反对在于 <span class="vsymbol v">unless</span> 如果变成了 <span class="vlong v">special form</span> 之后，我们就不能把 <span class="vsymbol v">unless</span> 当做参数传递到过程中了。因为 <span class="vlong v">special form</span> 是不存在于 <span class="vsymbol v">environment</span> 里面的。这与我们不能把 <span class="vsymbol v">if</span>，<span class="vsymbol v">define</span>，<span class="vsymbol v">lambda</span>，<span class="vsymbol v">let</span> 等关键字当做过程参数的原因一样：<span class="vlong v">applicative order</span> 将会对每一个参数进行求值，如果传递了 <span class="vsymbol v">unless</span>，那么作为 <span class="vlong v">special form</span> 的 <span class="vsymbol v">unless</span> 将无法在 environment 中找到相应的值，于是出现错误。（我们自己写的 <span class="vsymbol v">eval</span> 将会报告 <span class="vsymbol v">unless</span> 是 <span class="vlong v">unbound variable</span>，现代解释器将会报告 unless 是 syntactic keyword）</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

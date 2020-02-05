@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.10.  The following procedure computes a mathematical function called Ackermann’s function.</p><pre class="gist"><code>(define (A x y)
+  (cond ((= y 0) 0)
+        ((= x 0) (* 2 y))
+        ((= y 1) 2)
+        (else (A (- x 1)
+                 (A x (- y 1))))))
+</code></pre><p> What are the values of the following expressions?</p><p>   (A 1 10)</p><p>   (A 2 4)</p><p>   (A 3 3)</p><p>   Consider the following procedures, where A is the procedure defined above:</p><p>   (define (f n) (A 0 n))</p><p>   (define (g n) (A 1 n))</p><p>   (define (h n) (A 2 n))</p><p>   (define (k n) (* 5 n n))</p><p>   Give concise mathematical definitions for the functions computed by the procedures f, g, and h for positive integer values of n. For example, (k n) computes <mathjax class="$">$5n^2$</mathjax>.</p></div><p> </p><h3 class="section" id="secsec2ed9e492fc32061827b0b7a81381fdc2">分析 (A 1 10) (A 2 4)</h3><h4 class="subsection" id="subsecsubsec4988ef9cd23527733c563030b1e00617">(A 1 10)</h4><pre class="gist"><code>(A 1 10)
+(A 0 (A 1 9))
+(A 0 (A 0 (A 1 8)))
+(A 0 (A 0 (A 0 (A 1 7))))
+(A 0 (A 0 (A 0 (A 0 (A 1 6)))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 1 5))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 4))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 3)))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 2))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 1))))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 2)))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (* 2 2)))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (* 2 2 2)))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (* 2 2 2 2))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (* 2 2 2 2 2)))))
+(A 0 (A 0 (A 0 (A 0 (* 2 2 2 2 2 2))))
+(A 0 (A 0 (A 0 (* 2 2 2 2 2 2 2)))
+(A 0 (A 0 (* 2 2 2 2 2 2 2 2)))
+(A 0 (* 2 2 2 2 2 2 2 2 2))
+(* 2 2 2 2 2 2 2 2 2 2)
+1024
+</code></pre><p> </p><h4 class="subsection" id="subsecsubsece7a6aefd12bb3fb008670655e874bec2">(A 2 4)</h4><pre class="gist"><code>(A 2 4)
+(A 1 (A 2 3))
+(A 1 (A 1 (A 2 2)))
+(A 1 (A 1 (A 1 (A 2 1))))
+(A 1 (A 1 (A 1 2)))
+</code></pre><p> 即 <mathjax class="$">$2^{2^{2^2}}$</mathjax></p><h3 class="section" id="secsecc1810a4eb36f1bae5c1bc0febae5dc1f">总结</h3><h4 class="subsection" id="subsecsubsec5cc9da59f1b3f623d6fc6f5c267759f0">(A 0 n)</h4><p><mathjax class="$$">$$2 \times n
+$$</mathjax> </p><h4 class="subsection" id="subsecsubsec1571dcc02b200dac88daa55104f9fd4c">(A 1 n)</h4><pre class="gist"><code>(A 1 n)
+(A 0 (A 1 (- n 1)))
+(A 0 (A 0 (A 1 (- n 2))))
+...
+(A 0 (A 0 (A 0 (.. (A 1 1)))))
+(A 0 (A 0 (A 0 (.. 2))))
+(A 0 (A 0 (* 2 2 .. 2)))
+</code></pre><p> 即为 <mathjax class="$">$2^n$</mathjax></p><h4 class="subsection" id="subsecsubsec2927087c80ec7d4c8dc6a18d573601ef">(A 2 n)</h4><p>(A 2 n) 可以转化为 n 个 (A 1 ..)。即为</p><p><mathjax class="$$">$$2^{2^{2^{2^{⋰}}}}
+$$</mathjax> </p><h3 class="section" id="secsecc255df3b6d6347912efc84db7a4e328e">测试</h3><pre class="gist sicp-code"><code>(define (A x y)
+  (cond ((= y 0) 0)
+        ((= x 0) (* 2 y))
+        ((= y 1) 2)
+        (else (A (- x 1)
+                 (A x (- y 1))))))
+
+
+(define (f n) (A 0 n))
+
+(define (g n) (A 1 n))
+
+(define (h n) (A 2 n))
+
+(define (f1 n) (* 2 n))
+
+(define (g1 n) (expt 2 n))
+
+(define (h1 n)
+  (cond ((= n 0) 1)
+        (else
+         (expt 2 (h1 (- n 1))))))
+;;; tests begin
+(load "../testframe.scm")
+
+(for-each (lambda (n)
+            (assert= (f n) (f1 n))
+            (assert= (g n) (g1 n)))
+          '(1 2 3 4 5 6 7 8 9 10))
+
+(for-each (lambda (n)
+            (assert= (h n) (h1 n)))
+          '(1 2 3 4)) ; n should be &lt; 5 for saving time on calculation</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

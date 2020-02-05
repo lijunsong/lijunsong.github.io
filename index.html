@@ -1,0 +1,100 @@
+  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Junsong's Weblog</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="quick-notes-section">
+          <div class="quick-notes-banner">Quick Notes</div>
+          <div class="quick-notes-content">
+            
+            
+            <div class="quick-notes-list"><li><span class="quick-notes-date">2021-02-03</span><span class="quick-notes-title"><a href="/quick-notes/2021-02-03.html">*-Driven Developments Have the Same Goal</a></span></li><li><span class="quick-notes-date">2021-01-27</span><span class="quick-notes-title"><a href="/quick-notes/2021-01-27.html">Zeromq Socket Can Manage Many Connections</a></span></li><li><span class="quick-notes-date">2021-01-26</span><span class="quick-notes-title"><a href="/quick-notes/2021-01-26.html">Three Zeromq Patterns</a></span></li><li><span class="quick-notes-date">2020-12-24</span><span class="quick-notes-title"><a href="/quick-notes/2020-12-24.html">The Haskell M-Word Is a Type-Based Macro System</a></span></li><li><span class="quick-notes-date">2020-12-22</span><span class="quick-notes-title"><a href="/quick-notes/2020-12-22.html">Haskell M-Word Provides Contexts for Different Recipe System</a></span></li></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          
+          
+          
+          
+          
+          <div class="detail-article-list"><div class="excerpt-item"><div class="excerpt-title"><a href="/autoload-your-major-mode-in-emacs.html">Autoload Your Major Mode in Emacs</a></div><div class="excerpt-content"><p><excerpt>Don't forget to mark <span class="vlong v">(add-to-list 'auto-mode-alist ...)</span>
+with <span class="vsymbol v">;;;###autoload</span> when you write your major mode.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/my-first-impression-of-elixir.html">My First Impression of Elixir</a></div><div class="excerpt-content"><p><excerpt>ErlangVM supports an incredible ecosystem. Here is my first
+impression of it: dead simple semantics, one of the best modern
+toolings, the best model for concurrent programming.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-how-unlikely-macro-works.html">Notes on Folly: How UNLIKELY Macro Works</a></div><div class="excerpt-content"><p><excerpt>Have you seen the <span class="vsymbol v">UNLIKELY</span> annotation before? How does it work behind the scene?</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/the-pid-1-sigchld-issue-in-docker.html">The SIGCHLD Issue of Running Daemon as Pid 1 in Docker</a></div><div class="excerpt-content"><p><excerpt>Troubleshooting why my ftp docker container is dead after I exit a tmux session.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/managing-an-intern.html">Managing an Intern</a></div><div class="excerpt-content"><p><excerpt>Being an intern
+manager is good way to exercise your skills for project management and
+get a taste of the management role. This post shares my experience as an intern manager on planning and managing software projects.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-thread-pool-executors.html">Notes on Folly: Thread Pool Executors</a></div><div class="excerpt-content"><p><excerpt><span class="vsymbol v">ThreadPoolExecutor</span> introduces threads to run tasks. There are
+two important executors based on <span class="vsymbol v">ThreadPoolExecutor</span>:
+<span class="vsymbol v">IOThreadPoolExecutor</span> for IO bound tasks, and <span class="vsymbol v">CPUThreadPoolExecutor</span> for
+CPU bound tasks. They respond to loads differently.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-how-does-promise-pass-data-to-future.html">Notes on Folly: How Does Promise Pass Data to Future</a></div><div class="excerpt-content"><p><excerpt>How is <span class="vsymbol v">folly::Promise</span> implemented such that <span class="vsymbol v">Promise::setValue</span> can safely pass data to the associated <span class="vsymbol v">future</span> even if the promise is destroyed immediately after calling <span class="vsymbol v">setValue</span>?</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-convert-old-style-callbacks-to-chained-callbacks.html">Notes on Folly: Two Steps to Convert Old-Style Callbacks to Chained Callbacks</a></div><div class="excerpt-content"><p><excerpt>There are times when we need to work with async C libraries
+in our C++ programs. we can follow a simple two-step conversion to
+build a thin async layer on top of the library to avoid callback hell
+in the program.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-executors.html">Notes on Folly: Executors</a></div><div class="excerpt-content"><p><excerpt><em>Executor</em> is an important concept in folly that bridges many
+constructs. In this post, we explore what an <em>Executor</em> is, and many
+derivatives that extend the Executor family.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-threads-name.html">Notes on Folly: Thread Name</a></div><div class="excerpt-content"><p><excerpt>On Linux, we can give each thread a name so debugging
+multi-thread program is easier. <span class="vsymbol v">pthread_setname_np</span> is the call to
+name a thread. It's as easy as that. In this post, however, I want to
+write more details about the implementation.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-fibers.html">Notes on Folly: Folly Fibers</a></div><div class="excerpt-content"><p><excerpt>The folly::fibers provides a set of constructs for
+cooperative context switch. In this post, we explains in detail how
+tasks are scheduled and executed in FiberManager.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-fibers-cooperative-context-switch.html">Notes on Folly: Cooperative Context Switch</a></div><div class="excerpt-content"><p><excerpt>Folly implements fibers using boost <span class="vsymbol v">fcontext</span>. To
+understand <span class="vsymbol v">folly::fibers</span>, we'll need to understand boost
+fcontext first. This post explores how boost implements
+non-preemptive control transfers.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/folly-notes-libevent.html">Notes on Folly: Libevent Concept and Usage</a></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/how-to-write-your-atom-language-package.html">How to Write Your Atom Language Package</a></div><div class="excerpt-content"><p><excerpt>It is easy to write language package in Atom. The lack of official document was the major blocker for me when I wrote the package for Pollen. In this post, I'll cover my process of creating the package for Pollen.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/why-another-pollen-editor.html">Why Another Pollen Editor</a></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/c-function-prototypes-that-misinform-compilers.html">C Function Prototypes That Misinform Compilers</a></div><div class="excerpt-content"><p><excerpt>When writing C programs, I used to declare function prototypes without fully specifying their parameters. This is a bad engineering practice. Writting a code generator helps me realize how bad it could be from the perspective of compilers. Here are my notes on how a compiler may generate bizarre code from this practice.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/tiger-compiler-i386-backend.html">Tiger Compiler Notes: I386 Backend</a></div><div class="excerpt-content"><p><excerpt>Notes on I386 architecture and code generation.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/persistent-emacs-minor-mode.html">Make Your Emacs Minor Mode Persistent Across Major Mode Changes</a></div><div class="excerpt-content"><p><excerpt>Sometimes you want to create a minor mode that sticks across
+various major-mode changes in a buffer, and you don't want it to be
+global minor mode (after all, why should your minor mode globally
+affect other modes). Emacs already provides symbol properties for
+situations like this.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/review-the-inner-game-of-tennis.html">Review: the Inner Game of Tennis</a></div><div class="excerpt-content"><p><excerpt>Given an nonjudgemental mind that focuses on present, with an attitude
+of enjoying and welcoming challenges, life must be as colorful as it
+is supposed to be.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/from-ocaml-bugs-to-internals-threads.html">From OCaml Bugs to Internals: Threads</a></div><div class="excerpt-content"><p><excerpt>How is caml thread implemented? We'll look at a memory leak
+bug in the thread implementation and learn about the internal of the
+OCaml thread.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/my-two-years-drawing-journey.html">My Two Years Drawing Journey</a></div><div class="excerpt-content"><p><excerpt>I wanted to learn a bit about design concept, but ended up
+with an unexpected journey to drawing.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/tiger-compiler-normalize-ir.html">Tiger Compiler Notes: Normalize IR</a></div><div class="excerpt-content"><p><excerpt>Now that we've gotten IR from the surface language, we're
+going to make it Canonical IR, and prepare for generating the program
+in assembly language.</excerpt></p></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/review-drawing-on-the-right-side-of-the-brain.html">Review: Drawing on the Right Side of the Brain</a></div></div><div class="excerpt-item"><div class="excerpt-title"><a href="/tiger-compiler-lexer-parser.html">Tiger Compiler Notes: Lexer and Parser</a></div><div class="excerpt-content"><p><excerpt>Some notes on OCamllex and OCamlyacc.</excerpt></p></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

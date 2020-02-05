@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.41.  Define a procedure double that takes a procedure of one argument as argument and returns a procedure that applies the original procedure twice. For example, if inc is a procedure that adds 1 to its argument, then (double inc) should be a procedure that adds 2. What value is returned by</p><pre class="gist"><code>(((double (double double)) inc) 5)
+</code></pre></div><p> 我们可以定义这几个必要的过程如下：</p><pre class="gist sicp-code"><code>(define (double f)
+  (lambda (x)
+    (f (f x))))
+
+(define (inc x)
+  (+ 1 x))
+
+(((double (double double)) inc) 5)</code></pre><p>对 <span class="vlong v">(((double (double double)) inc) 5)</span> 我们可以使用代换模型来查看结果：</p><pre class="gist"><code>t1: (double double) =&gt; (lambda (x) (double (double x)))
+t2: (double t1)     =&gt; (lambda (x1) (t1 (t1 x1)))
+t3: (t2 inc)        =&gt; ((lambda (x1) (t1 (t1 x1))) inc)
+                    =&gt; (t1 (t1 inc))
+                    =&gt; (t1 ((lambda (x1) (double (double x1))) inc))
+                    =&gt; (t1 (double double inc))
+                    =&gt; ...
+                    =&gt; (double (double (double (double inc))))
+t4: (t3 5)          =&gt; ((t2 inc) 5)
+                    =&gt; ((double (double (double (double inc)))) 5)
+                    =&gt; ((double (double (double inc2))) 5)
+                    =&gt; ((double (double inc4)) 5)
+                    =&gt; ((double inc8) 5)
+                    =&gt; (inc16 5)
+                    =&gt; 21</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

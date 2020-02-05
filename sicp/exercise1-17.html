@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.17.  The exponentiation algorithms in this section are based on performing exponentiation by means of repeated multiplication. In a similar way, one can perform integer multiplication by means of repeated addition. The following multiplication procedure (in which it is assumed that our language can only add, not multiply) is analogous to the expt procedure:</p><pre class="gist"><code>(define (* a b)
+  (if (= b 0)
+      0
+      (+ a (* a (- b 1)))))
+</code></pre><p> This algorithm takes a number of steps that is linear in b. Now suppose we include, together with addition, operations double, which doubles an integer, and halve, which divides an (even) integer by 2. Using these, design a multiplication procedure analogous to fast-expt that uses a logarithmic number of steps.</p></div><p> 在 <a href="/sicp/exercise1-16.html">练习 1.16</a> 中我们已经设计过一个迭代式的 <span class="vsymbol v">fast-expt</span>，这里和上一个 <span class="vsymbol v">fast-expt</span> 极其相似：我们设计一个不变量用来保存结果，当乘数是 2 的倍数的时候，我们对被乘数 double，对乘数 halve；当乘数是奇数的时候，将乘数减一，被乘数加到不变量上。</p><pre class="gist sicp-code"><code>(define (x a b)
+  (define (x/iter aa bb ans)
+    (cond ((= bb 0) ans)
+          ((even? bb) (x/iter (double aa) (halve bb) ans))
+          (else
+           (x/iter aa (- bb 1) (+ ans aa)))))
+  (x/iter a b 0))
+</code></pre><p>我们还可以把这样的过程写为递归过程：</p><pre class="gist sicp-code"><code>(define (x/rec a b)
+  (cond ((= b 0) 0)
+        ((even? b) (double (x/rec a (/ b 2))))
+        (else
+         (+ a (x/rec a (- b 1))))))
+</code></pre><p>最后对两个过程进行测试</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(assert= (x 2 1) 2)
+(assert= (x 2 11) 22)
+(assert= (x 3 14) 42)
+
+(assert= (x/rec 2 1) 2)
+(assert= (x/rec 2 11) 22)
+(assert= (x/rec 3 14) 42)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

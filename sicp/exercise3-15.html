@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 3.15.  Draw box-and-pointer diagrams to explain the effect of set-to-wow! on the structures z1 and z2 above.</div><p> set-to-wow! 过程为</p><pre class="gist"><code>(define (set-to-wow! x)
+  (set-car! (car x) 'wow)
+  x)
+</code></pre><p> z1 与 z2 虽然都是 ((a b) a b)，但两个的结构并不一样。对 z1 来说，把 car 的 car 设置成 ‘wow 就会把 x 的 car 设置成 wow，导致了最终链表所有用到 a 的地方都变了。</p><pre class="gist"><code>z1     +---+---+                              z1     +---+---+
+------&gt;|   |   |                              ------&gt;|   |   |
+       +-+-+-+-+                                     +-+-+-+-+
+         |   |                                         |   |
+         |   |                                         |   |
+         v   v                                         v   v
+x      +---+---+    +---+---+                 x      +---+---+    +---+---+
+------&gt;|   |   +---&gt;|   | / |     =======&gt;    ------&gt;|   |   +---&gt;|   | / |
+       +-+-+---+    +-+-+---+                        +-+-+---+    +-+-+---+
+         |            |                                |            |
+         |            |         (set-to-wow! z1)       |            |
+         v            v                                v            v
+       +---+        +---+                            +---+        +---+
+       | a |        | b |                            |wow|        | b |
+       +---+        +---+                            +---+        +---+</code></pre><p>对于 z2 来说，就只改变了一个 pair 的 car 而已：</p><pre class="gist"><code>z2     +---+---+     +---+---+     +---+---+
+------&gt;|   |   +----&gt;|   |   +----&gt;|   | / |
+       +-+-+---+     +-+-+---+     +-+-+---+
+         |             |             |
+         |             |             |
+         |             v             v
+         |           +---+         +---+
+         |           | a |         | b |
+         |           +---+         +---+
+         |             ^             ^
+         |             |             |
+         |             |             |
+         |           +-+-+---+     +-+-+---+
+         +-----------|   |   +----&gt;|   | / |
+                     +---+---+     +---+---+</code></pre><p>将变为：</p><pre class="gist"><code>z2                    +---+
+|                     |wow|
+|                     +---+
+|                       ^
+|                       |
+|                       |
+|       +---+---+     +-+-+---+     +---+---+
++------&gt;|   |   +----&gt;|   |   +----&gt;|   | / |
+        +-+-+---+     +---+---+     +-+-+---+
+          |                           |
+          |                           |
+          |                           v
+          |           +---+         +---+
+          |           | a |         | b |
+          |           +---+         +---+
+          |             ^             ^
+          |             |             |
+          |             |             |
+          |           +-+-+---+     +-+-+---+
+          +-----------|   |   +----&gt;|   | / |
+                      +---+---+     +---+---+</code></pre><p>所以 <span class="vsymbol v">z2</span> 是 <span class="vlong v">((wow b) a b)</span></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

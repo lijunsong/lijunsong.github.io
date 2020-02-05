@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.37.  Ben Bitdiddle claims that the following method for generating Pythagorean triples is more efficient than the one in exercise 4.35. Is he correct? (Hint: Consider the number of possibilities that must be explored.)</p><pre class="gist"><code>(define (a-pythagorean-triple-between low high)
+  (let ((i (an-integer-between low high))
+        (hsq (* high high)))
+    (let ((j (an-integer-between i high)))
+      (let ((ksq (+ (* i i) (* j j))))
+        (require (&gt;= hsq ksq))
+        (let ((k (sqrt ksq)))
+          (require (integer? k))
+          (list i j k))))))
+</code></pre></div><p> Ben 写的程序的确要更优化一些。在范围为 n 的情况下，前一个最多需要 <mathjax class="$">$n^3$</mathjax> 次选择，而这里只需要 <mathjax class="$">$n^2$</mathjax> 次选择即可找到。</p><p>因为我们的 amb 使用的是深度优先的回溯方式，要比较的两个程序实际可以写为下面的等同的形式：</p><pre class="gist"><code>for i in range(low, high+1):
+    for j in range(i, high+1):
+        for k in range(j, high+1):
+            if i*i + j*j == k*k:
+                return (i, j, k)
+</code></pre><p> 与</p><pre class="gist"><code>hsq = high * high
+for i in range(low, high+1):
+    for j in range(i, high+1):
+        ksq = i*i + j*j
+        if hsq &gt;= ksq and is_integer(sqrt(ksq)):
+           return (i, j, k)
+</code></pre><p> 其比较结果是可以想到的。</p><p>TODO：How to Prove in Math?</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

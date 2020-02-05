@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.63.  Louis Reasoner asks why the sqrt-stream procedure was not written in the following more straightforward way, without the local variable guesses:</p><pre class="gist"><code>(define (sqrt-stream x)
+  (cons-stream 1.0
+               (stream-map (lambda (guess)
+                             (sqrt-improve guess x))
+                           (sqrt-stream x))))
+</code></pre><p> Alyssa P. Hacker replies that this version of the procedure is considerably less efficient because it performs redundant computation. Explain Alyssa’s answer. Would the two versions still differ in efficiency if our implementation of delay used only (lambda () &lt;exp&gt;) without using the optimization provided by memo-proc (section 3.5.1)?</p></div><p> 对比</p><pre class="gist"><code>(define (sqrt-stream x)
+  (define guesses
+    (cons-stream 1.0
+                 (stream-map (lambda (guess)
+                               (sqrt-improve guess x))
+                             guesses)))
+  guesses)
+</code></pre><p> </p><h3 class="section" id="secsec705748c433a8a8ab6193633af1ab8197">第一个元素</h3><p>当我们对 (sqrt-stream 2) 取 stream-car 的时候，</p><p>使用 local guess 的     <span class="vlong v">(stream-car (cons-stream 1.0 (stream-map f guess)))</span></p><p>使用 <span class="vlong v">(sqrt-stream x)</span> 的     <span class="vlong v">(stream-car (cons-stream 1.0 (stream-map f (sqrt-stream x))))</span></p><p>等价，暂时看不出区别。</p><h3 class="section" id="secsec44e5099c55cb1f4803e430560d43cac1">第二个元素</h3><p>当我们求 (sqrt-stream 2) 的第 1 个元素（stream-car 是取第 0 个元素）的时候</p><p>使用 local guess 的     <span class="vlong v">(stream-car (stream-map f guess))</span> 。其中 guess 是 <span class="vlong v">(1 . #[promise])</span> 。</p><p>使用 <span class="vlong v">(sqrt-stream x)</span> 的     <span class="vlong v">(stream-car (stream-map f (sqrt-stream x)))</span> 作为参数的 sqrt-stream 求值之后变为 <span class="vlong v">(1 . #[promise])</span> 。</p><p>差别在 <span class="vlong v">(sqrt-stream x)</span> 多进行了一次调用，但调用之后的结果是一样的。</p><h3 class="section" id="secsec8cd146012fb43656f365a624ee5dd4c4">第三个元素</h3><p>使用 local guess 的     <span class="vlong v">(stream-car (stream-map f guess))</span> 。其中 guess 在 stream-map 中已经到了 <span class="vlong v">(1.4166666666666665 . #[promise])</span></p><p>使用 <span class="vlong v">(sqrt-stream x)</span> 的     整个求值过程此时变为了 <span class="vlong v">(stream-car (stream-cdr (stream-cdr (sqrt-stream x))))</span> 两个 stream-cdr 实际是对 (sqrt-stream x) 的第一个元素进行了两次求 average 的结果，得到了我们看到的 1.4166666666666665。</p><h3 class="section" id="secsec9bd244c973f7cd460bda7db0c0da1426">另外一个理解的角度</h3><p>我们可以如下来构造一个无限整数流</p><pre class="gist"><code>(define t
+  (cons-stream 1
+               (stream-map (lambda (g)
+                             (begin
+                               (display g) (display " ")
+                               (+ g 1)))
+                           t)))
+</code></pre><p> 可以使用这样的方式</p><pre class="gist"><code>(define (t1 x)
+  (cons-stream 1
+               (stream-map (lambda (g)
+                             (begin
+                               (display g) (display " ")
+                               (+ g x)))
+                           (t1 x))))
+</code></pre><p> 两者的区别与本题的区别一样：在使用 stream-map 的时候，使用的是一个变量，还是自身过程调用作为参数。</p><p>下面我们来依次看看调用的情况</p><pre class="gist"><code>1 ]=&gt; (stream-car t)
+
+;Value: 1
+
+1 ]=&gt; (stream-cdr t)
+1
+;Value 17: (2 . #[promise 18])
+
+1 ]=&gt; (stream-cdr (stream-cdr t))
+2
+;Value 19: (3 . #[promise 20])
+
+1 ]=&gt; (stream-cdr (stream-cdr (stream-cdr t)))
+3
+;Value 21: (4 . #[promise 22])
+</code></pre><p> 这里我们可以看到每一次取 t，都只 display 一次 t 的前一个数。</p><pre class="gist"><code>1 ]=&gt; (stream-car (t1 1))
+
+;Value: 1
+
+1 ]=&gt; (stream-cdr (t1 1))
+1
+;Value 29: (2 . #[promise 30])
+
+1 ]=&gt; (stream-cdr (stream-cdr (t1 1)))
+1 1 2
+;Value 31: (3 . #[promise 32])
+
+1 ]=&gt; (stream-cdr (stream-cdr (stream-cdr (t1 1))))
+1 1 2 1 2 3
+;Value 33: (4 . #[promise 34])
+</code></pre><p> 这里打印出的 1 1 2 与 1 1 2 1 2 3 是怎么来的呢？从直觉上，我们可能会觉得每一次对 (t1 x) 调用 stream-map 的时候，又从 1 开始进行计算了，为什么还能够得到最后的答案呢？</p><p>我们可以使用替代模型来理解：</p><p>(t1 1) 实际为：</p><pre class="gist"><code>(cons-stream 1
+    (stream-map f ;[promise 1]
+        (cons-stream 1
+            (stream-map f ; [promise 2]
+                (cons-stream 1
+                    (stream-map f
+                        ....))))))
+</code></pre><p>  则求 <span class="vlong v">(stream-cdr (stream-cdr (t1 1)))</span> 时，在 <span class="vlong v">[promise 2]</span> 实际返回 <span class="vlong v">(2 . #[promise])</span>，这里的 2 返回到上一个 <span class="vsymbol v">stream-map</span> 中的时候又被加了 1，变为了 3。所以得到结果 (3 . #[promise])</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

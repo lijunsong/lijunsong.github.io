@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.6.  In case representing pairs as procedures wasn’t mind-boggling enough, consider that, in a language that can manipulate procedures, we can get by without numbers (at least insofar as nonnegative integers are concerned) by implementing 0 and the operation of adding 1 as</p><pre class="gist"><code>(define zero (lambda (f) (lambda (x) x)))
+
+(define (add-1 n)
+  (lambda (f) (lambda (x) (f ((n f) x)))))
+</code></pre><p> This representation is known as Church numerals, after its inventor, Alonzo Church, the logician who invented the <mathjax class="$">$\lambda$</mathjax> calculus.</p><p>   Define one and two directly (not in terms of zero and add-1). (Hint: Use substitution to evaluate (add-1 zero)). Give a direct definition of the addition procedure + (not in terms of repeated application of add-1).</p></div><p>  自然数也可以使用一个过程来表示：</p><pre class="gist"><code>(define zero (lambda (f) (lambda (x) x)))
+
+(define (add-1 n)
+  (lambda (f) (lambda (x) (f ((n f) x)))))
+</code></pre><p> 可以得到 1 和 2 可以表示为</p><pre class="gist"><code>(define one
+  (lambda (f) (lambda (x) (f x))))
+
+(define two
+  (lambda (f) (lambda (x) (f (f x)))))
+</code></pre><p>  根据上面的规律，数字 <span class="vsymbol v">n</span>，即表示为有 <span class="vsymbol v">n</span> 个 <span class="vsymbol v">f</span> 的 <span class="vlong v">(lambda (f) (lambda (x) (f ... (f x))..))</span>。</p><p>要定义 <span class="vsymbol v">+</span>，那么我们需要了解清楚，church 表示的数字有什么特点。</p><p>先看看对一个数字 <span class="vsymbol v">n</span> 的操作。<span class="vlong v">(add-1 n)</span> 的实际工作原理是使用这个表达式剥掉最外层的的两个 lambda：</p><pre class="gist"><code>&lt;inner&gt; = ((n f) x)
+</code></pre><p> 得到 <span class="vlong v">(f ... (f x)...)</span>。然后再加上一个 <span class="vsymbol v">f</span> 在 <span class="vsymbol v">&lt;inner&gt;</span> 里面。</p><pre class="gist"><code>&lt;new-inner&gt; = (f ((n f) x))</code></pre><p>  然后再在最外面加上两个 <span class="vsymbol v">lambda</span>，得到 <span class="vsymbol v">add-1</span> 的结果。</p><p>我们可以看到，如果要将一个 <span class="vsymbol v">n</span> 加到 <span class="vsymbol v">m</span> 上面，我们可以仿照把 <span class="vsymbol v">n</span> 加到 1 上面一样。所以有 <span class="vsymbol v">+</span> 的表示思路：</p><p>首先剥掉最外层的两个 lambda：</p><pre class="gist"><code>&lt;inner-n&gt; = ((n f) x)
+</code></pre><p> 得到 <span class="vsymbol v">n</span> 的内层 <span class="vlong v">(f (f (..n..((f x)...)</span>。然后我们要在这个内层外面加上 <span class="vsymbol v">m</span> 个 <span class="vsymbol v">f</span>。因为数字 <span class="vsymbol v">m</span> 内层就有 <span class="vsymbol v">m</span> 个 <span class="vsymbol v">f</span>，所以只需要我们想办法将上面得到的 <span class="vsymbol v">n</span> 的内层，当做 <span class="vsymbol v">m</span> 的 <span class="vlong v">lambda (x)</span> 的参数传递进去，自然就有了 <span class="vsymbol v">n+m</span> 个 <span class="vsymbol v">f</span> 了。</p><pre class="gist"><code>&lt;new-inner&gt; = ((lambda (x) (f (f (..m..(f x)))))
+               (f (f (..n..(f x)))))
+; =&gt; (f (f (f (..n+m..(f x)))))
+
+</code></pre><p> 所以我们的内层如下：</p><pre class="gist"><code>&lt;new-inner&gt; = ((m f) ((n f) x))
+</code></pre><p> 可以得到 <span class="vsymbol v">+</span> 表示如下：</p><pre class="gist"><code>(define (+ n m)
+  (lambda (f) (lambda (x) ((m f) ((n f) x)))))
+</code></pre><p> 可以看到，与 <span class="vsymbol v">add-1</span> 不一样的地方只是 <span class="vlong v">(m f)</span> 而已。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

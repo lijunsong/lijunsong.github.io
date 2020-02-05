@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 1.27.  Demonstrate that the Carmichael numbers listed in footnote 47 really do fool the Fermat test. That is, write a procedure that takes an integer n and tests whether an is congruent to a modulo n for every a&lt;n, and try your procedure on the given Carmichael numbers.</div><p> 我们需要把每一个小于 n 的数字当做参数进行对 n 的 fermat 测试。这可以通过如下过程实现：</p><pre class="gist sicp-code"><code>(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (square (expmod base (/ exp 2) m))
+                    m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))
+
+(define (test-fermat n)
+  (define (is-fermat-fine? a)
+    (= a (expmod a n n)))
+  (define (test-each-num-below x)
+    (cond ((= x 2) #t)
+          ((is-fermat-fine? x)
+           (test-each-num-below (- x 1)))
+          (else #f)))
+  (test-each-num-below (- n 1)))
+</code></pre><p>测试的过程则需要对 Carmichael 数字进行两遍测试，使用我们的过程是会把 Carmichael 数字当做素数的，但使用以前的 <span class="vsymbol v">prime?</span> 则不会。</p><pre class="gist sicp-code"><code>
+(load "../testframe.scm")
+;; test-fermat will return #t if n is decided being prime using fermat method
+;; #f otherwise
+(asserteq? #t (test-fermat 199))
+(asserteq? #t (test-fermat 1999))
+(asserteq? #f (test-fermat 19999))
+
+;; carmichael number!
+(asserteq? #t (test-fermat 561))
+(asserteq? #t (test-fermat 1105))
+(asserteq? #t (test-fermat 1729))
+(asserteq? #t (test-fermat 2465))
+(asserteq? #t (test-fermat 2821))
+(asserteq? #t (test-fermat 6601))
+
+;; but the prime? procedure can decide the primality
+(define (find-divisor n test-divisor)
+  (define (divides? a b)
+  (= (remainder b a) 0))  
+  (define (next num)
+    (cond ((even? num) (+ num 1))
+          (else (+ num 2))))
+  (cond ((&gt; (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (next test-divisor)))))
+(define (prime? n)
+  (define (smallest-divisor n)
+    (find-divisor n 2))  
+  (= n (smallest-divisor n)))
+
+(asserteq? #f (prime? 561))
+(asserteq? #f (prime? 1105))
+(asserteq? #f (prime? 1729))
+(asserteq? #f (prime? 2465))
+(asserteq? #f (prime? 2821))
+(asserteq? #f (prime? 6601))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

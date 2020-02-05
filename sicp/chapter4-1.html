@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <h3 class="section" id="secsec739f5456bfdc2df0e64f92c0f16a2b54">求值器 FAQ</h3><p>1. apply 为什么要分作 primitive-procedure? 与 compound-procedure? 不管是什么 procedure，apply 的时候不都是绑定参数形成 frame，然后求值吗？</p><p>你的意思是这样？</p><pre class="gist"><code>(define (apply procedure arguments)
+  (let ((body (get-procedure-body procedure))
+        (formal-args (get-procedure-formal-args procedure))
+        (env (get-procedure-env procedure)))
+    (eval-sequence body (extend env formal-args arguments))))
+</code></pre><p> 除非你想自己重新来写许多的基本过程，要不然我们是没有办法统一这些基本过程与自定义的过程的。设想一下 + - * /，我们是没有办法去得到它们的 body 和 formal arguments 的。对于这一类的 primitive-procedure，我们只需要直接使用就可以。</p><p>2. 我刚到 4.1.2 章的习题，让我写一个 data-directed 版本的解释器，有没有好的办法来告诉我，我写的这个解释器是正确的？</p><p>4.1.2 章的解释器还是不完整的解释器，还没有加入 env 和 apply 的操作。等到之后再返回来检查吧。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

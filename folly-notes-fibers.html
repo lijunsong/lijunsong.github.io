@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: Folly Fibers</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: Folly Fibers</h1>
+          <div class="date">2019-09-18</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p>The folly::fibers provides a set of constructs for
+        cooperative context switch. In this post, we explains in detail how
+        tasks are scheduled and executed in FiberManager.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>As usual, let’s start with an example. In this example, we simply let <span class="vsymbol v">FiberManager</span> run two tasks consecutively: when one task finishes, another task starts. It doesn’t involve complex control transfers. Once we’ve understood how different components work together, we’ll get to the part where tasks yields to others in the middle of the control flow.</p><pre class="gist"><code>#include &lt;folly/fibers/EventBaseLoopController.h&gt;
+#include &lt;folly/fibers/FiberManager.h&gt;
+#include &lt;folly/init/Init.h&gt;
+#include &lt;glog/logging.h&gt;
+
+using folly::fibers::EventBaseLoopController;
+using folly::fibers::FiberManager;
+
+int main(int argc, char *argv[]) {
+  folly::init(&amp;argc, &amp;argv);
+
+  folly::EventBase evb;
+
+  std::unique_ptr&lt;EventBaseLoopController&gt; loopController =
+      std::make_unique&lt;EventBaseLoopController&gt;();
+  loopController-&gt;attachEventBase(evb);
+
+  FiberManager fiberManager(std::move(loopController), FiberManager::Options());
+  folly::fibers::Baton baton;
+
+  fiberManager.addTask([&amp;] {
+    LOG(INFO) &lt;&lt; "task1: start\n";
+    LOG(INFO) &lt;&lt; "task1: finish()\n";
+  });
+
+  fiberManager.addTask([&amp;] {
+    LOG(INFO) &lt;&lt; "task2: start\n";
+    LOG(INFO) &lt;&lt; "task2: finish\n";
+  });
+
+  LOG(INFO) &lt;&lt; "Start looping";
+  evb.loop();
+}</code></pre><p>compile using </p><pre class="gist"><code>g++ -std=c++17 test.cc /usr/local/lib/libfolly.a /usr/lib/x86_64-linux-gnu/libiberty.a  -lgtest  -lglog  -lgflags -lpthread -ldl -ldouble-conversion -levent -lboost_context</code></pre><p>The result is</p><pre class="gist"><code>$ ./a.out -alsologtostderr
+I0921 16:28:43.240685   277 test.cc:31] Start looping
+I0921 16:28:43.241350   277 test.cc:22] task1: start
+I0921 16:28:43.241384   277 test.cc:23] task1: finish
+I0921 16:28:43.241406   277 test.cc:27] task2: start
+I0921 16:28:43.241430   277 test.cc:28] task2: finish
+I0921 16:28:43.241499   277 test.cc:33] End looping</code></pre><p>This number <em>277</em> is the thread number. We see all above code was running in only one thread.</p><h3 class="section" id="secsec685afdada6e976210d5476940700ab25">FiberManager</h3><p>How did <span class="vsymbol v">FiberManager</span> manages multiple tasks?</p><pre class="gist"><code>template &lt;typename F&gt;
+void FiberManager::addTask(F&amp;&amp; func) {
+  readyFibers_.push_back(*createTask(std::forward&lt;F&gt;(func)));
+  ensureLoopScheduled();
+}</code></pre><p><span class="vsymbol v">addTask</span> simply puts the task in <span class="vsymbol v">readyFibers_</span>, and <span class="vsymbol v">ensureLoopScheduled</span> calls <span class="vsymbol v">schedule</span> of <span class="vsymbol v">loopController_</span>:</p><pre class="gist"><code>inline void FiberManager::ensureLoopScheduled() {
+  if (isLoopScheduled_) {
+    return;
+  }
+
+  isLoopScheduled_ = true;
+  loopController_-&gt;schedule();
+}</code></pre><p>We can guess <span class="vsymbol v">schedule</span> makes sure the task will run in the future. Because we’re using <span class="vsymbol v">EventBaseLoopController</span>, the controller simply calls <span class="vsymbol v">EventBase</span>‘s <span class="vsymbol v">schedule</span>:</p><pre class="gist"><code>inline void EventBaseLoopController::schedule() {
+  if (eventBase_ == nullptr) {
+    // In this case we need to postpone scheduling.
+    awaitingScheduling_ = true;
+  } else {
+    // Schedule it to run in current iteration.
+
+    if (!eventBaseKeepAlive_) {
+      eventBaseKeepAlive_ = getKeepAliveToken(eventBase_);
+    }
+    eventBase_-&gt;getEventBase().runInLoop(&amp;callback_, true);
+    awaitingScheduling_ = false;
+  }
+}</code></pre><p>So it calls into <span class="vsymbol v">EventBase</span>‘s <span class="vsymbol v">runInLoop</span>, which, if you take a look at <span class="vsymbol v">EventBase</span> code, simply adds the <span class="vsymbol v">callback_</span> to its queue. Only when <span class="vsymbol v">EventBase</span> starts its <em>loop</em>, this <span class="vsymbol v">callback_</span> will be pulled out to execute its <span class="vsymbol v">runLoopCallback</span> method.</p><p>So what’s the <span class="vsymbol v">callback_</span> here?</p><pre class="gist"><code>inline EventBaseLoopController::EventBaseLoopController() : callback_(*this) {}</code></pre><p>That’s our controller! Our controller is a subclass of <span class="vsymbol v">folly::EventBase::LoopCallback</span> that implements <span class="vsymbol v">runLoopCallback</span>, which is</p><pre class="gist"><code>void runLoopCallback() noexcept override {
+  controller_.runLoop();
+}</code></pre><p>In sum, when <span class="vsymbol v">EventBase</span> executes its loop, it calls our <span class="vsymbol v">EventBaseLoopController</span>‘s <span class="vsymbol v">runLoop</span> method. How’s this method implemented in <span class="vsymbol v">EventBaseLoopController</span>?</p><pre class="gist"><code>fm_-&gt;loopUntilNoReadyImpl();</code></pre><p>Oh yes, of course! <span class="vsymbol v">EventBaseLoopController</span> degelates the loop in <span class="vsymbol v">FiberManager</span> ! <span class="vsymbol v">FiberManager</span> has all information about all pending fibers, the current running fiber. It’s natural to let it drive the loop.</p><p>Note that because <span class="vsymbol v">runInLoop</span> should only be called from the EventBase’s thread, <span class="vsymbol v">addTask</span> is not thread-safe, and folly offers <span class="vsymbol v">addTaskRemote</span> for thread-safe access.</p><p>Now let’s pause a while on <span class="vsymbol v">FiberManager</span> and let’s take a look at the <em>Task</em> we’ve saved in <span class="vsymbol v">readyFibers_</span> list.</p><h3 class="section" id="secsecb338d43eda718b0794b73e077a068789">Fiber</h3><p>We see <span class="vsymbol v">FiberManager::addTask</span> calls</p><pre class="gist"><code>readyFibers_.push_back(*createTask(std::forward&lt;F&gt;(func)));</code></pre><p>We can reduce createTask to the following code:</p><pre class="gist"><code>Fiber* FiberManager::createTask(F&amp;&amp; func) {
+  typedef AddTaskHelper&lt;F&gt; Helper;
+
+  auto fiber = getFiber();
+  auto funcLoc = static_cast&lt;typename Helper::Func*&gt;(fiber-&gt;getUserBuffer());
+  new (funcLoc) typename Helper::Func(std::forward&lt;F&gt;(func), *this);
+
+  fiber-&gt;setFunction(std::ref(*funcLoc));
+  return fiber;
+}
+
+Fiber* FiberManager::getFiber() {
+  Fiber* fiber = new Fiber(this);
+  ...
+  fiber-&gt;init(recordStack);
+  return fiber;
+}</code></pre><p>And <span class="vsymbol v">Fiber::Fiber</span> is</p><pre class="gist"><code>Fiber::Fiber(FiberManager&amp; fiberManager)
+    : fiberManager_(fiberManager),
+      fiberStackSize_(fiberManager_.options_.stackSize),
+      fiberStackLimit_(fiberManager_.stackAllocator_.allocate(fiberStackSize_)),
+      fiberImpl_([this] { fiberFunc(); }, fiberStackLimit_, fiberStackSize_) {
+  fiberManager_.allFibers_.push_back(*this);
+}
+
+template &lt;typename F&gt;
+void Fiber::setFunction(F&amp;&amp; func) {
+  assert(state_ == INVALID);
+  func_ = std::forward&lt;F&gt;(func);
+  state_ = NOT_STARTED;
+}</code></pre><p>where a <span class="vsymbol v">FiberImpl_</span> is instantiated using buffer allocated at <span class="vsymbol v">fiberStackLimit_</span>. The task is saved into the fiber’s <span class="vsymbol v">func_</span>, and the fiber state is set to <span class="vsymbol v">NOT_STARTED</span>.</p><p>What is <span class="vsymbol v">FiberImpl_</span>? In <span class="vsymbol v">BoostContextCompatibility.h</span>, the essense is</p><div class="right-margin">Please refer to <a href="/folly-notes-fibers-cooperative-context-switch.html">Notes on Folly: Cooperative Context Switch</a> for how control is transferred using <span class="vsymbol v">make_fcontext</span> and <span class="vsymbol v">jump_fcontext</span>.</div><pre class="gist"><code>class FiberImpl {
+  using FiberContext = boost::context::detail::fcontext_t;
+  FiberImpl(
+      folly::Function&lt;void()&gt; func,
+      unsigned char* stackLimit,
+      size_t stackSize)
+      : func_(std::move(func)) {
+    auto stackBase = stackLimit + stackSize;
+    stackBase_ = stackBase;
+    fiberContext_ =
+        boost::context::detail::make_fcontext(stackBase, stackSize, &amp;fiberFunc);
+  }
+
+  void activate() {
+    auto transfer = boost::context::detail::jump_fcontext(fiberContext_, this);
+    fiberContext_ = transfer.fctx;
+  }
+
+  void deactivate() {
+    auto transfer =
+        boost::context::detail::jump_fcontext(mainContext_, nullptr);
+    mainContext_ = transfer.fctx;
+    fixStackUnwinding();
+  }
+
+  static void fiberFunc(boost::context::detail::transfer_t transfer) {
+    auto fiberImpl = reinterpret_cast&lt;FiberImpl*&gt;(transfer.data);
+    fiberImpl-&gt;mainContext_ = transfer.fctx;
+    fiberImpl-&gt;fixStackUnwinding();
+    fiberImpl-&gt;func_();
+  }
+};
+};</code></pre><p>That is our old friend <span class="vsymbol v">make_fcontext</span>. So this <span class="vsymbol v">fiberImpl_</span> prepares an environment to jump to <span class="vsymbol v">Fiber::fiberFunc</span>. <span class="vsymbol v">fiberFunc</span> has a few housekeeping code, but after removing those code, it’s pretty clear:</p><pre class="gist"><code>[[noreturn]] void Fiber::fiberFunc() {
+  while (true) {
+    state_ = RUNNING;
+    if (resultFunc_) {
+      resultFunc_();
+    } else {
+      func_();
+    }
+    fiberManager_.deactivateFiber(this);
+  }
+}</code></pre><p>This <span class="vsymbol v">fiberManager_.deactivateFiber(this);</span> simply calls <span class="vsymbol v">Fiber::deactivate</span>, which calls <span class="vsymbol v">jump_fcontext</span> to transfer control to <span class="vsymbol v">mainContext_</span>.</p><p>The <span class="vsymbol v">while</span> loop and <span class="vsymbol v">[[noreturn]]</span> attribute look weird, right? Why do you need to put this in a loop, and if it does not return, how would it transfer the control back to <span class="vsymbol v">FiberManager</span> ?</p><p>The <span class="vsymbol v">fixStackUnwinding</span> plays an extremely important role here. <a href="/folly-notes-fibers-cooperative-context-switch.html">We know that</a> <span class="vsymbol v">jump_fcontext</span> does <em>NOT</em> push <span class="vsymbol v">rbp</span> register on the stack, so when it transfers the control to another function, and if the function simply exits, the whole program exits. This is not what we want. What we want is to jump back to somewhere to continue run other fibers. <span class="vsymbol v">fixStackUnwinding</span> fixed it! How does it manage to do it? I’ll leave it to you to figure out? Hint: look harder into memory layout in <span class="vsymbol v">make_fcontext</span>.</p><p>So far we have seen</p><ul><li>FiberManager creates Fiber, saves Fiber in a list.</li><li>Fiber::Fiber prepares an environment to jump to <span class="vsymbol v">Fiber::fiberFunc</span>, which runs the fiber function, and yields to other fibers (we haven’t looked at how it does it but this is an educated guess so far).</li></ul><p>What’s missing here is the start of a fiber. i.e. where is <span class="vsymbol v">activate</span> gets called? That will be the beginning of a series of control transfers.</p><h3 class="section" id="secsec32eb40991be49c7795132c53ed59dd5e">Revisit FiberManager</h3><p>Now, let’s get back to <span class="vsymbol v">FiberManager</span>, where the <span class="vsymbol v">loopUntilNoReadyImpl</span> runs fibers:</p><pre class="gist"><code>inline void FiberManager::loopUntilNoReadyImpl() {
+  runFibersHelper([&amp;] {
+    ...
+    while (!readyFibers_.empty()) {
+      auto&amp; fiber = readyFibers_.front();
+      readyFibers_.pop_front();
+      runReadyFiber(&amp;fiber);
+    }
+    ...
+  });
+}</code></pre><p>It pulls fibers out of <span class="vsymbol v">readyFibers_</span> list, and runs each one. In <span class="vsymbol v">runReadyFiber</span>, we finally see fiber is activated (Uggh, guarded by a while loop again):</p><pre class="gist"><code>inline void FiberManager::runReadyFiber(Fiber* fiber) {
+  currentFiber_ = fiber;
+  while (fiber-&gt;state_ == Fiber::NOT_STARTED ||
+         fiber-&gt;state_ == Fiber::READY_TO_RUN) {
+    activateFiber(fiber);
+    ...
+  }
+}</code></pre><p><span class="vsymbol v">activateFiber</span> calls <span class="vsymbol v">fiber-&gt;fiberImpl_.activate</span>, which calls <span class="vsymbol v">jump_context</span> to transfer control to <span class="vsymbol v">FiberImpl::fiberFunc</span>, which calls <span class="vsymbol v">fiberImpl_-&gt;func_()</span>. <span class="vsymbol v">func_</span> is the first argument passed to initialize the <span class="vsymbol v">fiberImpl_</span>, the <span class="vsymbol v">fiberFunc</span>:</p><pre class="gist"><code>Fiber::Fiber(...)
+    : fiberImpl_([this] { fiberFunc(); }, fiberStackLimit_, fiberStackSize_) {
+  ...
+}</code></pre><p>Let’s list <span class="vsymbol v">fiberFunc</span> here again for reference:</p><pre class="gist"><code>[[noreturn]] void Fiber::fiberFunc() {
+  while (true) {
+    state_ = RUNNING;
+    if (resultFunc_) {
+      resultFunc_();
+    } else {
+      func_();
+    }
+    state_ = INVALID;
+    fiberManager_.deactivateFiber(this);
+  }
+}</code></pre><p>where the <span class="vsymbol v">func_</span> is what we passed into <span class="vsymbol v">addTask</span>, i.e.</p><pre class="gist"><code>[&amp;] {
+    LOG(INFO) &lt;&lt; "task1: start\n";
+    LOG(INFO) &lt;&lt; "task1: finish()\n";
+}</code></pre><div class="right-margin">We’ll get to the case where a task is yield in the middle of the control flow</div><p>After this task is finished, the state_ is set to <span class="vsymbol v">INVALID</span>, and the <span class="vsymbol v">deactivate</span> is called. Where does it transfer control? Thanks to <span class="vsymbol v">FiberImpl_::fixStackUnwinding</span>, the control can be correctly transferred back to <span class="vsymbol v">activateFiber</span>:</p><pre class="gist"><code>inline void FiberManager::runReadyFiber(Fiber* fiber) {
+  currentFiber_ = fiber;
+  while (fiber-&gt;state_ == Fiber::NOT_STARTED ||
+         fiber-&gt;state_ == Fiber::READY_TO_RUN) {
+    activateFiber(fiber);
+    ...
+  }
+}</code></pre><p>Because the fiber’s state is set to <span class="vsymbol v">INVALID</span>, so it breaks out the while loop, and goes back to <span class="vsymbol v">loopUntilNoReadyImpl</span></p><pre class="gist"><code>while (!readyFibers_.empty()) {
+  auto&amp; fiber = readyFibers_.front();
+  readyFibers_.pop_front();
+  runReadyFiber(&amp;fiber);
+}</code></pre><p>where each fiber gets a chance to run. That’s why we see both tasks run. When there are no more fibers to run, the loop ends, and the <span class="vsymbol v">EventBase</span> loop ends.</p><h3 class="section" id="secsecd61da15d104fcc99b94725fbc60bc78a">Summary</h3><p>This post is not long, but it’s a long journal for me to figure this out. I’ve simplified quite a bit of the code to let us focus on the main logic of the control transfer.</p><ol><li>FiberManager instantiates a task (a Fiber), and puts the task on a queue waiting for processing.</li><li>The main processing logic is still in <span class="vsymbol v">FiberManager</span> (because information about the queue, current activated fiber are still in <span class="vsymbol v">FiberManager</span>), but folly creates <span class="vsymbol v">LoopController</span> interfaces to delegate the processing loop. In our example, we use <span class="vsymbol v">EventBase</span>‘s loop to drive the execution of all tasks.</li><div class="right-margin">I know the “activate” process is not intuitive at all. Make sure you really understand how <span class="vsymbol v">make_fcontext</span> and <span class="vsymbol v">jump_fcontext</span> work!</div><li>The most important role here is the Fiber. When a <span class="vsymbol v">FiberManager</span> activates a fiber, it transfers the control to the function associated with the fiber.  The Fiber has house keeping record on state—the fiber marks <span class="vsymbol v">RUNNING</span> before the run, and <span class="vsymbol v">INVALID</span> after the run. When a fiber finishes, it asks FiberManager to deactivate itself, which transfers the control back to <span class="vsymbol v">FiberManager</span>‘s loop</li></ol><p>What if tasks use <span class="vsymbol v">Baton</span> to yield? Would the above analysis stay the same?</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

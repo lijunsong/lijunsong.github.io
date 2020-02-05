@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.30.  Cy D. Fect, a reformed C programmer, is worried that some side effects may never take place, because the lazy evaluator doesn’t force the expressions in a sequence. Since the value of an expression in a sequence other than the last one is not used (the expression is there only for its effect, such as assigning to a variable or printing), there can be no subsequent use of this value (e.g., as an argument to a primitive procedure) that will cause it to be forced. Cy thus thinks that when evaluating sequences, we must force all expressions in the sequence except the final one. He proposes to modify eval-sequence from section 4.1.1 to use actual-value rather than eval:</p><pre class="gist"><code>(define (eval-sequence exps env)
+  (cond ((last-exp? exps) (eval (first-exp exps) env))
+        (else (actual-value (first-exp exps) env)
+              (eval-sequence (rest-exps exps) env))))
+</code></pre><p> a. Ben Bitdiddle thinks Cy is wrong. He shows Cy the for-each procedure described in exercise 2.23, which gives an important example of a sequence with side effects:</p><pre class="gist"><code>(define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+             (for-each proc (cdr items)))))
+</code></pre><p> He claims that the evaluator in the text (with the original eval-sequence) handles this correctly:</p><pre class="gist"><code>;;; L-Eval input:
+(for-each (lambda (x) (newline) (display x))
+          (list 57 321 88))
+57
+321
+88
+;;; L-Eval value:
+done
+</code></pre><p> Explain why Ben is right about the behavior of for-each.</p><p>   b. Cy agrees that Ben is right about the for-each example, but says that that’s not the kind of program he was thinking about when he proposed his change to eval-sequence. He defines the following two procedures in the lazy evaluator:</p><pre class="gist"><code>(define (p1 x)
+  (set! x (cons x '(2)))
+  x)
+
+(define (p2 x)
+  (define (p e)
+    e
+    x)
+  (p (set! x (cons x '(2)))))
+</code></pre><p> What are the values of (p1 1) and (p2 1) with the original eval-sequence? What would the values be with Cy’s proposed change to eval-sequence?</p><p>   c. Cy also points out that changing eval-sequence as he proposes does not affect the behavior of the example in part a. Explain why this is true.</p><p>   d. How do you think sequences ought to be treated in the lazy evaluator? Do you like Cy’s approach, the approach in the text, or some other approach?</p></div><p> </p><h3 class="section" id="secsecf4780ae58203cbcceb6a4177d5f1708b">for-each 的分析</h3><p>实际上 for-each 并不是 Cy 所想的情况，</p><pre class="gist"><code>(define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+             (for-each proc (cdr items)))))
+</code></pre><p> <span class="vsymbol v">for-each</span> 中虽然有 sequence 语句，但这个 begin 语句的第一个 <span class="vlong v">(proc (car items))</span> 实际是被 force-it 运行了的。</p><p>Cy 所想的情况</p><div class="blockquote"><blockquote>Since the value of an expression in a sequence other than the last one is not used (the expression is there only for its effect, such as assigning to a variable or printing), there can be no subsequent use of this value (e.g., as an argument to a primitive procedure) that will cause it to be forced.</blockquote></div><p>是 begin 语句中包含了 set! 语句，lazy evaluation 中的 eval 的机制可能使得 set! 没有产生作用，而只产生了 trunk。</p><h3 class="section" id="secsec4dd0c0ec01f1daff191f77d759ec7e04">Cy 的想法</h3><p>用原始的 eval-sequence，得到的结果是</p><pre class="gist"><code>;;; L-Eval input:
+(define (p1 x)
+  (set! x (cons x '(2)))
+  x)
+
+;;; L-Eval value:
+ok
+
+;;; L-Eval input:
+(p1 1)
+
+;;; L-Eval value:
+(1 2)
+
+;;; L-Eval input:
+(define (p2 x)
+  (define (p e)
+     e
+     x)
+  (p (set! x (cons x '(2)))))
+
+;;; L-Eval value:
+ok
+
+;;; L-Eval input:
+(p2 1)
+
+;;; L-Eval value:
+1
+</code></pre><p> p2 中因为 e 是一个 trunk，所以 eval 运行到了 <span class="vsymbol v">variable?</span> 之后，把 trunk 使用 <span class="vsymbol v">lookup-variable-value</span> 找出来就结束了这个语句，这使得 <span class="vsymbol v">set!</span> 语句没有执行。</p><p>如果使用了新的 eval-sequence， <span class="vlong v">(p2 1)</span> 就能得到正确的结果 <span class="vlong v">(1 2)</span> 。</p><h3 class="section" id="secsec19e68eb8c6097ca8299828d1058d3df8">c</h3><p>新的 eval-sequence 对 sequence 中的每一个语句都会求 actual-value，这使得，for-each 中的 <span class="vlong v">(proc (car items))</span> 被求了两次 actual-value（第一次是 eval 的 application 语句，第二次是 eval-sequence ），但因为我们的 <span class="vsymbol v">force-it</span> 可以接受 trunk 与非 trunk。所以不会产生影响。</p><h3 class="section" id="secsecd4a1a609532a3b621828d3bdfceb2e65">d</h3><p>对于纯函数式的写法，我们完全可以采取教材中的写法，对 eval-sequence 保持原样，没有赋值语句的过程中，对 trunk 是否进行 actual-value 不会改变结果。</p><p>但当我们引入赋值之后，对 sequence 中每一个语句的求值就需要额外的考虑。side-effect 导致了每一个语句都可能去修改 environment，所以我们不得不在 eval-sequence 中使用 actual-value 让 side-effect 生效。但这也直接导致了 lazy-evaluation 的失效。但凡是 sequence，我们的 lazy-evaluation 都失效了–每个语句都被马上求值了。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

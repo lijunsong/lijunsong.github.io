@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 1.26.  Louis Reasoner is having great difficulty doing exercise 1.24. His fast-prime? test seems to run more slowly than his prime? test. Louis calls his friend Eva Lu Ator over to help. When they examine Louis’s code, they find that he has rewritten the expmod procedure to use an explicit multiplication, rather than calling square:</p><pre class="gist"><code>(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (* (expmod base (/ exp 2) m)
+                       (expmod base (/ exp 2) m))
+                    m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))
+</code></pre><p> ‘‘I don’t see what difference that could make,‘’ says Louis. ‘‘I do.‘’ says Eva. ‘‘By writing the procedure like that, you have transformed the (log n) process into a (n) process.‘’ Explain.</p></div><p> 原来的过程中，square 部分是：</p><pre class="gist"><code>(remainder (square (expmod base (/ exp 2) m))
+           m)
+</code></pre><p> 现在被写成了</p><pre class="gist"><code>(remainder (* (expmod base (/ exp 2) m)
+              (expmod base (/ exp 2) m))
+           m)
+</code></pre><p> 也就是说，对于一个 <span class="vlong v">exp = n</span> 的操作，以前在递归的的时候能够每次对 <span class="vsymbol v">n</span> 进行 <span class="vlong v">n / 2</span> 的操作，现在需要 <mathjax class="$">$\frac{n}{2}\times{2}$</mathjax> 次，与线性递归的次数一样，所以是 <mathjax class="$">$\theta(n)$</mathjax></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

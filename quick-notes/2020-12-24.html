@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>The Haskell M-Word Is a Type-Based Macro System</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">The Haskell M-Word Is a Type-Based Macro System</h1>
+          <div class="date">2020-12-24</div>
+          <div class="tags">haskell</div>
+        </div>
+
+
+        <div class="content">
+          <div></div><p>Typeclass is great to reduce boilerplate.</p><p>In Racket, I define macros to chain computation. For example, in my latest automation, I define a chain operation to chain a series of git commands.</p><div class="gist"><pre class="tiny-bottom-gap"><code>(result~&gt; : (Result String String)
+   (sh "git add -A -N" (Some pwd))
+   (sh "git add -u" (Some pwd))
+   (sh "git status -s" (Some pwd))
+   (let ([text (string-trim _)])
+     (if (equal? text "")
+         NO-DEST-CHANGES-RESULT
+         (Ok text)))
+   (sh (format "git commit -m '~a'" _) (Some pwd))
+   (sh "git push origin master" (Some pwd)))))</code></pre><p class="explain">My <span class="vsymbol v">result~&gt;</span> macro in Typed Racket.</p></div><p>There are three cool features of the <span class="vsymbol v">result~&gt;</span>:</p><ol><li>The operations are short circuit by any one of the expressions that returns <span class="vlong v">(Error stderr)</span></li><li>If one operation succeeds, the next operation can retrieve the previous stdout using <span class="vsymbol v">_</span></li><li>It’s type safe; all expression needs to return <span class="vsymbol v">Result</span> type within the body of <span class="vsymbol v">result~&gt;</span></li></ol><p>Well, in Haskell the <span class="vsymbol v">do-notation</span> seems great for reducing boilerplate <em>within context</em>. What’s cooler than the Racket macro is that I can write different things for different context, and from the syntax level, they look exactly the same. Below I implement a <span class="vsymbol v">CommandM</span> to carry <span class="vsymbol v">IO</span> computation, and any failures short-circuit the entire computation.</p><pre class="gist"><code>newtype CommandM a = CommandM (IO (Either String a))
+
+upload :: String -&gt; CommandM String
+upload pwd = do
+  _ &lt;- sh "git" ["add", "-A", "-N"] (Just pwd)
+  _ &lt;- sh "git" ["add", "-u"] (Just pwd)
+  text &lt;- sh "git" ["status", "-s"] (Just pwd)
+  msg &lt;- if text == ""
+    then CommandM $ pure $ Left "No changes"
+    else pure text
+  _ &lt;- sh "git" ["commit", "-m", msg] (Just pwd)
+  sh "git" ["push", "origin", "master"] (Just pwd)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

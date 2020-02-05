@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Three Zeromq Patterns</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Three Zeromq Patterns</h1>
+          <div class="date">2021-01-26</div>
+          <div class="tags">ØMQ</div>
+        </div>
+
+
+        <div class="content">
+          <div></div><p>In <a href="https://zguide.zeromq.org/docs/chapter1/" class="link-url">Chapter 1 Basics</a>, the ZeroMQ guide has listed three types of patterns. A quick summary is worth the time.</p><p>The first is <em>request-reply</em>, where you can do ping-pong from both sides: one side sends <em>request</em> and the other side sends <em>reply</em>.</p><p>The second is <em>pub-sub</em>, where a publisher sends message to a set of subscribers. The difference from request-reply is that pub-sub is one way and it’s broadcast, meaning, all subscribers receive the <em>same</em> messages and they only receive, they do not send. Simple.</p><p>The third is <em>push-pull</em> (or pipeline), where you can fan-out (or <em>push</em>, hand out) messages to a set of workers. Or a list of workers can fan-in, send messages to a sink (or the sink <em>pull</em>s). The workers are both of role <span class="vsymbol v">push</span> and <span class="vsymbol v">pull</span>. This pattern also shows up a lot after <a href="https://blog.golang.org/pipelines" class="link-url">you learn to build pipelines in go channel</a>. The difference from pub-sub is obvious: it’s still one way messaging but the pipeline pattern does not broadcast.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

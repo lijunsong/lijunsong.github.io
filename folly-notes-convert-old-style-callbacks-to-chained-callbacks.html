@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: Two Steps to Convert Old-Style Callbacks to Chained Callbacks</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: Two Steps to Convert Old-Style Callbacks to Chained Callbacks</h1>
+          <div class="date">2020-06-07</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p>There are times when we need to work with async C libraries
+        in our C++ programs. we can follow a simple two-step conversion to
+        build a thin async layer on top of the library to avoid callback hell
+        in the program.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>There are times when we need to work with async C libraries in our C++ programs. The async calls in those libraries always take a prototype similar to this:</p><pre class="gist"><code>int async_rpc(rpcArgs* args, callbackFn callback, void* cb_data);</code></pre><p>where <span class="vsymbol v">cb_data</span> is the data you want to pass into the callback function, and <span class="vsymbol v">callbackFn</span> is the function to be called when rpc receives a reply. The callback often has this signature:</p><pre class="gist"><code>typedef void (*callbackFn)(rpcReply* reply, void* cb_data);</code></pre><p>This old style callback usually works well when the control flow is relatively simple. However, when callbacks are nested within other callbacks, it’s easy to step into <a href="https://en.wiktionary.org/wiki/callback_hell" class="link-url">callback hell</a>.</p><div class="nice-separator"></div><p>Take this example. For a given <span class="vsymbol v">rpcArgs</span>, the server returns <span class="vsymbol v">rpcReply</span> containing an integer member <span class="vsymbol v">value</span>. Let’s suppose we want to implement this function:</p><pre class="gist"><code>int addValue(rpcArgs* first_args, rpcArgs* second_args);</code></pre><p>It should call <span class="vsymbol v">async_rpc</span> twice sequentially with the given <span class="vsymbol v">rpcArgs</span> in each call, add up <span class="vsymbol v">value</span>s and return the sum.</p><p>Unfortunately we’ll have to add extra complexity into the program:</p><ul><li>We’ll have to write two callback functions even though they are doing almost the same thing: the first one adds up the reply value and immediately calls <span class="vsymbol v">async_rpc</span> again, the second one just adds up the reply value.</li><li>We’ll need a way for the main thread to wait for the second callback to finish before returning.</li><li>We’ll need to create a struct to encapsulate data needed for all following actions. in this case, we need <span class="vsymbol v">rpcArgs*</span> for initiating the second <span class="vsymbol v">rpc_async</span>, and a member for storing sum.</li></ul><pre class="gist"><code>struct ArgsAndResult{
+  rpcArgs* second_call_args;
+  int total;
+  folly::Baton baton;
+};
+
+int second_callback(rpcReply* reply, void* cb_data) {
+  auto r = reinterpret_cast&lt;ArgsAndResult*&gt;(cb_data);
+  r-&gt;total += reply-&gt;value;
+  r-&gt;baton.post();
+}
+
+int first_callback(rpcReply* reply, void* cb_data) {
+  auto r = reinterpret_cast&lt;ArgsAndResult*&gt;(cb_data);
+  r-&gt;total += reply-&gt;value;
+  async_rpc(r-&gt;second_call_args, second_callback, cb_data);
+}
+
+int start(rpcArgs first_args, rpcArgs second_args) {
+ ArgsAndResult data{};
+ data.second_call_args = &amp;second_args;
+
+ async_rpc(&amp;first_args, first_callback, &amp;data);
+
+ // block waiting data.baton.post to be called
+ data.baton.wait();
+
+ return data-&gt;value;
+}
+</code></pre><p>Conceivably, the program is going to grow to an unmanageable state where tracking the control flow becomes difficult when more callbacks are nested.</p><div class="nice-separator"></div><p>By using <span class="vsymbol v">folly::Promise</span>, we can turn nested callbacks into chained callbacks in only two steps:</p><p><b>The first step</b> is to wrap the raw <span class="vsymbol v">async_rpc</span> into a function that returns <span class="vsymbol v">folly::SemiFuture</span> of the reply type. In this wrapper, create a <span class="vsymbol v">folly::Promise</span>, pass the promise to the callback, and return the <span class="vsymbol v">SemiFuture</span> associated with the promise:</p><pre class="gist"><code>folly::SemiFuture&lt;std::unique_ptr&lt;rpcReply&gt;&gt; asyncRpc(rpcArgs* args) {
+  auto p = new Promise&lt;rpcReply*&gt;();
+  auto f = p.getSemiFuture();
+  async_rpc(args, callback, reinterpret_cast&lt;void*&gt;(p));
+  return f;
+}</code></pre><p><b>The second step</b> is to call <span class="vsymbol v">promise-&gt;setValue</span> in the callback to pass the reply to the <span class="vsymbol v">SemiFuture</span>.</p><pre class="gist"><code>void callback(rpcReply* reply, void* cb_data) {
+  Promise* p = reinterpret_cast&lt;Promise*&gt;(cb_data);
+  p-&gt;setValue(std::unique_ptr&lt;rpcReply&gt;(reply));
+  delete p;
+}</code></pre><p>With these two simple steps, we have enabled callback chains in any libraries written in C language. We can convert the above <span class="vsymbol v">start</span> function:</p><pre class="gist"><code>int start(rpcArgs first_args, rpcArgs second_args) {
+  int total = 0;
+
+  return asyncRpc(first_args)
+    .deferValue([&amp;](std::unique_ptr&lt;rpcReply&gt; reply){
+      total += reply-&gt;value;
+      return asyncRpc(&amp;second_args);
+    })
+    .deferValue([&amp;](std::unique_ptr&lt;rpcReply&gt; reply){
+      total += reply-&gt;value;
+      return total;
+    }).get();
+}</code></pre><div class="nice-separator"></div><div class="right-margin">Wondering what a folly executor is? Take a look at <a href="/folly-notes-executors.html">Notes on Folly: Executors</a>.</div><p>Once we have wrapped the library to return <span class="vsymbol v">SemiFuture</span>, it’s easy to schedule callbacks based on the nature of computation: we can schedule all rpc call on IOExecutor and reply handlers on CPUExecutor.</p><p>For example, in the following chained callbacks, <span class="vsymbol v">cpuExecutor</span> is used to handle replies, and <span class="vsymbol v">ioExecutor</span> is used to send the second rpc.</p><pre class="gist"><code>int start(rpcArgs first_args, rpcArgs second_args) {
+  int total = 0;
+
+  return asyncRpc(first_args)
+    .via(cpuExecutor)
+    .then([&amp;](std::unique_ptr&lt;rpcReply&gt; reply){
+      total += reply-&gt;value;
+    })
+    .then(ioExecutor, [&amp;](folly::Unit) {
+      return asyncRpc(&amp;second_args);
+    })
+    .then([&amp;](std::unique_ptr&lt;rpcReply&gt; reply){
+      total += reply-&gt;value;
+      return total;
+    }).get();
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

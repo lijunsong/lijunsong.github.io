@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 1.20.  The process that a procedure generates is of course dependent on the rules used by the interpreter. As an example, consider the iterative gcd procedure given above. Suppose we were to interpret this procedure using normal-order evaluation, as discussed in section 1.1.5. (The normal-order-evaluation rule for if is described in exercise 1.5.) Using the substitution method (for normal order), illustrate the process generated in evaluating (gcd 206 40) and indicate the remainder operations that are actually performed. How many remainder operations are actually performed in the normal-order evaluation of (gcd 206 40)? In the applicative-order evaluation?</div><p> 当运行 <span class="vlong v">(gcd 206 40)</span> 的时候，如果解释器是 <span class="vsymbol v">normal-order</span>，也就是不求值，直接代换的话，我们可以得到下面一系列过程。</p><pre class="gist"><code>(if (= 40 0)
+    206
+    (if (remainder 206 40)
+        40
+        (if (remainder 40 (remainder 206 40))
+            (remainder 206 40)
+            (if (remainder (remainder 206 40)
+                           (remainder 40 (remainder 206 40)))
+                (remainder 40 (remainder 206 40))
+                (if ...)))))
+</code></pre><p>  <span class="vsymbol v">normal-order</span> 会等待递归的不断深入直到所有涉及到的运算都只是 primitive 操作的时候开始进行运算。所以 <span class="vsymbol v">normal-order</span> 会使得递归的操作进入死循环。</p><p>而对于 <span class="vsymbol v">applicative-order</span>，remainder 的执行步骤是 4 步。</p><pre class="gist"><code>1 ]=&gt; (trace remainder1)
+
+;Unspecified return value
+
+1 ]=&gt; (gcd 206 40)
+
+[Entering #[compound-procedure 3 remainder1]
+    Args: 206
+          40]
+[6
+      &lt;== #[compound-procedure 3 remainder1]
+    Args: 206
+          40]
+[Entering #[compound-procedure 3 remainder1]
+    Args: 40
+          6]
+[4
+      &lt;== #[compound-procedure 3 remainder1]
+    Args: 40
+          6]
+[Entering #[compound-procedure 3 remainder1]
+    Args: 6
+          4]
+[2
+      &lt;== #[compound-procedure 3 remainder1]
+    Args: 6
+          4]
+[Entering #[compound-procedure 3 remainder1]
+    Args: 4
+          2]
+[0
+      &lt;== #[compound-procedure 3 remainder1]
+    Args: 4
+          2]
+;Value: 2
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 5.13.  Modify the simulator so that it uses the controller sequence to determine what registers the machine has rather than requiring a list of registers as an argument to make-machine. Instead of pre-allocating the registers in make-machine, you can allocate them one at a time when they are first seen during assembly of the instructions.</div><p> 这个题很有意思！看上去我们需要修改很多东西，但仔细想想，我们只有在找 register 时才会碰到 register 的分配问题。所以只需要修改一点点代码就可以。</p><p>首先，我们去掉 <span class="vsymbol v">make-machine</span> 中 regs 参数，</p><pre class="gist sicp-code"><code>(define (make-machine ops controller-text)
+  (let ((machine (make-new-machine)))
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    machine))</code></pre><p>然后在 <span class="vsymbol v">make-new-machine</span> 中 <span class="vsymbol v">lookup-register</span> 被调用时要么返回已有的寄存器，要么分配新的寄存器。</p><pre class="gist sicp-code"><code>      (define (lookup-register name)
+        (let ((r (assoc name regs)))
+          (if r
+              (cdr r)
+              (begin
+                (allocate-register name)
+                (cdr (assoc name regs))))))</code></pre><p>Done! 下面进行测试。</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(define test-controller 
+  '((assign continue (label fib-done))
+ fib-loop
+   (test (op &lt;) (reg n) (const 2))
+   (branch (label immediate-answer))
+   ;; set up to compute Fib(n - 1)
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)                           ; save old value of n
+   (assign n (op -) (reg n) (const 1)); clobber n to n - 1
+   (goto (label fib-loop))            ; perform recursive call
+ afterfib-n-1                         ; upon return, val contains Fib(n - 1)
+   (restore n)
+   (restore continue)
+   ;; set up to compute Fib(n - 2)
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)                         ; save Fib(n - 1)
+   (goto (label fib-loop))
+ afterfib-n-2                         ; upon return, val contains Fib(n - 2)
+   (restore n)
+   (restore continue)
+   (assign val                        ;  Fib(n - 1) +  Fib(n - 2)
+           (op +) (reg val) (reg n))
+   (goto (reg continue))              ; return to caller, answer is in val
+ immediate-answer
+   (assign val (reg n))               ; base case:  Fib(n) = n
+   (goto (reg continue))
+ fib-done))
+
+(define test-machine
+  (make-machine
+   (list (list '&lt; &lt;)
+         (list '- -)
+         (list '+ +))
+   test-controller))
+
+(define (fib n)
+    (if (&lt; n 2)
+        n
+        (+ (fib (- n 1)) (fib (- n 2)))))
+
+(set-register-contents! test-machine 'n 10)
+(start test-machine)
+(assert= (get-register-contents test-machine 'val)
+         (fib 10))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

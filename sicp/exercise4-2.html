@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.2.  Louis Reasoner plans to reorder the cond clauses in eval so that the clause for procedure applications appears before the clause for assignments. He argues that this will make the interpreter more efficient: Since programs usually contain more applications than assignments, definitions, and so on, his modified eval will usually check fewer clauses than the original eval before identifying the type of an expression.</p><p>a. What is wrong with Louis’s plan? (Hint: What will Louis’s evaluator do with the expression (define x 3)?)</p><p>b. Louis is upset that his plan didn’t work. He is willing to go to any lengths to make his evaluator recognize procedure applications before it checks for most other kinds of expressions. Help him by changing the syntax of the evaluated language so that procedure applications start with call. For example, instead of (factorial 3) we will now have to write (call factorial 3) and instead of (+ 1 2) we will have to write (call + 1 2).</p></div><p> </p><h3 class="section" id="secsec217f1ec68bf75a6bcf43ba5cb54c5645">题目 a</h3><p>Louis 的问题在于没有搞清楚 <span class="vsymbol v">application?</span> 过程是如何实现的。事实上，没有任何一个判断可以判断当前的一个语句是否是 application。所以 application 满足的条件是</p><ol><li>不是其他的 special form，比如 quote, assignment, definition, if, lambda 等等</li><li>是一个 pair。</li></ol><p>所以 <span class="vsymbol v">application?</span> 只能被放到 eval 的最末尾。</p><h3 class="section" id="secsec869bfd162f61d189ca652124b441145a">题目 b</h3><p>要进行显示的过程调用，我们只需要修改下面几个过程就可以</p><pre class="gist"><code>(define (application? exp) (tagged-list? exp 'call))
+(define (operator exp) (cadr exp))
+(define (operands exp) (cddr exp))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

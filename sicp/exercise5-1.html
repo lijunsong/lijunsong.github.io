@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 5.1.  Design a register machine to compute factorials using the iterative algorithm specified by the following procedure. Draw data-path and controller diagrams for this machine.</p><pre class="gist"><code>(define (factorial n)
+  (define (iter product counter)
+    (if (&gt; counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+</code></pre></div><p> 下面是 data-path 图：</p><pre class="gist"><code>data-path:
+
+                   1-&gt;p         1-&gt;c
+     +-----------+       +---+       +-----------+
++---&gt;| product   |&lt;--X---| 1 |---X--&gt;| counter   |
+|    +-+---------+       +-+-+       +-+---------+
+|      |                   |           |       ^
+|      +---------+    +----+-------+   |       |
+|                |    |            |   |       |
+|                |    |            |   |       |
+X  t1- p         |    |            |   |       X t2-&gt;c
+|              --+----+--        --v---+---    |
+|               \  *   /          \  +   /     |
+|                ---+--            ---+--      |
+|                   |                 |        |
+|        *-&gt;t1      X           +-&gt;t2 X        |
+|                   |                 |        |
+|                +----+            +----+      |
+|                | t1 |            | t2 |      |
+|                +--+-+            +--+-+      |
+|                   |                 |        |
+|                   |                 |        |
++-------------------+                 +--------+</code></pre><p>（补记：注意 controller 图的意思。data-path 只是表示了链接，但是使用什么顺序按按钮是通过 controller 来表示的）</p><p>相对于这个 data-path 图的 controller 图如下：</p><pre class="gist"><code>controller diagram
+
+         start
+           |
+      +----v-----+
+      |  1-&gt;c    |
+      +----+-----+
+           v
+      +----------+
+      |  1-&gt;p    |
+      +----+-----+
+           |
+        /--v--\
++-----&gt;X   &gt;   X ------&gt; done
+|       \--+--/
+|          |
+|     +----v-----+
+|     |  +-&gt;t2   |
+|     +----+-----+
+|          |
+|     +----v-----+
+|     |  *-&gt;t1   |
+|     +----+-----+
+|          |
+|     +----v-----+
+|     |  t1-&gt;p   |
+|     +----+-----+
+|          |
+|     +----v-----+
+|     |  t2-&gt;c   |
+|     +----+-----+
+|          |
++----------+</code></pre><p>那我们画这个图有什么用呢？这个图把一个 Lisp 程序分解为了底层的数据的传递。在第五章中，我们将要模拟这些寄存器，以及数据的流动。画 data-path 可以帮助我们了解我们接下来要做的事情。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

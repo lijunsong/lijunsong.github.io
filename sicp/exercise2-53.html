@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.53.  What would the interpreter print in response to evaluating each of the following expressions?</p><pre class="gist"><code>(list 'a 'b 'c)
+
+(list (list 'george))
+(cdr '((x1 x2) (y1 y2)))
+
+(cadr '((x1 x2) (y1 y2)))
+(pair? (car '(a short list)))
+(memq 'red '((red shoes) (blue socks)))
+
+(memq 'red '(red shoes blue socks))
+</code></pre></div><p> </p><pre class="gist"><code>1 ]=&gt; (list 'a 'b 'c)
+
+;Value 2: (a b c)
+
+1 ]=&gt; (list (list 'george))
+
+;Value 3: ((george))
+
+1 ]=&gt; (cdr '((x1 x2) (y1 y2)))
+
+;Value 4: ((y1 y2))
+
+1 ]=&gt; (cadr '((x1 x2) (y1 y2)))
+
+;Value 5: (y1 y2)
+
+1 ]=&gt; (pair? (car '(a short list)))
+
+;Value: #f
+
+1 ]=&gt; (memq 'red '((red shoes) (blue socks)))
+
+;Value: #f
+
+1 ]=&gt; (memq 'red '(red shoes blue socks))
+
+;Value 6: (red shoes blue socks)
+</code></pre><p> 注意：<span class="vsymbol v">memq</span> 只能对只包含原子的表进行判断。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

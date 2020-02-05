@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 1.11.  A function f is defined by the rule that f(n) = n if n&lt;3 and f(n) = f(n - 1) + 2f(n - 2) + 3f(n - 3) if n&gt; 3. Write a procedure that computes f by means of a recursive process. Write a procedure that computes f by means of an iterative process.</div><p> 递归过程非常容易写出来。只需要根据函数定义就可以。</p><pre class="gist sicp-code"><code>(define (f/rec n)
+  (cond ((&lt; n 3) n)
+        (else
+         (+ (f/rec (- n 1))
+            (* 2 (f/rec (- n 2)))
+            (* 3 (f/rec (- n 3)))))))
+</code></pre><p>对于迭代的版本，我们必须知道，迭代的过程在每次迭代中都保存了当前的结果，它不可能像递归那样去为了得到 <span class="vsymbol v">fn</span> 的值才去计算 <span class="vsymbol v">fn-1</span> 的值，所以迭代总是从 <span class="vsymbol v">n</span> 可以取的某一个边界值开始，一直迭代到 <span class="vsymbol v">n</span> 的另外一个边界值。</p><pre class="gist sicp-code"><code>(define (f/iter n)
+  (define (iter fn-1 fn-2 fn-3 counter)
+    (cond ((&lt; n 3) n)
+          ((&gt; counter n) fn-1)
+          (else
+           (iter (+ fn-1 (* 2 fn-2) (* 3 fn-3))
+                 fn-1 fn-2
+                 (+ counter 1)))))
+  (iter 2 1 0 3))
+
+;;; tests begin
+(load "../testframe.scm")
+
+(for-each (lambda (x)
+            (assert= (f/rec x) (f/iter x)))
+          '(1 2 3 4 5 6 7 8 9 10))</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ">Exercise 4.10.  By using data abstraction, we were able to write an eval procedure that is independent of the particular syntax of the language to be evaluated. To illustrate this, design and implement a new syntax for Scheme by modifying the procedures in this section, without changing eval or apply.</div><p> 在我们的设计里面，要更改语法是很简单的事情。</p><p>比如我们想把 define 定义函数的语法更改得和 common lisp 一样：</p><pre class="gist"><code>(defun inc (x) (+ x 1))
+</code></pre><p> 那我们也就只需要把选择函数和构造函数修改一下即可，如下</p><pre class="gist sicp-code"><code>;;; add defun, common-lisp syntax, to define a function in scheme
+(define (install-eval-defun)
+  ;; import 
+  (define (make-lambda parameter body)
+    ((get 'constructor lambda-tag) parameter body))
+
+  ;; selector
+  (define (defun-variable exp)
+    (car exp))
+  (define (defun-paramter exp)
+    (cadr exp))
+  (define (defun-body exp)
+    (cddr exp))
+
+  (define (defun-value exp)
+    (make-lambda (defun-paramter exp)
+                 (defun-body exp)))
+
+  ;; main handler
+  (define (eval-defun exp env)
+    (define-variable! (defun-variable exp)
+                      (eval (defun-value exp) env)
+                      env)
+    'ok)
+  (put 'eval 'defun eval-defun))</code></pre><p>但值得注意的是，现在我们虽然已经有了一个 common-lisp 的语法（我们当然也可以把其他部分改得也都和 common-lisp 一模一样，包括过程调用的时候使用 funcall 关键字与 symbol 的搭配等等）但，我们得到的语言依然是 scheme。作为 lisp-1 语言的 scheme，environment 只有一种，变量与函数名称都往里面存放，所以变量与函数名是不能一样的；而 common-lisp 不同，同一个名字可以作为变量名也可以作为函数名，所以必须要把变量与函数存放的位置分开。</p><p>Scheme 的简洁也在于此。在 scheme 中我们一个非常优美地写出 <span class="vlong v">((if (&lt; b 0) - +) a b)</span>，但在 common-lisp 中不得不使用 funcall 关键字来完成。</p><p>言归正传。测试如下：</p><pre class="gist sicp-code"><code>
+(let ((test-env (setup-environment)))
+  (begin
+    (install-eval-defun)
+    (eval '(defun fib-iter (a b count)
+             (if (= count 0)
+                 b
+                 (fib-iter (+ a b) a (+ count -1)))) test-env)
+    (assert= (eval '(fib-iter 1 0 0) test-env) 0)
+    (assert= (eval '(fib-iter 1 0 3) test-env) 2)))
+ </code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>*-Driven Developments Have the Same Goal</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">*-Driven Developments Have the Same Goal</h1>
+          <div class="date">2021-02-03</div>
+          <div class="tags"></div>
+        </div>
+
+
+        <div class="content">
+          <div></div><p>In Lisp community, people often talk about REPL-driven development, where you define your functions in a top-down manner, evaluate in REPL partial or full expressions as you write them, until you see expected function output.</p><p>In dynamically-typed, non-Lisp language community, people often talk about test-driven development, where you start with tests before you write actual implementation, fill in any missing functions until tests pass.</p><p>In rust community, people talk about compiler-driven development, where you start to use desired apis in the code, fill in any missing definitions until your code compiles.</p><p>In reality, they serve the same goal—to figure out the requirement of a functionality:</p><ul><li>In lisp REPL, one fleshes out the requirement by evaluating a call site.</li><li>In tests, one fleshes out the requirement by actualizing the usage of functions and their return value.</li><li>With compiler, one, again, fleshes out the requirement by using the wanting functions directly in code.</li></ul><p>From this perspective, people who adopt test-driven development should also know that the 100%-test-coverage catechism is indenpendent from, or has nothing to do with, the fact that they write tests first.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

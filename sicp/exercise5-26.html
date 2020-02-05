@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}}); </script>
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 5.26.  Use the monitored stack to explore the tail-recursive property of the evaluator (section 5.4.2). Start the evaluator and define the iterative factorial procedure from section 1.2.1:</p><pre class="gist"><code>(define (factorial n)
+  (define (iter product counter)
+    (if (&gt; counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+</code></pre><p> Run the procedure with some small values of n. Record the maximum stack depth and the number of pushes required to compute n! for each of these values.</p><p>   a. You will find that the maximum depth required to evaluate n! is independent of n. What is that depth?</p><p>   b. Determine from your data a formula in terms of n for the total number of push operations used in evaluating n! for any n &gt; 1. Note that the number of operations used is a linear function of n and is thus determined by two constants.</p></div><p> </p><h3 class="section" id="secsec69b69f32a18e49125a171cad9390a347">a</h3><p>我们选择下列 n 值进行测试。</p><pre class="gist"><code>;;; EC-Eval input:
+(define (factorial n)
+  (define (iter product counter)
+    (if (&gt; counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+
+(total-pushes = 3 maximum-depth = 3)
+;;; EC-Eval value:
+ok
+
+;;; EC-Eval input:
+(factorial 1)
+
+(total-pushes = 64 maximum-depth = 10)
+;;; EC-Eval value:
+1
+
+;;; EC-Eval input:
+(factorial 2)
+
+(total-pushes = 99 maximum-depth = 10)
+;;; EC-Eval value:
+2
+
+;;; EC-Eval input:
+(factorial 3)
+
+(total-pushes = 134 maximum-depth = 10)
+;;; EC-Eval value:
+6
+
+;;; EC-Eval input:
+(factorial 4)
+
+(total-pushes = 169 maximum-depth = 10)
+;;; EC-Eval value:
+24
+
+;;; EC-Eval input:
+(factorial 5)
+
+(total-pushes = 204 maximum-depth = 10)
+;;; EC-Eval value:
+120
+
+;;; EC-Eval input:
+(factorial 10)
+
+(total-pushes = 379 maximum-depth = 10)
+;;; EC-Eval value:
+3628800
+
+;;; EC-Eval input:
+</code></pre><p> maximum-depth 都是 10 。</p><h3 class="section" id="secsec8915ef39360951b128bd425336580bf3">b</h3><p>简单列式就可以得出</p><pre class="gist"><code>a + b = 64
+2a + b = 99
+
+a = 35
+b = 29
+</code></pre><p> 关于 n 的函数是</p><p><mathjax class="$$">$$
+f(n) = 35 \times n + 29$$</mathjax></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 4.8.  ‘‘Named let’’ is a variant of let that has the form</p><pre class="gist"><code>(let &lt;var&gt; &lt;bindings&gt; &lt;body&gt;)
+</code></pre><p> The &lt;bindings&gt; and &lt;body&gt; are just as in ordinary let, except that &lt;var&gt; is bound within &lt;body&gt; to a procedure whose body is &lt;body&gt; and whose parameters are the variables in the &lt;bindings&gt;. Thus, one can repeatedly execute the &lt;body&gt; by invoking the procedure named &lt;var&gt;. For example, the iterative Fibonacci procedure (section 1.2.2) can be rewritten using named let as follows:</p><pre class="gist"><code>(define (fib n)
+  (let fib-iter ((a 1)
+                 (b 0)
+                 (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) a (- count 1)))))
+</code></pre><p> Modify let-&gt;combination of exercise 4.6 to also support named let.</p></div><p> named-let 也只需要借助于当前已经有的 let 表达式来完成定义。题目中的一个 named-let 的定义</p><pre class="gist"><code>(define (fib n)
+  (let fib-iter ((a 1)
+                 (b 0)
+                 (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) a (- count 1)))))
+</code></pre><p> 转化为 let 的表达式应该为</p><pre class="gist"><code>(let ((fib-iter 1))
+  (begin
+    (set! fib-iter (lambda (a b count)
+                     (if (= count 0)
+                         b
+                         (fib-iter (+ a b) a (- count 1)))))
+    (fib-iter 1 0 n)))
+</code></pre><p> 我们先使用 let 表达式使 fib-iter 这个名称对于之后的内容可见–至于它的初始内容，就无关紧要了。在接下来要做的事情中，就是把这个名称与其要绑定的过程绑定，在绑定之后，过程中如果使用了这个名称来进行递归也没有问题了，因为当运行到这个递归语句的时候，我们的名称已经绑定到了相应过程上了。</p><p>这是一种让过程有递归能力的普遍方法：</p><ol><li>让名称可见；</li><li>将名称绑定到相应过程上。</li></ol><p>我们将对 eval-let 的 package 进行修改。主要修改 let-&gt;combination 过程，如果传递进去的不是 named-let，那么之前的操作不变。如果是 named-let，那么 <span class="vsymbol v">let-&gt;combination</span> 将会把 named-let 转化为 let，然后再转化为 lambda 表达式。</p><p>我们的 <span class="vsymbol v">let-&gt;combination</span> 如下：</p><pre class="gist sicp-code"><code>  (define (let-&gt;combination exp)
+    (if (named-let? exp)
+        (let-&gt;combination (cdr (named-let-&gt;let exp)))
+        (cons (make-lambda (let-vars (let-bindings exp))
+                           (let-body exp))
+              (let-vals (let-bindings exp)))))</code></pre><p><span class="vsymbol v">let-&gt;combination</span> 中使用到了 <span class="vsymbol v">named-let-&gt;let</span> 的过程，如下：</p><pre class="gist sicp-code"><code>  (define (named-let-&gt;let exp)
+    (let ((var (car exp))
+          (bindings (cadr exp))
+          (body (cddr exp)))
+
+      (let ((procedure (make-lambda (let-vars bindings)
+                                    body)))
+        (make-let (list var)
+                  (list 1) ; arbitrary value!
+                  ((get 'constructor sequence-tag)
+                   (list (list 'set! var procedure)
+                         (cons var (let-vals bindings))))))))</code></pre><p>最后是我们的测试用例</p><pre class="gist sicp-code"><code>; test the transformation
+
+(let ((test-env (setup-environment)))
+  (begin
+    (install-eval-named-let)
+    (assert= (eval '(let ((x 1) (y 1))
+                      (+ x y)) test-env)
+             2)
+    (assert= (eval '(let ((x 1))
+                      (let ((x 2))
+                        (+ x 2))) test-env)
+             4)
+    (assert= (eval '(let ((x 1))
+                      (let ((x 2))
+                        (set! x 3))
+                      x) test-env)
+             1)
+    (eval '(define (fib n)
+             (let fib-iter ((a 1)
+                            (b 0)
+                            (count n))
+               (if (= count 0)
+                   b
+                   (fib-iter (+ a b) a (+ count -1))))) test-env)
+    (assert= (eval '(fib 10) test-env) 55)))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

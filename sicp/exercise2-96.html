@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 2.96.  a.    Implement the procedure pseudoremainder-terms, which is just like remainder-terms except that it multiplies the dividend by the integerizing factor described above before calling div-terms. Modify gcd-terms to use pseudoremainder-terms, and verify that greatest-common-divisor now produces an answer with integer coefficients on the example in exercise 2.95.</p><p>b.    The GCD now has integer coefficients, but they are larger than those of P1. Modify gcd-terms so that it removes common factors from the coefficients of the answer by dividing all the coefficients by their (integer) greatest common divisor.</p></div><p> </p><h3 class="section" id="secsec588aa0d7cbe3742cd7953fdbb93475c4">使用 pseudoremainder-terms</h3><pre class="gist sicp-code"><code>  (define (pseudoremainder-terms L1 L2)
+    (define (integerize factor L)
+      (map
+       (lambda (x)
+         (make-term (order x) (mul factor (coeff x)))) L))
+    (let* ((factor (expt (coeff (first-term L2))
+                         (+ 1
+                            (order (first-term L1))
+                            (- 0 (order (first-term L2))))))
+           (result (div-terms (integerize factor L1) L2)))
+      (cadr result)))
+
+  (define (gcd-terms a b)
+    (if (empty-termlist? b)
+        a
+        (gcd-terms b (pseudoremainder-terms a b))))
+</code></pre><p>这个方法相当于在除数的位置乘以一个数字（被除数最高幂指数的系数的n次方），有了这个因子，在作除法的时候就可以实现系数的整除。</p><h3 class="section" id="secsec5822658fc4a7797880fae10e388b52e7">化简最终结果</h3><p>在上面的结果中，我们已经得到了整数的系数，但系数是可以再化简的–再化简之后就变成了 p1，即最好的结果。</p><p>我们只需要把 <span class="vsymbol v">gcd-terms</span> 写成这样即可：</p><pre class="gist sicp-code"><code>  (define (gcd-terms a b)
+    (define (simplify terms)
+      (let ((gcd-fator (apply gcd (map (lambda (x) (coeff x)) terms))))
+        (map (lambda (term)
+               (make-term (order term) (div (coeff term) gcd-fator)))
+             terms)))
+    (if (empty-termlist? b)
+        (simplify a)
+        (gcd-terms b (pseudoremainder-terms a b))))
+</code></pre><p>这个过程会计算所有系数的 gcd 值，然后每个系数除以这个 gcd 值就是最终解。</p><p>最后我们的测试如下：</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+
+(define p1 (make-polynomial 'x '((2 1) (1 -2) (0 1))))
+(define p2 (make-polynomial 'x '((2 11) (0 7))))
+(define p3 (make-polynomial 'x '((1 13) (0 5))))
+
+(define q1 (mul p1 p2))
+
+(define q2 (mul p1 p3))
+
+(assertequal? (greatest-common-divisor q1 q2)
+              (make-polynomial 'x '((2 1) (1 -2) (0 1))))
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

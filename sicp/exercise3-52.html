@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.52.  Consider the sequence of expressions</p><pre class="gist"><code>(define sum 0)
+(define (accum x)
+  (set! sum (+ x sum))
+  sum)
+(define seq (stream-map accum (stream-enumerate-interval 1 20)))
+(define y (stream-filter even? seq))
+(define z (stream-filter (lambda (x) (= (remainder x 5) 0))
+                         seq))
+(stream-ref y 7)
+(display-stream z)
+</code></pre><p> What is the value of sum after each of the above expressions is evaluated? What is the printed response to evaluating the stream-ref and display-stream expressions? Would these responses differ if we had implemented (delay &lt;exp&gt;) simply as (lambda () &lt;exp&gt;) without using the optimization provided by memo-proc ? Explain.</p></div><p> </p><h3 class="section" id="secsecf4ba596b083c0b2a615e52b4baa39497">sum 的值</h3><p>有了之前对 <span class="vsymbol v">stream-map</span> 与 <span class="vsymbol v">stream-enumerate-interval</span> 的理解，我们知道 <span class="vsymbol v">stream-map</span> 第一次实际只对第一个元素进行计算，之后的元素都放到 <span class="vsymbol v">delay</span> 中。下面是依次计算的结果：</p><ol><li>seq 为 <span class="vlong v">(1 . #[promise])</span>，<span class="vsymbol v">stream-enumerate-interval</span> 产生的序列是 <span class="vsymbol v">(1)</span>，此时 sum 为 1。</li><li>y 为 <span class="vlong v">(6 . #[promise])</span>，<span class="vsymbol v">stream-enumerate-interval</span> 产生的序列是 <span class="vlong v">(1 2 3)</span>，此时 sum 为 6，</li><li>z 为 <span class="vlong v">(10 . #[promise])</span>，<span class="vsymbol v">stream-enumerate-interval</span> 产生的序列是 <span class="vlong v">(1 2 3 4)</span> ，此时的 sum 为 10。</li><li>运行至 <span class="vlong v">(stream-ref y 7)</span>，<span class="vsymbol v">stream-enumerate-interval</span> 将会产生序列 <span class="vlong v">(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)</span>，sum 为其和 130</li><li><span class="vlong v">(display-stream z)</span>，<span class="vsymbol v">stream-enumerate-interval</span> 将会产生 1-20 的数字，sum 为其总和。打印的数字为</li></ol><pre class="gist"><code>10
+15
+45
+55
+105
+120
+190
+210
+
+</code></pre><p>  因为我们的解释器对 force 使用了优化，所以，每次求值都不会让 stream 从头开始求，使得 sum 值与数列前 n 项和一直一致。</p><p>假如我们的 force 过程没有优化，那么结果会不一样。看下面的代码。（注意 **特殊过程** delay-1 的实现，必须使用宏）</p><pre class="gist sicp-code"><code>;; cons-stream implementation
+
+(define-syntax delay-1
+  (syntax-rules ()
+    ((delay-1 x)
+     (lambda () x))))
+
+(define (force-1 delayed)
+  (delayed))
+
+(define (stream-car stream) (car stream))
+
+(define (stream-cdr stream) (force-1 (cdr stream)))
+
+(define-syntax cons-stream
+  (syntax-rules ()
+    ((cons-stream a b)
+     (cons a (delay-1 b)))))
+
+(define (stream-ref s n)
+  (if (= n 0)
+      (stream-car s)
+      (stream-ref (stream-cdr s) (- n 1))))
+
+(define (stream-map proc s)
+  (if (stream-null? s)
+      the-empty-stream
+      (cons-stream (proc (stream-car s))
+                   (stream-map proc (stream-cdr s)))))
+
+(define (stream-for-each proc s)
+  (if (stream-null? s)
+      'done
+      (begin
+        (proc (stream-car s))
+        (stream-for-each proc (stream-cdr s)))))
+
+(define (display-stream s)
+  (stream-for-each display-line s))
+
+(define (display-line x)
+  (newline)
+  (display x))
+
+(define (stream-enumerate-interval low high)
+  (if (&gt; low high)
+      the-empty-stream
+      (cons-stream
+       low
+       (stream-enumerate-interval (+ low 1) high))))
+
+(define (stream-filter pred stream)
+  (cond ((stream-null? stream) the-empty-stream)
+        ((pred (stream-car stream))
+         (cons-stream (stream-car stream)
+                      (stream-filter pred (stream-cdr stream))))
+        (else (stream-filter pred (stream-cdr stream)))))
+
+
+(define sum 0)
+
+(define (accum x)
+  (set! sum (+ x sum))
+  sum)
+
+(define seq (stream-map accum (stream-enumerate-interval 1 20)))
+; seq: (1 . procedure)
+; sum: 1
+
+(define y (stream-filter even? seq))
+; seq: (1 . procedure)
+; sum: 6
+;   y: (6 . procedure)
+
+(define z (stream-filter (lambda (x) (= (remainder x 5) 0))
+                         seq))
+; seq: (1 . procedure)
+; sum: 15
+;   z: (15 . procedure)
+
+(stream-ref y 7)
+; =&gt; 162
+; seq: (1 . procedure)
+; sum: 162
+
+
+(display-stream z)
+; seq: (1 . procedure)
+;15
+;180
+;230
+;305
+
+
+</code></pre><p>从 z 开始和之前不一样，因为 seq 永远都是从 1 开始的。下一个数字为 <span class="vlong v">(sum + x)</span>。在 z 求值的时候，sum = 6，seq 序列将循环地得到 <span class="vlong v">(1, (6) + 2, (6 + 2) + 3, (6 + 2 + 3) + 4 ...)</span> 第一个5的除数则为 15，后续计算被 delay。所以 z 为 <span class="vlong v">(15 . procedure)</span></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

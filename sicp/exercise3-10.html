@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 3.10.  In the make-withdraw procedure, the local variable balance is created as a parameter of make-withdraw. We could also create the local state variable explicitly, using let, as follows:</p><pre class="gist"><code>(define (make-withdraw initial-amount)
+  (let ((balance initial-amount))
+    (lambda (amount)
+      (if (&gt;= balance amount)
+          (begin (set! balance (- balance amount))
+                 balance)
+          "Insufficient funds"))))
+</code></pre><p> Recall from section 1.3.2 that let is simply syntactic sugar for a procedure call:</p><pre class="gist"><code>(let ((&lt;var&gt; &lt;exp&gt;)) &lt;body&gt;)
+</code></pre><p> is interpreted as an alternate syntax for</p><pre class="gist"><code>((lambda (&lt;var&gt;) &lt;body&gt;) &lt;exp&gt;)
+</code></pre><p> Use the environment model to analyze this alternate version of make-withdraw, drawing figures like the ones above to illustrate the interactions</p><pre class="gist"><code>(define W1 (make-withdraw 100))
+
+(W1 50)
+
+(define W2 (make-withdraw 100))
+</code></pre><p> Show that the two versions of make-withdraw create objects with the same behavior. How do the environment structures differ for the two versions?</p></div><p> 首先是 make-withdraw</p><pre class="gist"><code>+------------------------------+
+| make-withdraw: ----+         |
+|                    |         |
++--------------------+---------+
+                     |
+                     |
+                     |
+                     |
+                     |
+             Parameter: initial-amount
+                  body: (let ((balance initial-amount))
+                          (lambda (amount)...))</code></pre><p>在调用 <span class="vlong v">(define W1 (make-withdraw 100))</span> 时的环境图</p><pre class="gist"><code>+-------------------------------------------------+
+| make-withdraw: ...                              |
+| W1 ----+                                        |
++--------+----------------------------------------+
+         |                     ^
+         |                     |
+         |        E1           |
+         |           +---------+----------+
+         |  +------&gt; |initial-amount:100  |
+         |  |        |balance: 100        |
+         v  |        +--------------------+
+Parameter: amount
+     body: ...</code></pre><p>调用 (W1 50) 时</p><pre class="gist"><code>+-------------------------------------------------+
+| make-withdraw: ...                              |
+| W1 ----+                                        |
++--------+----------------------------------------+
+         |                     ^
+         |                     |
+         |        E1           |
+         |           +---------+----------+
+         |  +------&gt; |initial-amount:100  |
+         |  |        |balance: 100        | &lt;------------+
+         v  |        +--------------------+              |
+Parameter: amount                                        |    E2
+     body: ...                                   +-------+-------+
+                                                 | amount: 50    |
+                                                 |               |
+                                                 +---------------+
+                                                    (if (&gt;= balance amount)
+                                                        (begin (set! balance (- balance amount))
+                                                               balance)
+                                                        "Insufficient funds")</code></pre><p>在 E2 环境中运行代码时，balance 在 E2 中找不到，所以到 E2 的上一个 frame 中找，得到结构是 balance 为 100，于是运行 set! 得到结果</p><pre class="gist"><code>+-------------------------------------------------+
+| make-withdraw: ...                              |
+| W1 ----+                                        |
++--------+----------------------------------------+
+         |                     ^
+         |                     |
+         |        E2           |
+         |           +---------+----------+
+         |  +------&gt; |initial-amount:100  |
+         |  |        |balance: 50         |
+         v  |        +--------------------+
+Parameter: amount
+     body: ...</code></pre><p>运行 <span class="vlong v">(define W2 (make-withdraw 100))</span> 时，会构造一个新的环境 E3，与之前的 E1，E2 都没有关系。</p><pre class="gist"><code>+-------------------------------------------------+
+| make-withdraw: ...                              |
+| W1: ...                                         |
+| W2:----+                                        |
++--------+----------------------------------------+
+         |                     ^
+         |                     |
+         |        E3           |
+         |           +---------+----------+
+         |  +------&gt; |initial-amount:100  |
+         |  |        |balance: 100        |
+         v  |        +--------------------+
+Parameter: amount
+     body: ...</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: Thread Pool Executors</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: Thread Pool Executors</h1>
+          <div class="date">2020-06-13</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p><span class="vsymbol v">ThreadPoolExecutor</span> introduces threads to run tasks. There are
+        two important executors based on <span class="vsymbol v">ThreadPoolExecutor</span>:
+        <span class="vsymbol v">IOThreadPoolExecutor</span> for IO bound tasks, and <span class="vsymbol v">CPUThreadPoolExecutor</span> for
+        CPU bound tasks. They respond to loads differently.</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <div class="right-margin">What is an executor? Read <a href="/folly-notes-executors.html">Notes on Folly: Executors</a></div><p>ThreadPoolExecutor is an abstract class that introduces threads into executors. For IO executors, threads run in parallel to do async I/O, and for CPU executors, threads run in parallel to execute tasks as fast as they can.</p><p><span class="vsymbol v">ThreadPoolExecutor</span> has following helper classes:</p><ul><li><span class="vsymbol v">PoolStats</span>: a struct about total count of threads and tasks in different in different states</li><li><span class="vsymbol v">TaskStats</span>: a struct of individual task stats</li><li><span class="vsymbol v">Observer</span>: to allow subscription of events on thread start and stop</li><li><span class="vsymbol v">Thread</span>: to store additional information to <span class="vsymbol v">std::thread</span></li><li><span class="vsymbol v">Task</span>: to store the actual task function and information for <span class="vsymbol v">TaskStats</span></li><li><span class="vsymbol v">ThreadList</span>: the thread pool</li><li><span class="vsymbol v">StoppedThreadQueue</span>: store stopped thread.</li></ul><h3 class="section" id="secsec4ca767f836d8eaa1919fd271da448148">Thread Management</h3><p><span class="vsymbol v">ThreadPoolExecutor</span> is an <span class="vsymbol v">Executor</span> with a thread pool implementation that can dynamically adjust the number of threads. So the meat here is its implementation on thread management.</p><p>How does it manage its threads? All threads are recorded in <span class="vsymbol v">threadList_</span>, Stopped threads are recorded on <span class="vsymbol v">stoppedThreads_</span>, and the number of threads to join is recorded in <span class="vsymbol v">threadsToJoin_</span>: </p><pre class="gist"><code>ThreadList threadList_;
+SharedMutex threadListLock_;
+StoppedThreadQueue stoppedThreads_;
+...
+std::atomic&lt;size_t&gt; threadsToJoin_{0};</code></pre><p><span class="vsymbol v">ThreadList</span> is a struct that supports thread add and remove:</p><pre class="gist"><code>class ThreadList {
+ public:
+  void add(const ThreadPtr&amp; state) {...}
+  void remove(const ThreadPtr&amp; state) {...}
+  ...</code></pre><p>To control the number of threads and ensure there are enough threads taking tasks, <span class="vsymbol v">ThreadPoolExecutor</span> has the following methods:</p><pre class="gist"><code>public:
+ void setNumThreads(size_t numThreads);
+
+protected:
+ void addThreads(size_t n);
+ void removeThreads(size_t n, bool isJoin);
+ virtual void threadRun(ThreadPtr thread) = 0;
+ virtual void stopThreads(size_t n) = 0;
+ void joinStoppedThreads(size_t n);
+ void ensureActiveThreads();
+ void ensureJoined();
+ bool minActive();
+ bool tryTimeoutThread();</code></pre><p>First, <span class="vlong v">addThreads(size_t n)</span> adds <span class="vsymbol v">n</span> threads to current pool: it creates <span class="vsymbol v">n</span> <span class="vsymbol v">Thread</span> struct, each one running <span class="vsymbol v">ThreadPoolExecutor::threadRun</span>, and then it waits on <span class="vsymbol v">thread-&gt;startupBaton</span>. Subclasses decide the behavior of <span class="vsymbol v">threadRun</span>, but all <span class="vsymbol v">threadRun</span> should call <span class="vsymbol v">startupBaton.post()</span> to unblock the caller <span class="vsymbol v">addThreads</span>.</p><p><span class="vlong v">removeThreads(size_t n, bool isJoin)</span> removes <span class="vsymbol v">n</span> threads. Because thread startup is handed off to subclasses, this one simply calls <span class="vsymbol v">stopThreads</span>, which should be implemented by subclasses.</p><p><span class="vlong v">setNumThreads(size_t numThreads)</span> sets the max threads, and adjust the threads number: if the number of running threads is greater than the max threads, <span class="vsymbol v">removeThreads</span> should stop extra threads. If the number of running threads is smaller than the max threads, new threads will be created only when there are pending tasks. This ensures the thread pool can dynamically adjust the number of threads.</p><p><span class="vsymbol v">joinStoppedThreads</span> takes <span class="vsymbol v">n</span> threads out of <span class="vsymbol v">stoppedThreads_</span> queue, and calls <span class="vsymbol v">handle.join()</span> on the thread. <span class="vsymbol v">ensureJoined</span> ensures to pass the right number of <span class="vsymbol v">n</span> to <span class="vsymbol v">joinStoppedThreads</span>.</p><p><span class="vsymbol v">tryTimeoutThread</span> and <span class="vsymbol v">ensureActiveThreads</span> are hard to explain when they’re separated from the actual use case, so we’ll come back to them later.</p><h3 class="section" id="secsecf9f04b799c8b208aba6031a8e64255f6">CPUThreadPoolExecutor</h3><p><span class="vsymbol v">CPUThreadPoolExecutor</span> is one of the most useful executors in folly. It’s good for running CPU bound tasks.  There are a few questions we can use to drive our exploration here:</p><ol><li>How does each thread run tasks?</li><li>How does the thread pool respond to a suddenly increased volume of CPU tasks?</li><li>How does the thread pool release resources when the flood of CPU tasks goes away?</li><li>How does the thread pool shutdown?</li></ol><h4 class="subsection" id="subsecsubseceb4810fffeebe4fc41fde1dfdfa930a9">threadRun</h4><p>We have mentioned that <span class="vsymbol v">threadRun</span> is where threads begin their lives, so let’s take a look at what does each thread do in this executor:</p><pre class="gist"><code>void CPUThreadPoolExecutor::threadRun(ThreadPtr thread) {
+  this-&gt;threadPoolHook_.registerThread();
+
+  thread-&gt;startupBaton.post();
+  while (true) {
+    auto task = taskQueue_-&gt;try_take_for(threadTimeout_);
+    // Handle thread stopping, either by task timeout, or
+    // by 'poison' task added in join() or stop().
+    if (UNLIKELY(!task || task.value().poison)) {
+      // Actually remove the thread from the list.
+      SharedMutex::WriteHolder w{&amp;threadListLock_};
+      if (taskShouldStop(task)) {
+        for (auto&amp; o : observers_) {
+          o-&gt;threadStopped(thread.get());
+        }
+        threadList_.remove(thread);
+        stoppedThreads_.add(thread);
+        return;
+      } else {
+        continue;
+      }
+    }
+
+    runTask(thread, std::move(task.value()));
+
+    if (UNLIKELY(threadsToStop_ &gt; 0 &amp;&amp; !isJoin_)) {
+      SharedMutex::WriteHolder w{&amp;threadListLock_};
+      if (tryDecrToStop()) {
+        threadList_.remove(thread);
+        stoppedThreads_.add(thread);
+        return;
+      }
+    }
+  }
+}</code></pre><p>We see <span class="vsymbol v">thread-&gt;startupBaton</span> unblocks <span class="vsymbol v">addThreads</span> immediately when a thread runs. Then it simply takes task from <span class="vsymbol v">taskQueue_</span>, and runs</p><pre class="gist"><code>runTask(thread, std::move(task.value()))</code></pre><p>Note the way it pulls tasks. It calls <span class="vsymbol v">taskQueue_-&gt;try_take_for</span>, which is a blocking call if there is no task in the queue so that the thread is not in busy loop wasting CPU.</p><h4 class="subsection" id="subsecsubsec5e82ef58c2f661a21cb7df00075a8547">Respond to Flood of Tasks</h4><p>When there is a sudden volume increase in tasks, how does the thread pool handle it?</p><pre class="gist"><code>void CPUThreadPoolExecutor::add(Func func) {
+  add(std::move(func), std::chrono::milliseconds(0));
+}
+
+void CPUThreadPoolExecutor::add(
+    Func func,
+    std::chrono::milliseconds expiration,
+    Func expireCallback) {
+  auto result = taskQueue_-&gt;add(
+      CPUTask(std::move(func), expiration, std::move(expireCallback)));
+  if (!result.reusedThread) {
+    ensureActiveThreads();
+  }
+}</code></pre><p><span class="vsymbol v">taskQueue_-&gt;add</span> is doing the heavy lift here. When add returns, it knows whether it has awaken a thread of not, and if not, <span class="vsymbol v">ensureActiveThreads</span> creates more threads. What does <span class="vsymbol v">ensureActiveThreads</span> do?</p><pre class="gist"><code>// If we can't ensure that we were able to hand off a task to a thread,
+// attempt to start a thread that handled the task, if we aren't already
+// running the maximum number of threads.
+void ThreadPoolExecutor::ensureActiveThreads() {
+  ensureJoined();
+
+  // Matches barrier in tryTimeoutThread().  Ensure task added
+  // is seen before loading activeThreads_ below.
+  asymmetricLightBarrier();
+
+  // Fast path assuming we are already at max threads.
+  auto active = activeThreads_.load(std::memory_order_relaxed);
+  auto total = maxThreads_.load(std::memory_order_relaxed);
+
+  if (active &gt;= total) {
+    return;
+  }
+
+  SharedMutex::WriteHolder w{&amp;threadListLock_};
+  // Double check behind lock.
+  active = activeThreads_.load(std::memory_order_relaxed);
+  total = maxThreads_.load(std::memory_order_relaxed);
+  if (active &gt;= total) {
+    return;
+  }
+  ThreadPoolExecutor::addThreads(1);
+  activeThreads_.store(active + 1, std::memory_order_relaxed);
+}</code></pre><p><span class="vsymbol v">ensureJoined</span> joins all threads that need to be joined. Then a memory barrier is set to ensure all tasks are added before the start of threads counting, and if there is still room to start a new thread, <span class="vsymbol v">addThreads(1)</span> is called.</p><p>In sum the system ensures the maximum performance by reusing or adding more threads to take tasks.</p><h4 class="subsection" id="subsecsubsec46efd69b7418b9776d9f10a6f028d0f9">Respond to Quiet System</h4><p>When the thread pool is not busy anymore, tons of threads are already created. Now they need to detect whether the system is not busy.</p><p>In <span class="vsymbol v">threadRun</span>, the thread blocking waits on taking tasks</p><pre class="gist"><code>auto task = taskQueue_-&gt;try_take_for(threadTimeout_);</code></pre><p><span class="vsymbol v">ThreadPoolExecutor</span>‘s ctor sets <span class="vsymbol v">threadTimeout_</span> to <span class="vsymbol v">FLAGS_threadtimeout_ms</span>, which is a gflag that by default has <span class="vsymbol v">60s</span> value.</p><p>So thread will block waiting 60s to take one task. When the system has been quiet for 60s, <span class="vsymbol v">task</span> will be <span class="vsymbol v">folly::none</span> that has <em>false</em> value in test condition</p><pre class="gist"><code>if (UNLIKELY(!task || task.value().poison)) {
+  // Actually remove the thread from the list.
+  SharedMutex::WriteHolder w{&amp;threadListLock_};
+  if (taskShouldStop(task)) {
+    for (auto&amp; o : observers_) {
+      o-&gt;threadStopped(thread.get());
+    }
+    threadList_.remove(thread);
+    stoppedThreads_.add(thread);
+    return;
+  } else {
+    continue;
+  }
+}</code></pre><p>The main logic here is to decide whether the system should stop current thread, if so do house cleanup and exit the thread execution, and otherwise just continue to try to take tasks.</p><p>Let’s quickly look at how it decides to stop a thread. There are two cases in which we need to stop a thread. One case is what we’re looking at now, that the thread has been idle for too long. The second case is when the system shuts down (see the shutting down case below).</p><p><span class="vsymbol v">taskShouldStop</span> is</p><pre class="gist"><code>bool CPUThreadPoolExecutor::taskShouldStop(folly::Optional&lt;CPUTask&gt;&amp; task) {
+  if (tryDecrToStop()) {
+    return true;
+  }
+  if (task) {
+    return false;
+  } else {
+    return tryTimeoutThread();
+  }
+  return true; // NOT REACHABLE
+}</code></pre><p>Let’s take a look at <span class="vsymbol v">tryDecrToStop</span> first. Calling <span class="vsymbol v">tryDecrToStop</span> simply checks <span class="vsymbol v">threadsToStop_</span> variable and decreases the value by <span class="vnumber v">1</span>.</p><pre class="gist"><code>// threadListLock_ must be writelocked.
+bool CPUThreadPoolExecutor::tryDecrToStop() {
+  auto toStop = threadsToStop_.load(std::memory_order_relaxed);
+  if (toStop &lt;= 0) {
+    return false;
+  }
+  threadsToStop_.store(toStop - 1, std::memory_order_relaxed);
+  return true;
+}</code></pre><p>Who increases <span class="vsymbol v">threadsToStop_</span>? The only place is <span class="vsymbol v">stopThreads</span>, which is called only by <span class="vsymbol v">removeThreads</span>, which is called in a few places where the thread numbers need to be resized.</p><p>During shutdown, it needs to stop threads. In shutdown <span class="vsymbol v">taskShouldStop</span> always returns true regardless whether there are pending tasks.</p><div class="right-margin">The task can be a poisoned task added during shutdown. <span class="vsymbol v">taskShouldStop</span> returns true because <span class="vsymbol v">tryDecrToStop</span> returns true. But if ever <span class="vsymbol v">taskShouldStop</span> returns false, <span class="vsymbol v">threadRun</span> will just drop the poisoned task anyway.</div><p>Let’s get back to <span class="vsymbol v">taskShouldStop</span>. If the given task is real (versus an empty task because of timeout), it returns false indicating the thread should continue running, otherwise it tries to run <span class="vsymbol v">tryTimeoutThread</span>.</p><p><span class="vsymbol v">tryTimeoutThread</span> checks if there is still pending tasks, if no pending tasks found, it increases <span class="vsymbol v">threadsToJoin_</span> and returns true. Otherwise, this thread should be reused to run pending tasks, so it returns false.</p><p><span class="vsymbol v">taskShouldStop</span> is called only when the system is quiet.  It calls into <span class="vsymbol v">tryTimeoutThread</span>, which bumps <span class="vsymbol v">threadsToJoin_</span>, and <span class="vsymbol v">taskShouldStop</span> returns true, which leads to</p><pre class="gist"><code>threadList_.remove(thread);
+stoppedThreads_.add(thread);
+return;</code></pre><h4 class="subsection" id="subsecsubsec16ab7bea2c327305766e5173cc328abc">Shutdown</h4><p>When the thread pool is shutting down, <span class="vsymbol v">stopThreads</span> will be called:</p><pre class="gist"><code>void CPUThreadPoolExecutor::stopThreads(size_t n) {
+  threadsToStop_ += n;
+  for (size_t i = 0; i &lt; n; i++) {
+    taskQueue_-&gt;addWithPriority(CPUTask(), Executor::LO_PRI);
+  }
+}</code></pre><p>Here <span class="vsymbol v">taskQueue_</span> receives a <span class="vsymbol v">CPUTask</span> that has <span class="vsymbol v">poison</span> set to true. Once the <span class="vsymbol v">poison</span> task is received, the thread will follow the exit flow described above.</p><p>What about the case where some threads are busy on tasks while poison tasks are sent? <span class="vsymbol v">threadsToStop_</span> was incremented before poison tasks are sent. So active threads will stop immediately after finish their tasks without receiving the poison message because <span class="vsymbol v">taskShouldStop</span> is going to return true when <span class="vsymbol v">threadsToStop_</span> is greater than 0.</p><p>In sum, <span class="vsymbol v">CPUThreadPoolExecutor</span> maximizes the performance in busy time by spawning more threads to run tasks, and reduces the number of threads in quiet time.</p><h3 class="section" id="secsec676ec1da3a72ea4f761f1217618b814a">IOThreadPoolExecutor</h3><p>Different from <span class="vsymbol v">CPUThreadPoolExecutor</span>, <span class="vsymbol v">IOThreadPoolExecutor</span> leverages <span class="vsymbol v">EventBase</span> to maximize the performance.</p><p>Again we explore the executor by answering the following questions</p><ol><li>How does each thread run tasks?</li><li>How does the thread pool respond to a suddenly increased volume of of I/O tasks?</li><li>How does the thread pool save the CPU and memory when the flood of I/O tasks goes away?</li><li>How does the thread pool shutdown?</li></ol><h4 class="subsection" id="subsecsubseceb4810fffeebe4fc41fde1dfdfa930a9">threadRun</h4><pre class="gist"><code>void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
+  this-&gt;threadPoolHook_.registerThread();
+
+  const auto ioThread = std::static_pointer_cast&lt;IOThread&gt;(thread);
+  ioThread-&gt;eventBase = eventBaseManager_-&gt;getEventBase();
+  thisThread_.reset(new std::shared_ptr&lt;IOThread&gt;(ioThread));
+
+  auto idler = std::make_unique&lt;MemoryIdlerTimeout&gt;(ioThread-&gt;eventBase);
+  ioThread-&gt;eventBase-&gt;runBeforeLoop(idler.get());
+
+  ioThread-&gt;eventBase-&gt;runInEventBaseThread(
+      [thread] { thread-&gt;startupBaton.post(); });
+  while (ioThread-&gt;shouldRun) {
+    ioThread-&gt;eventBase-&gt;loopForever();
+  }
+  if (isJoin_) {
+    while (ioThread-&gt;pendingTasks &gt; 0) {
+      ioThread-&gt;eventBase-&gt;loopOnce();
+    }
+  }
+  idler.reset();
+  if (isWaitForAll_) {
+    // some tasks, like thrift asynchronous calls, create additional
+    // event base hookups, let's wait till all of them complete.
+    ioThread-&gt;eventBase-&gt;loop();
+  }
+
+  std::lock_guard&lt;std::mutex&gt; guard(ioThread-&gt;eventBaseShutdownMutex_);
+  ioThread-&gt;eventBase = nullptr;
+  eventBaseManager_-&gt;clearEventBase();
+}</code></pre><p>It has a lot of code, but how it works is simple because <span class="vsymbol v">EventBase</span> does the heavy lift here: each thread gets one <span class="vsymbol v">EventBase</span> from <span class="vsymbol v">EventBaseManager</span> and then repeatedly works on tasks when <span class="vsymbol v">loopForever</span> starts.</p><h4 class="subsection" id="subsecsubsec5e82ef58c2f661a21cb7df00075a8547">Respond to Flood of Tasks</h4><p>Let’s see what <span class="vsymbol v">add</span> does</p><pre class="gist"><code>void IOThreadPoolExecutor::add(
+    Func func,
+    std::chrono::milliseconds expiration,
+    Func expireCallback) {
+  ensureActiveThreads();
+  SharedMutex::ReadHolder r{&amp;threadListLock_};
+  if (threadList_.get().empty()) {
+    throw std::runtime_error("No threads available");
+  }
+  auto ioThread = pickThread();
+
+  auto task = Task(std::move(func), expiration, std::move(expireCallback));
+  auto wrappedFunc = [ioThread, task = std::move(task)]() mutable {
+    runTask(ioThread, std::move(task));
+    ioThread-&gt;pendingTasks--;
+  };
+
+  ioThread-&gt;pendingTasks++;
+  ioThread-&gt;eventBase-&gt;runInEventBaseThread(std::move(wrappedFunc));
+}</code></pre><p>It picks one of the active threads (in <span class="vsymbol v">pickThread</span>), run the function in the event base of the chosen thread via <span class="vsymbol v">runInEventBaseThread</span>.</p><p>How to pick a thread then? It’s fairly simple–just round robin.</p><pre class="gist"><code>std::shared_ptr&lt;IOThreadPoolExecutor::IOThread&gt;
+IOThreadPoolExecutor::pickThread() {
+  auto&amp; ths = threadList_.get();
+  ...
+  auto thread = ths[nextThread_.fetch_add(1, std::memory_order_relaxed) % n];
+  return std::static_pointer_cast&lt;IOThread&gt;(thread);
+}</code></pre><p><span class="vsymbol v">nextThread_</span> is an atomic int, used only in this method, which means <span class="vsymbol v">pickThread</span> round robins the <span class="vsymbol v">threadList_</span> to find a thread.</p><h4 class="subsection" id="subsecsubsec46efd69b7418b9776d9f10a6f028d0f9">Respond to Quiet System</h4><p>When the system becomes quiet, how to shut down unnecessary threads?</p><p><span class="vsymbol v">threadRun</span> runs <span class="vsymbol v">MemoryIdlerTimeout</span> before each loop. Let’s see the code again:</p><pre class="gist"><code>void IOThreadPoolExecutor::threadRun(ThreadPtr thread) {
+  this-&gt;threadPoolHook_.registerThread();
+
+  const auto ioThread = std::static_pointer_cast&lt;IOThread&gt;(thread);
+  ioThread-&gt;eventBase = eventBaseManager_-&gt;getEventBase();
+  thisThread_.reset(new std::shared_ptr&lt;IOThread&gt;(ioThread));
+
+  auto idler = std::make_unique&lt;MemoryIdlerTimeout&gt;(ioThread-&gt;eventBase);
+  ioThread-&gt;eventBase-&gt;runBeforeLoop(idler.get());
+  ...</code></pre><p><span class="vsymbol v">runBeforeLoop</span> will add a <span class="vsymbol v">LoopCallback</span> into a queue that will run before the main loop every time. </p><p>What is a <span class="vsymbol v">MemoryIdlertimeout</span>?</p><pre class="gist"><code>/* Class that will free jemalloc caches and madvise the stack away
+ * if the event loop is unused for some period of time
+ */
+class MemoryIdlerTimeout : public AsyncTimeout, public EventBase::LoopCallback {
+ public:
+  explicit MemoryIdlerTimeout(EventBase* b) : AsyncTimeout(b), base_(b) {}
+
+  void timeoutExpired() noexcept override {
+    idled = true;
+  }
+
+  void runLoopCallback() noexcept override {
+    if (idled) {
+      MemoryIdler::flushLocalMallocCaches();
+      MemoryIdler::unmapUnusedStack(MemoryIdler::kDefaultStackToRetain);
+
+      idled = false;
+    } else {
+      std::chrono::steady_clock::duration idleTimeout =
+          MemoryIdler::defaultIdleTimeout.load(std::memory_order_acquire);
+
+      idleTimeout = MemoryIdler::getVariationTimeout(idleTimeout);
+
+      scheduleTimeout(static_cast&lt;uint32_t&gt;(
+          std::chrono::duration_cast&lt;std::chrono::milliseconds&gt;(idleTimeout)
+              .count()));
+    }
+
+    // reschedule this callback for the next event loop.
+    base_-&gt;runBeforeLoop(this);
+  }
+
+ private:
+  EventBase* base_;
+  bool idled{false};
+};</code></pre><p>You’ll need to know the construct <span class="vsymbol v">AsyncTimeout</span> and <span class="vsymbol v">LoopCallback</span> to know the running logic here.</p><ol><li>AsyncTimeout schedules a timeout event, and when it times out, method <span class="vsymbol v">timeoutExpired</span> runs.</li><li>LoopCallback runs <span class="vsymbol v">runLoopCallback</span> in the event base thread.</li></ol><p>So this <span class="vsymbol v">MemoryIdlerTimeout</span> schedules a periodic job (interval is <span class="vsymbol v">idleTimeout</span>, which is 5s) to run before event loop. It sets <span class="vsymbol v">idled</span> to true. The next time when the idler job runs, and sees <span class="vsymbol v">idled</span> is already true, it flushes local cache and unmap unused stacks because the system hasn’t received any tasks for a while. It does not free threads because it need threads to wait for I/O (waits on <span class="vsymbol v">poll</span> or <span class="vsymbol v">epoll</span> internally in <span class="vsymbol v">EventBase</span>).  </p><h4 class="subsection" id="subsecsubsec16ab7bea2c327305766e5173cc328abc">Shutdown</h4><p>Remember all threads are blocked running <span class="vsymbol v">EventBase::LoopForever</span> in <span class="vsymbol v">threadRun</span>?</p><pre class="gist"><code>while (ioThread-&gt;shouldRun) {
+  ioThread-&gt;eventBase-&gt;loopForever();
+}</code></pre><p>during shutdown, <span class="vsymbol v">stopThreads</span> sets <span class="vsymbol v">shouldRun</span> to false, and terminates the loop.</p><pre class="gist"><code>void IOThreadPoolExecutor::stopThreads(size_t n) {
+  ...
+  for (size_t i = 0; i &lt; n; i++) {
+    ...
+    ioThread-&gt;shouldRun = false;
+    stoppedThreads.push_back(ioThread);
+    std::lock_guard&lt;std::mutex&gt; guard(ioThread-&gt;eventBaseShutdownMutex_);
+    if (ioThread-&gt;eventBase) {
+      ioThread-&gt;eventBase-&gt;terminateLoopSoon();
+    }
+  }
+
+  for (auto thread : stoppedThreads) {
+    stoppedThreads_.add(thread);
+    threadList_.remove(thread);
+  }
+}</code></pre><p>When <span class="vsymbol v">EventBase</span>‘s loop terminates, the associated thread will exit.</p><div class="nice-separator"></div><p>We’ve learned how <span class="vsymbol v">CPUThreadPoolExecutor</span> and <span class="vsymbol v">IOThreadPoolExecutor</span> are implemented in this post.</p><p>They have different strategies for sudden increase in the load: for CPU intensive tasks, parallel processing increases throughput so <span class="vsymbol v">CPUThreadPoolExecutor</span> spawns more threads, but for IO intensive tasks, spawning threads does not help because of the nature of IO, so <span class="vsymbol v">IOThreadPoolExecutor</span> simply tries to distribute the load evenly across all threads.</p><p>Because they respond to loads differently, they behave differently when the load is gone: CPU thread pool releases threads, whereas IO thread pool releases only memory and stacks.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

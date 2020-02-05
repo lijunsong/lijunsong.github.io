@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>Notes on Folly: How UNLIKELY Macro Works</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container">
+    <nav class="navbar">
+      <div class="row">
+        <!-- <div id="sitename">Junsong's Weblog</div> -->
+        <div class="offset-by-two ten columns"><ul class="nav-list"><li class="nav-item"><a href="/index.html">HOME</a></li><li class="nav-item"><a href="#" data-popup="navprojects">PROJECTS</a><ul class="popup-list" id="navprojects"><li class="popup-item"><a href="/projects/quick-notes.html">Quick Notes</a></li><li class="popup-item"><a href="/projects/folly2019.html">Folly 2019</a></li><li class="popup-item"><a href="/projects/pollen-rock.html">Pollen Rock</a></li><li class="popup-item"><a href="/projects/sicp2014.html">SICP 2014</a></li></ul></li><li class="nav-item"><a href="/about.html">ABOUT</a></li></ul></div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="row contents">
+      <div class="offset-by-two eight columns">
+        <div class="heading">
+          <h1 class="title">Notes on Folly: How UNLIKELY Macro Works</h1>
+          <div class="date">2020-09-17</div>
+          <div class="tags">c++</div>
+        </div>
+        <div class="excerpt"><p>Have you seen the <span class="vsymbol v">UNLIKELY</span> annotation before? How does it work behind the scene?</p></div>
+        <div class="excerpt-separator"></div>
+
+        <div class="content">
+          <p>Folly code base extensively uses a macro called <span class="vsymbol v">UNLIKELY</span>. For instance, this is a code snippet in <a href="/folly-notes-thread-pool-executors.html">Notes on Folly: Thread Pool Executors</a>:</p><pre class="gist"><code>if (UNLIKELY(!task || task.value().poison)) {
+  // Actually remove the thread from the list.
+  SharedMutex::WriteHolder w{&amp;threadListLock_};
+  ...
+}</code></pre><p>Similarly, Linux kernel also uses <a href="https://elixir.bootlin.com/linux/v5.0/source/kernel/exit.c#L580" class="link-url">such instruments</a>. How does it work?</p><div class="right-margin">Linux kernel also <a href="https://elixir.bootlin.com/linux/v5.0/source/include/linux/compiler.h#L48" class="link-url">uses <span class="vsymbol v">__builtin_expect</span></a>.</div><p>Let’s take a look at how the macro is defined in folly:</p><pre class="gist"><code>#if defined(__GNUC__)
+#define LIKELY(x) (__builtin_expect((x), 1))
+#define UNLIKELY(x) (__builtin_expect((x), 0))
+#else
+#define LIKELY(x) (x)
+#define UNLIKELY(x) (x)
+#endif</code></pre><p>This macro is transformed to <span class="vsymbol v">__builtin_expect</span>. In GCC documentation,</p><div class="blockquote"><blockquote><p>You may use <span class="vsymbol v">__builtin_expect</span> to provide the compiler with branch prediction information.</p><p>The return value is the value of exp, which should be an integral expression. The semantics of the built-in are that it is expected that exp == c. For example:</p><pre class="gist"><code>if (__builtin_expect (x, 0))
+  foo ();</code></pre><p>indicates that we do not expect to call foo, since we expect x to be zero. Since you are limited to integral expressions for exp, you should use constructions such as</p><pre class="gist"><code>if (__builtin_expect (ptr != NULL, 1))
+  foo (*ptr);</code></pre><p>when testing pointer or floating-point values.</p></blockquote></div><p>Ultimately the secret is in the compiled code. Let’s compile a small program and take a look at the generated code:</p><div class="gist"><pre class="tiny-bottom-gap"><code>#include &lt;iostream&gt;
+int cond() { return 1; }
+void bar() { std::cout &lt;&lt; "bar\n"; }
+void zoo() { std::cout &lt;&lt; "zoo\n"; }
+void foo(int x) {
+  // we don't expect to call bar
+  if (__builtin_expect(x, 0)) {
+    bar();
+  } else {
+    zoo();
+  }
+}
+
+int main(int argc, char **argv) {
+  foo(argc);
+}</code></pre><p class="explain">Save this code to <span class="vsymbol v">t.cc</span>, and compile it with <span class="vlong v">g++ -g -O1 t.cc</span>. Note that we must enable optimization to enable branch predication.</p></div><p>Instead of passing a static value to <span class="vsymbol v">foo</span>, we pass in <span class="vsymbol v">argc</span> to disable inlining. Let’s check the assembly of function <span class="vsymbol v">foo</span>:</p><div class="gist"><pre class="tiny-bottom-gap"><code>(gdb) Dump of assembler code for function foo(int):
+   &lt;+0&gt;:     sub    $0x8,%rsp
+   &lt;+4&gt;:     test   %edi,%edi
+   &lt;+6&gt;:     jne    0x894 &lt;foo(int)+18&gt;
+   &lt;+8&gt;:     callq  0x861 &lt;zoo()&gt;
+   &lt;+13&gt;:    add    $0x8,%rsp
+   &lt;+17&gt;:    retq
+   &lt;+18&gt;:    callq  0x840 &lt;bar()&gt;
+   &lt;+23&gt;:    jmp    0x88f &lt;foo(int)+13&gt;
+End of assembler dump.</code></pre><p class="explain">Run <span class="vlong v">echo disassemble foo | gdb a.out</span></p></div><p>The call <span class="vsymbol v">zoo</span> is raised to the next instruction of <span class="vlong v">x != 0</span>. If we switch to use</p><pre class="gist"><code>void foo(int x) {
+  // we expect to call bar
+  if (__builtin_expect(x, 1)) {
+    bar();
+  } else {
+    zoo();
+  }
+}</code></pre><p>The generated code is</p><pre class="gist"><code>(gdb) Dump of assembler code for function foo(int):
+   &lt;+0&gt;:     sub    $0x8,%rsp
+   &lt;+4&gt;:     test   %edi,%edi
+   &lt;+6&gt;:     je     0x894 &lt;foo(int)+18&gt;
+   &lt;+8&gt;:     callq  0x840 &lt;bar()&gt;
+   &lt;+13&gt;:    add    $0x8,%rsp
+   &lt;+17&gt;:    retq
+   &lt;+18&gt;:    callq  0x861 &lt;zoo()&gt;
+   &lt;+23&gt;:    jmp    0x88f &lt;foo(int)+13&gt;
+End of assembler dump.
+(gdb) quit</code></pre><p>where the code has placed <span class="vsymbol v">bar</span> close to <span class="vlong v">x != 0</span>.</p><p>What <span class="vsymbol v">UNLIKELY</span> does is actually simple: it arranges instructions in the <span class="vsymbol v">else</span> branch to make it closer to instructions generated from <span class="vsymbol v">if</span>‘s condition. This optimization makes instruction execution faster because processors execute instructions in <a href="https://en.wikipedia.org/wiki/Instruction_pipelining" class="link-url">pipelines</a>, and the arrangement of the code makes it unlikely for processors to wastefully load instructions and then flush them for failed branch prediction.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>SICP</title>
+  <meta name="description" content="Junsong's blog">
+  <meta name="author" content="Junsong Li">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet">
+
+  <link href="/assets/normalize.css" rel="stylesheet" type="text/css">
+  <link href="/assets/skeleton.css" rel="stylesheet" type="text/css">
+  <link href="/assets/main.css" rel="stylesheet" type="text/css">
+  <link href="/assets/template282.css" rel="stylesheet" type="text/css">
+  <link href="/sicp/sicp.css" rel="stylesheet" type="text/css">
+
+  <script src="/assets/simple-jquery.js"></script>
+  <script src="/assets/dropdown.js"></script>
+
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+  <div class="container book-header">
+    <h2 class="book-title"> SICP 全笔记 </h1>
+    <nav>
+      <ul class="book-navbar">
+        <li><a href="/sicp/index.html">目录</a></li>
+        <li><a href="/sicp/about.html">关于</a></li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <div class="container page">
+    <div class="row">
+      <div class="offset-by-two eight columns">
+        <div class="content">
+          <div class="exerciseQ"><p>Exercise 5.19.  Alyssa P. Hacker wants a breakpoint feature in the simulator to help her debug her machine designs. You have been hired to install this feature for her. She wants to be able to specify a place in the controller sequence where the simulator will stop and allow her to examine the state of the machine. You are to implement a procedure</p><p>``(set-breakpoint &lt;machine&gt; &lt;label&gt; &lt;n&gt;)``</p><p>that sets a breakpoint just before the nth instruction after the given label. For example,</p><p>``(set-breakpoint gcd-machine ‘test-b 4)``</p><p>installs a breakpoint in gcd-machine just before the assignment to register a. When the simulator reaches the breakpoint it should print the label and the offset of the breakpoint and stop executing instructions. Alyssa can then use get-register-contents and set-register-contents! to manipulate the state of the simulated machine. She should then be able to continue execution by saying</p><p>``(proceed-machine &lt;machine&gt;)``</p><p>She should also be able to remove a specific breakpoint by means of</p><p>``(cancel-breakpoint &lt;machine&gt; &lt;label&gt; &lt;n&gt;)``</p><p>or to remove all breakpoints by means of</p><p>``(cancel-all-breakpoints &lt;machine&gt;)``</p></div><p>  这一题非常有意思！有了之前的基础之后，我们要做一个 debugger 的基本模型。</p><p>我们需要知道</p><ol><li>给定一个 label 和 offset，如何获取 instruction；</li><li>知道了要停止的 instruction，我们要如何让 machine 停下来；</li><li>machine 停下来之后，我们要怎么恢复 machine 的工作。</li></ol><p>思路是，machine 维护一个 breakpoints list，里面保存了设置过断点的 instruction。每次机器 execute 的时候，都会去匹配当前要执行的 instruction 是否在 breakpoints list 里面。如果在，停止。下一次启动的时候，machine 又会从 pc 寄存器中获取指令，然后继续执行。</p><p>我们先看如果获取 label，n 和 instruction 信息。</p><p>做了 <a href="/sicp/exercise5-18.html">练习 5.18</a> ，我们知道了 <span class="vsymbol v">extract-labels</span> 可以获取标签与其后指令的 list。我们可以通过这个 list 来得到我们想要的 label，offset 和相应的 instruction 的信息。</p><pre class="gist sicp-code"><code>(define (make-machine regs ops controller-text)
+  (let ((machine (make-new-machine)))
+    (for-each (lambda (name)
+                ((machine 'allocate-register) name))
+              regs)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    ((machine 'install-labels)
+     (get-labels controller-text machine))
+    machine))
+
+(define (get-labels constroller-text machine)
+  (extract-labels constroller-text
+                  (lambda (labels insts) labels)))
+</code></pre><p>有了这个信息之后，我们就可以直接查询 label n 对应哪一个 instruction。</p><pre class="gist sicp-code"><code>      ;; return instruction
+      (define (lookup-instruction label n)
+        (define (lookup-inst label insts count)
+          (cond ((and (not (= n count)) (null? insts))
+                 (error 'lookup-instruction "Invalid " 
+                        n "after label " label))
+                ((= n count)
+                 (caar insts))
+                (else
+                 (lookup-inst label (cdr insts) (+ 1 count)))))
+        (let ((insts (assoc label labels)))
+          (if insts
+              (lookup-inst label (cdr insts) 1)
+              (error 'lookup-instruction "Invalid label " label))))</code></pre><p>然后，我们看看如果在 execute 时候停下来</p><pre class="gist sicp-code"><code>      (define (execute)
+        (let ((insts (get-contents pc)))
+          (cond ((null? insts) 'done)
+                ((and stop-the-machine (hit-breakpoint? (caar insts)))
+                 (list 'stop 'at (hit-breakpoint? (caar insts))))
+                (else
+                 ((instruction-execution-proc (car insts)))
+                 (set! stop-the-machine #t)
+                 (execute)))))</code></pre><p><span class="vsymbol v">stop-the-machine</span> 是 <span class="vsymbol v">#t</span> 或者是 <span class="vsymbol v">#f</span> 。每次使用 <span class="vsymbol v">proceed-machine</span> 之后，这个变量被改为 <span class="vsymbol v">#f</span> ， <span class="vsymbol v">hit-breakpoint?</span> 就会被跳过去。执行过一条指令之后又变成 <span class="vsymbol v">#t</span> 然后再次检查 <span class="vsymbol v">hit-breakpoint?</span> 。 <span class="vsymbol v">hit-breakpoint?</span> 查看当前指令有没有在断点列表里面。我们的断点列表保存了</p><pre class="gist"><code>(((inst text1) label1 n1)
+ ((inst text2) label2 n2)
+ ...)
+</code></pre><p> 然后是 breakpoint 相关的过程。只有一点要注意：比较 instruction 需要使用 <span class="vsymbol v">eq?</span> ，因为有可能两条 instruction 内容一致，但位置不一样。和上一个练习一样。</p><pre class="gist sicp-code"><code>      ;; breakpoints list stores (((inst text1) label1 n1) ((inst text2) label2 n2))
+      (define (set-breakpoint label n)
+        (let ((inst (lookup-instruction label n)))
+          (set! breakpoints (append breakpoints
+                                    (list (cons inst (list label n)))))
+          (list 'break 'at inst (list label n))))
+      (define (cancel-breakpoint label n)
+        (let ((inst (lookup-instruction label n)))
+          (set! breakpoints (remove (lambda (x)
+                                      (eq? inst (car x))) breakpoints))
+          'cancelled))
+      (define (hit-breakpoint? inst)
+        (find (lambda (breakpoint)
+                (eq? inst (car breakpoint)))
+              breakpoints))
+      (define (proceed-machine)
+        (set! stop-the-machine #f)
+        (execute))
+      (define (cancel-all-breakpoints)
+        (set! breakpoints '())
+        '(all break points are cancelled))</code></pre><p>再然后，是一些用户的接口。</p><pre class="gist sicp-code"><code>(define (set-breakpoint machine label n)
+  ((machine 'set-breakpoint) label n))
+(define (proceed-machine machine)
+  (machine 'proceed-machine))
+(define (cancel-breakpoint machine label n)
+  ((machine 'cancel-breakpoint) label n))
+(define (cancel-all-breakpoints machine)
+  (machine 'cancel-all-breakpoints))
+</code></pre><p>最后是测试</p><pre class="gist sicp-code"><code>(load "../testframe.scm")
+(define gcd-machine
+  (make-machine
+   '(a b t)
+   (list (list 'rem remainder) (list '= =))
+   '(test-b
+       (test (op =) (reg b) (const 0))
+       (branch (label gcd-done))
+       (assign t (op rem) (reg a) (reg b))
+       (assign a (reg b))
+       (assign b (reg t))
+       (goto (label test-b))
+     gcd-done)))
+
+(set-register-contents! gcd-machine 'a 206)
+(set-register-contents! gcd-machine 'b 40)
+
+(set-breakpoint gcd-machine 'test-b 4)
+(start gcd-machine)
+(assert= (get-register-contents gcd-machine 'a) 206)
+(assert= (get-register-contents gcd-machine 'b) 40)
+(assert= (get-register-contents gcd-machine 't) 6)
+(proceed-machine gcd-machine)
+(assert= (get-register-contents gcd-machine 'a) 40)
+(assert= (get-register-contents gcd-machine 'b) 6)
+(assert= (get-register-contents gcd-machine 't) 4)
+;(proceed-machine gcd-machine)
+;(assert= (get-register-contents gcd-machine 'a) 6)
+;(assert= (get-register-contents gcd-machine 'b) 4)
+;(assert= (get-register-contents gcd-machine 't) 2)
+(cancel-breakpoint gcd-machine 'test-b 4)
+(proceed-machine gcd-machine)
+(assert= (get-register-contents gcd-machine 'a) 2)</code></pre><p>有了这个 “debugger” 之后，我们可以这样交互</p><pre class="gist"><code>1 ]=&gt; (set-register-contents! gcd-machine 'a 206)
+
+;Value: *unassigned*
+
+1 ]=&gt; (set-register-contents! gcd-machine 'b 40)
+
+;Value: *unassigned*
+
+1 ]=&gt; (set-breakpoint gcd-machine 'test-b 4)
+
+;Value 14: (break at (assign a (reg b)) (test-b 4))
+
+1 ]=&gt; (start gcd-machine)
+
+;Value 15: (stop at ((assign a (reg b)) test-b 4))
+
+1 ]=&gt; (get-register-contents gcd-machine 'a)
+
+;Value: 206
+
+1 ]=&gt; (get-register-contents gcd-machine 'b)
+
+;Value: 40
+
+1 ]=&gt; (proceed-machine gcd-machine)
+
+;Value 16: (stop at ((assign a (reg b)) test-b 4))
+
+1 ]=&gt; (get-register-contents gcd-machine 'a)
+
+;Value: 40
+
+1 ]=&gt; (cancel-breakpoint gcd-machine 'test-b 4)
+
+;Value: cancelled
+
+1 ]=&gt; (proceed-machine gcd-machine)
+
+;Value: done
+
+1 ]=&gt; (get-register-contents gcd-machine 'a)
+
+;Value: 2
+</code></pre><p> 下面是整个文件的代码，放在这里保持完整性。</p><pre class="gist sicp-code"><code>(load "machine-register-module.scm")
+(load "machine-machine-module.scm")
+(load "machine-assemble-module.scm")
+(load "machine-new-stack-module.scm")
+
+;; install label-instructions
+(define (make-machine regs ops controller-text)
+  (let ((machine (make-new-machine)))
+    (for-each (lambda (name)
+                ((machine 'allocate-register) name))
+              regs)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    ((machine 'install-labels)
+     (get-labels controller-text machine))
+    machine))
+
+(define (get-labels constroller-text machine)
+  (extract-labels constroller-text
+                  (lambda (labels insts) labels)))
+
+;; add breakpoints list, stop-the-machine flags to machine
+(define (make-new-machine)
+  (let ((stack (make-stack))
+        (flag (make-register))
+        (pc (make-register))
+        (the-instruction-sequence '())
+        (labels '())
+        (breakpoints '()) ; assoc list of inst -&gt; (label n)
+        (stop-the-machine #t))
+    (let ((regs (list (cons 'pc pc)
+                      (cons 'flag flag))) ; assoc of name-&gt;register-object
+          (the-ops
+           (list (list 'initialize-stack
+                       (lambda () (stack 'initialize))))))
+      (define (allocate-register name)
+        (if (assoc name regs)
+            (error 'machine "register exists: " name)
+            (set! regs (cons (cons name (make-register)) regs)))
+        'register-allocated)
+      (define (lookup-register name)
+        (let ((r (assoc name regs)))
+          (if r
+              (cdr r)
+              (error 'machine "Unknown register: " name))))
+      ;; new execute
+      (define (execute)
+        (let ((insts (get-contents pc)))
+          (cond ((null? insts) 'done)
+                ((and stop-the-machine (hit-breakpoint? (caar insts)))
+                 (list 'stop 'at (hit-breakpoint? (caar insts))))
+                (else
+                 ((instruction-execution-proc (car insts)))
+                 (set! stop-the-machine #t)
+                 (execute)))))
+      ;; end
+      ;; lookup instruction in label-instructions assoc list
+      ;; return instruction
+      (define (lookup-instruction label n)
+        (define (lookup-inst label insts count)
+          (cond ((and (not (= n count)) (null? insts))
+                 (error 'lookup-instruction "Invalid " 
+                        n "after label " label))
+                ((= n count)
+                 (caar insts))
+                (else
+                 (lookup-inst label (cdr insts) (+ 1 count)))))
+        (let ((insts (assoc label labels)))
+          (if insts
+              (lookup-inst label (cdr insts) 1)
+              (error 'lookup-instruction "Invalid label " label))))
+      ;; end
+
+      ;; breakpoint related
+      ;; breakpoints list stores (((inst text1) label1 n1) ((inst text2) label2 n2))
+      (define (set-breakpoint label n)
+        (let ((inst (lookup-instruction label n)))
+          (set! breakpoints (append breakpoints
+                                    (list (cons inst (list label n)))))
+          (list 'break 'at inst (list label n))))
+      (define (cancel-breakpoint label n)
+        (let ((inst (lookup-instruction label n)))
+          (set! breakpoints (remove (lambda (x)
+                                      (eq? inst (car x))) breakpoints))
+          'cancelled))
+      (define (hit-breakpoint? inst)
+        (find (lambda (breakpoint)
+                (eq? inst (car breakpoint)))
+              breakpoints))
+      (define (proceed-machine)
+        (set! stop-the-machine #f)
+        (execute))
+      (define (cancel-all-breakpoints)
+        (set! breakpoints '())
+        '(all break points are cancelled))
+      ;; end
+      (define (dispatch msg)
+        (cond ((eq? msg 'allocate-register) allocate-register)
+              ((eq? msg 'lookup-register) lookup-register)
+              ((eq? msg 'install-operations)
+               (lambda (ops) (set! the-ops (append the-ops ops))))
+              ((eq? msg 'stack) stack)
+              ((eq? msg 'operations) the-ops)
+              ((eq? msg 'install-instruction-sequence)
+               (lambda (seq) (set! the-instruction-sequence seq)))
+              ((eq? msg 'install-labels)
+               (lambda (labls) (set! labels labls)))
+              ((eq? msg 'start)
+               (set-contents! pc the-instruction-sequence)
+               (execute))
+
+              ((eq? msg 'set-breakpoint) set-breakpoint)
+              ((eq? msg 'proceed-machine) (proceed-machine))
+              ((eq? msg 'cancel-breakpoint) cancel-breakpoint)
+              ((eq? msg 'cancel-all-breakpoints) (cancel-all-breakpoints))
+
+              (else
+               (error 'machine "Unknown message: " msg))))
+      dispatch)))
+
+;; helper functions
+(define (set-breakpoint machine label n)
+  ((machine 'set-breakpoint) label n))
+(define (proceed-machine machine)
+  (machine 'proceed-machine))
+(define (cancel-breakpoint machine label n)
+  ((machine 'cancel-breakpoint) label n))
+(define (cancel-all-breakpoints machine)
+  (machine 'cancel-all-breakpoints))
+
+;; tests begin
+(load "../testframe.scm")
+(define gcd-machine
+  (make-machine
+   '(a b t)
+   (list (list 'rem remainder) (list '= =))
+   '(test-b
+       (test (op =) (reg b) (const 0))
+       (branch (label gcd-done))
+       (assign t (op rem) (reg a) (reg b))
+       (assign a (reg b))
+       (assign b (reg t))
+       (goto (label test-b))
+     gcd-done)))
+
+(set-register-contents! gcd-machine 'a 206)
+(set-register-contents! gcd-machine 'b 40)
+
+(set-breakpoint gcd-machine 'test-b 4)
+(start gcd-machine)
+(assert= (get-register-contents gcd-machine 'a) 206)
+(assert= (get-register-contents gcd-machine 'b) 40)
+(assert= (get-register-contents gcd-machine 't) 6)
+(proceed-machine gcd-machine)
+(assert= (get-register-contents gcd-machine 'a) 40)
+(assert= (get-register-contents gcd-machine 'b) 6)
+(assert= (get-register-contents gcd-machine 't) 4)
+;(proceed-machine gcd-machine)
+;(assert= (get-register-contents gcd-machine 'a) 6)
+;(assert= (get-register-contents gcd-machine 'b) 4)
+;(assert= (get-register-contents gcd-machine 't) 2)
+(cancel-breakpoint gcd-machine 'test-b 4)
+(proceed-machine gcd-machine)
+(assert= (get-register-contents gcd-machine 'a) 2)</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
